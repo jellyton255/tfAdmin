@@ -156,6 +156,10 @@ describe('/api/v1', () => {
         const dupe = await call('POST', '/api/v1/keys', adminToken, { name: 'bot', permissions: ['players.ban'] });
         expect(dupe.status).toBe(409);
 
+        const past = await call('POST', '/api/v1/keys', adminToken, { name: 'past', permissions: ['players.ban'], expiresAt: 1000 });
+        expect(past.status).toBe(400);
+        expect(past.json.error.code).toBe('VALIDATION_ERROR');
+
         const text = await call('POST', '/api/v1/keys', adminToken, 'name=bot', 'text/plain');
         expect(text.status).toBe(415);
     });

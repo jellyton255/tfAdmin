@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import fsp from 'node:fs/promises';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ApiKeyStore, { formatToken, hashSecret, parseToken } from './ApiKeyStore';
 
 let tmpDir: string;
@@ -131,6 +132,37 @@ describe('ApiKeyStore', () => {
         await store.flush();
         const reloaded = new ApiKeyStore(filePath);
         expect(reloaded.get(key.id)?.lastUsedAt).toBeTypeOf('number');
+    });
+
+    it('leaves memory untouched when the write fails', async () => {
+        const store = new ApiKeyStore(filePath);
+        const { key, token } = await store.create(baseInput, 'julian');
+        const spy = vi.spyOn(fsp, 'writeFile').mockRejectedValueOnce(new Error('disk full'));
+
+        await expect(store.create({ name: 'second', permissions: ['players.kick'] }, 'julian')).rejects.toThrow('disk full');
+        expect(store.list()).toHaveLength(1);
+        //a retry with the same name is not blocked by a phantom record
+        spy.mockRejectedValueOnce(new Error('disk full'));
+        await expect(store.revoke(key.id, 'julian')).rejects.toThrow('disk full');
+        expect(store.get(key.id)?.revokedAt).toBeNull();
+        expect(store.verify(token, '1.2.3.4').success).toBe(true);
+        spy.mockRestore();
+
+        //writes work again afterwards and the chain is not stuck
+        await expect(store.create({ name: 'second', permissions: ['players.kick'] }, 'julian')).resolves.toBeTruthy();
+        expect(store.list()).toHaveLength(2);
+        expect(fs.readdirSync(tmpDir)).toEqual(['apiKeys.json']);
+    });
+
+    it('serializes concurrent writes', async () => {
+        const store = new ApiKeyStore(filePath);
+        await Promise.all([
+            store.create({ name: 'a', permissions: ['players.kick'] }, 'j'),
+            store.create({ name: 'b', permissions: ['players.kick'] }, 'j'),
+            store.create({ name: 'c', permissions: ['players.kick'] }, 'j'),
+        ]);
+        expect(store.list().map((k) => k.name).sort()).toEqual(['a', 'b', 'c']);
+        expect(new ApiKeyStore(filePath).list()).toHaveLength(3);
     });
 
     it('refuses a corrupt file', () => {

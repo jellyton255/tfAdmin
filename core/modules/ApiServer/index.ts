@@ -1,6 +1,6 @@
 const modulename = 'ApiServer';
 import consoleFactory from '@lib/console';
-import ApiKeyStore, { type ApiKeyCreateInput } from './ApiKeyStore';
+import ApiKeyStore, { ApiKeyStoreError, type ApiKeyCreateInput } from './ApiKeyStore';
 import ApiRateLimiter from './rateLimiter';
 import { ApiError } from './envelope';
 import { invalidIpEntries } from './ipAllowlist';
@@ -66,7 +66,13 @@ export default class ApiServer {
         try {
             result = await this.keyStore.create(input, admin.name);
         } catch (error) {
-            throw new ApiError(409, 'CONFLICT', (error as Error).message);
+            if (error instanceof ApiKeyStoreError) {
+                if (error.code === 'duplicate_name') {
+                    throw new ApiError(409, 'CONFLICT', error.message);
+                }
+                throw new ApiError(400, 'VALIDATION_ERROR', error.message);
+            }
+            throw error; //disk errors etc. reach the 500 handler
         }
         admin.logAction(`Created API key '${result.key.name}' (${result.key.id}) with permissions: ${result.key.permissions.join(', ')}`);
         return result;
