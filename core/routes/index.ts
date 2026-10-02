@@ -71,6 +71,13 @@ export { default as serverLogPartial } from './serverLogPartial.js';
 
 export { default as host_status } from './hostStatus';
 
+// everfall:api
+export {
+    list as apiKeys_list,
+    create as apiKeys_create,
+    revoke as apiKeys_revoke,
+} from './apiKeys';
+
 export {
     get as dev_get,
     post as dev_post,

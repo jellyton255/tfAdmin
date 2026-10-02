@@ -11,13 +11,13 @@
     "shared"
   ],
   "scripts": {
-    "build": "rimraf dist tmp_core_tsc && npm run build -w nui && npm run build -w panel && npm run build -w core && npm run license:distfile",
+    "build": "rimraf dist tmp_core_tsc && pnpm --filter txadmin-nui build && pnpm --filter txadmin-panel build && pnpm --filter txadmin-core build && pnpm run license:distfile",
     "prepare": "husky install",
-    "test": "npm run test --workspaces",
-    "typecheck": "npm run typecheck --workspaces",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
     "locale:rebase": "node scripts/locale-utils.js rebase",
     "locale:check": "node scripts/locale-utils.js check --color",
-    "license:report": "rimraf .reports/license && mkdir \".reports/license\" && npm run license:report --workspaces",
+    "license:report": "rimraf .reports/license && mkdir \".reports/license\" && pnpm -r license:report",
     "license:list": "node scripts/list-licenses.js",
     "license:distfile": "generate-license-file --ci --no-spinner --input package.json --output dist/THIRD-PARTY-LICENSES.txt"
   },
