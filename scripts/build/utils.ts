@@ -81,7 +81,7 @@ export const getFxsPaths = (fxserverPath: string) => {
 
 /**
  * Extracts the version from the GITHUB_REF env var and detects if pre-release
- * NOTE: to run locally: `GITHUB_REF="refs/tags/v9.9.9" npm run build`
+ * NOTE: to run locally: `GITHUB_REF="refs/tags/v9.9.9" pnpm run build`
  */
 export const getPublishVersion = (isOptional: boolean) => {
     const workflowRef = process.env.GITHUB_REF;
