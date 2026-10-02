@@ -18,7 +18,7 @@ Before starting, please make sure you are familiar with the basics of NodeJS & e
     - `modules`: The classes that compose the txAdmin instance, they are stateful, provide specific functionalities and are interconnected with each other.
     - `routes`: All the web routes, contain all the logic referenced in the HTTP router.
     - `testing`: Contains top-level testing utilities.
-- `resource`: The in-game resource that runs under the `monitor` name. These files will be synchronized with the deploy path when running the `dev:main` npm script;
+- `resource`: The in-game resource that runs under the `monitor` name. These files will be synchronized with the deploy path when running the `dev:main` pnpm script;
 - `menu`: React source code for txAdmin's NUI Menu. It is transpiled & built using Vite;
 - `web`: Legacy SSR templates & static assets used for the txAdmin's web panel. It uses EJS as templating engine, and will soon be deprecated in favor of `panel`;
 - `panel`: The new UI built with React and Vite;
@@ -34,8 +34,8 @@ git clone https://github.com/tabarra/txAdmin
 2. Install dependencies & prepare commit hook;
 ```sh
 # In your root folder run the following
-npm install
-npm run prepare
+pnpm install
+pnpm run prepare
 ```
 3. At the root of the project, create a `.env` file with `TXDEV_FXSERVER_PATH` pointing to the path of your FXServer folder.
 ```
@@ -55,11 +55,11 @@ In dev mode, core will redirect the panel `index.html` to use Vite, so you first
 ```sh
 # run vite
 cd panel
-npm run dev
+pnpm run dev
 
 # In a new terminal - run the builder
 cd core
-npm run dev
+pnpm run dev
 ```
   
 ### NUI Menu
@@ -67,10 +67,10 @@ npm run dev
 cd nui
 
 #To run Vite on game dev mode:
-npm run dev
+pnpm run dev
 
 #To run Vite on browser dev mode:
-npm run browser
+pnpm run browser
 ```
 Keep in mind that for every change you will need to restart the `monitor` resource, and unless you started the server with `+setr txAdmin-debugMode true` txAdmin will detect that as a crash and restart your server.  
 Also, when running in game mode, it takes between 10 and 30 seconds for the vite builder to finish for you to be able to restart the `monitor` resource ingame.
@@ -84,8 +84,8 @@ Also, when running in game mode, it takes between 10 and 30 seconds for the vite
 ### Testing & Building
 The building process is normally done in the GitHub Action workflow only, but if you _must_ build it locally, that can be done with the command below. The output will be on the `dist/` folder.
 ```sh
-npm run test --workspaces
-GITHUB_REF="refs/tags/v9.9.9" npm run build
+pnpm -r test
+GITHUB_REF="refs/tags/v9.9.9" pnpm run build
 ```
 > FIXME: add linting & typechecking back into the workflow above
 
@@ -113,13 +113,13 @@ You can find the other variable names in `node_modules/@coreui/coreui/scss/coreu
 ```bash
 git clone https://github.com/coreui/coreui-free-bootstrap-admin-template.git coreui
 cd coreui
-npm i
+pnpm i
 
 # If you want to make sure you used the same version of CoreUI
 git checkout 0cb1d81a8471ff4b6eb80c41b45c61a8e2ab3ef6
 
 # Edit your stuff and then to compile:
-npx node-sass --output-style expanded --source-map true --source-map-contents true --precision 6 src/scss/style.scss src/css/style.css
+pnpm dlx node-sass --output-style expanded --source-map true --source-map-contents true --precision 6 src/scss/style.scss src/css/style.css
 ```
 
 Then copy the `src/css/style.css` to txAdmin's folder.
