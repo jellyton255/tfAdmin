@@ -56,6 +56,20 @@ export type ApiKeyCreateInput = z.infer<typeof apiKeyCreateSchema>;
 
 
 /**
+ * Typed error for expected store failures, so callers can map them to HTTP statuses.
+ */
+export class ApiKeyStoreError extends Error {
+    constructor(
+        public readonly code: 'duplicate_name' | 'invalid_expiry',
+        message: string,
+    ) {
+        super(message);
+        this.name = 'ApiKeyStoreError';
+    }
+}
+
+
+/**
  * Result of verifying a bearer token
  */
 export type ApiKeyVerifyResult = {
@@ -99,6 +113,7 @@ export default class ApiKeyStore {
     private keys: StoredApiKey[] = [];
     private lastUsedDirty = new Set<string>();
     private lastUsedTimer: NodeJS.Timeout | null = null;
+    private writeChain: Promise<void> = Promise.resolve();
 
     constructor(filePath?: string) {
         this.filePath = filePath ?? txHostConfig.dataSubPath('apiKeys.json');
@@ -137,11 +152,36 @@ export default class ApiKeyStore {
 
 
     /**
-     * Persists the keys file.
+     * Runs a mutation against the current in-memory state, persists the result, then publishes it.
+     * Mutations and writes are serialized through one promise chain, so concurrent callers see
+     * each other's changes and can't interleave file writes. The write is atomic (temp file +
+     * rename), and if it fails the in-memory state is left untouched.
      */
-    private async write() {
-        const payload = JSON.stringify({ version: FILE_SCHEMA_VERSION, keys: this.keys }, null, 2);
-        await fsp.writeFile(this.filePath, payload, 'utf8');
+    private transact(mutation: (current: StoredApiKey[]) => StoredApiKey[]): Promise<void> {
+        const run = async () => {
+            const next = mutation(this.keys);
+            const payload = JSON.stringify({ version: FILE_SCHEMA_VERSION, keys: next }, null, 2);
+            const tmpPath = `${this.filePath}.${process.pid}.tmp`;
+            try {
+                await fsp.writeFile(tmpPath, payload, { encoding: 'utf8', mode: 0o600 });
+                await fsp.rename(tmpPath, this.filePath);
+            } catch (error) {
+                await fsp.rm(tmpPath, { force: true }).catch(() => { });
+                throw error;
+            }
+            this.keys = next;
+        };
+        //Chain on both branches so a rejected write doesn't block the next one
+        const next = this.writeChain.then(run, run);
+        this.writeChain = next.catch(() => { });
+        return next;
+    }
+
+    /**
+     * Persists the current in-memory state (used for lastUsedAt updates).
+     */
+    private write() {
+        return this.transact((current) => current);
     }
 
 
@@ -173,40 +213,40 @@ export default class ApiKeyStore {
     async create(input: ApiKeyCreateInput, createdBy: string) {
         const validated = apiKeyCreateSchema.parse(input);
         if (validated.expiresAt && validated.expiresAt <= Date.now()) {
-            throw new Error('expiresAt must be in the future');
-        }
-        if (this.keys.some((k) => !k.revokedAt && k.name.toLowerCase() === validated.name.toLowerCase())) {
-            throw new Error(`An active key named '${validated.name}' already exists.`);
+            throw new ApiKeyStoreError('invalid_expiry', 'expiresAt must be in the future');
         }
 
         //Dedupe permissions, collapse all_permissions
         let permissions = [...new Set(validated.permissions)];
         if (permissions.includes('all_permissions')) permissions = ['all_permissions'];
 
-        //Generate a unique id
-        let id = genKeyId();
-        while (this.keys.some((k) => k.id === id)) id = genKeyId();
         const secret = genSecret();
-
-        const record: StoredApiKey = {
-            id,
-            name: validated.name,
-            secretHash: hashSecret(secret),
-            permissions,
-            createdBy,
-            createdAt: Date.now(),
-            lastUsedAt: null,
-            expiresAt: validated.expiresAt ?? null,
-            allowedIps: validated.allowedIps ?? [],
-            revokedAt: null,
-            revokedBy: null,
-        };
-        this.keys.push(record);
-        await this.write();
+        let record!: StoredApiKey;
+        await this.transact((current) => {
+            if (current.some((k) => !k.revokedAt && k.name.toLowerCase() === validated.name.toLowerCase())) {
+                throw new ApiKeyStoreError('duplicate_name', `An active key named '${validated.name}' already exists.`);
+            }
+            let id = genKeyId();
+            while (current.some((k) => k.id === id)) id = genKeyId();
+            record = {
+                id,
+                name: validated.name,
+                secretHash: hashSecret(secret),
+                permissions,
+                createdBy,
+                createdAt: Date.now(),
+                lastUsedAt: null,
+                expiresAt: validated.expiresAt ?? null,
+                allowedIps: validated.allowedIps ?? [],
+                revokedAt: null,
+                revokedBy: null,
+            };
+            return [...current, record];
+        });
 
         return {
             key: toPublicRecord(record),
-            token: formatToken(id, secret),
+            token: formatToken(record.id, secret),
         };
     }
 
@@ -215,14 +255,14 @@ export default class ApiKeyStore {
      * Revokes a key (soft delete, kept for audit).
      */
     async revoke(id: string, revokedBy: string): Promise<ApiKeyPublicRecord | null> {
-        const key = this.keys.find((k) => k.id === id);
-        if (!key) return null;
-        if (!key.revokedAt) {
-            key.revokedAt = Date.now();
-            key.revokedBy = revokedBy;
-            await this.write();
-        }
-        return toPublicRecord(key);
+        if (!this.keys.some((k) => k.id === id)) return null;
+        let revoked: StoredApiKey | null = null;
+        await this.transact((current) => current.map((k) => {
+            if (k.id !== id) return k;
+            revoked = k.revokedAt ? k : { ...k, revokedAt: Date.now(), revokedBy };
+            return revoked;
+        }));
+        return revoked ? toPublicRecord(revoked) : null;
     }
 
 
