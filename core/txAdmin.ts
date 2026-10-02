@@ -17,6 +17,7 @@ import FxPlayerlist from '@modules/FxPlayerlist';
 import Database from '@modules/Database';
 import CacheStore from '@modules/CacheStore';
 import UpdateChecker from '@modules/UpdateChecker';
+import ApiServer from '@modules/ApiServer'; // everfall:api
 const console = consoleFactory();
 
 
@@ -37,6 +38,7 @@ export type TxCoreType = {
     fxScheduler: FxScheduler;
 
     //Other
+    apiServer: ApiServer; // everfall:api
     discordBot: DiscordBot;
     translator: Translator;
     updateChecker: UpdateChecker;
@@ -89,6 +91,7 @@ export default function bootTxAdmin() {
 
     //High Priority (required for banner) 
     _txCore.adminStore = startModule(AdminStore);
+    _txCore.apiServer = startModule(ApiServer); // everfall:api
     _txCore.webServer = startModule(WebServer);
     _txCore.database = startModule(Database);
 

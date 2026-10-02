@@ -71,6 +71,9 @@ export function GlobalMenuSheet() {
                             <MenuNavLink href="/system/action-log" disabled={!hasPerm('txadmin.log.view')}>
                                 <ListIcon className="mr-2 h-4 w-4" />Action Log
                             </MenuNavLink>
+                            <MenuNavLink href="/system/api-keys" disabled={!hasPerm('manage.admins')}>
+                                API Keys
+                            </MenuNavLink>
                         </div>
                     </div>
                 </ScrollArea>

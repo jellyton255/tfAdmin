@@ -22,6 +22,7 @@ import SettingsPage from "@/pages/Settings/SettingsPage";
 import UnauthorizedPage from "@/pages/UnauthorizedPage";
 import DiagnosticsPage from "@/pages/Diagnostics/DiagnosticsPage";
 import AdvancedPage from "@/pages/AdvancedPage";
+import ApiKeysPage from "@/pages/ApiKeys/ApiKeysPage"; // everfall:api
 
 
 type RouteType = {
@@ -86,6 +87,13 @@ const allRoutes: RouteType[] = [
         title: 'Action Log',
         permission: 'txadmin.log.view',
         Page: <SystemLogPage pageName="action" />
+    },
+    {
+        //everfall:api
+        path: '/system/api-keys',
+        title: 'API Keys',
+        permission: 'manage.admins',
+        Page: <ApiKeysPage />
     },
 
     //Server Routes

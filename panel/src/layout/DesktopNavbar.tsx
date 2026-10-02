@@ -153,6 +153,13 @@ export default function DesktopNavbar() {
                             >
                                 Action Log
                             </HeaderMenuLink>
+                            <HeaderMenuLink
+                                className="w-36 justify-start"
+                                href="/system/api-keys"
+                                disabled={!hasPerm('manage.admins')}
+                            >
+                                API Keys
+                            </HeaderMenuLink>
                         </NavigationMenuContent>
                     </NavigationMenuItem>
                 </NavigationMenuList>
