@@ -5,7 +5,7 @@ The request/response types are the same ones the server compiles against (`share
 
 ## Install
 
-Every version bump of `client/package.json` on master publishes a `client-vX.Y.Z` GitHub release carrying the packed tarball, so no registry login is needed:
+A version bump of `client/package.json` merged to master publishes a `client-vX.Y.Z` GitHub release carrying the packed tarball (skipped when that tag already exists), so no registry login is needed:
 
 ```sh
 pnpm add https://github.com/jellyton255/tfAdmin/releases/download/client-v0.1.0/txadmin-client.tgz
