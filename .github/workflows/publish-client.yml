@@ -1,9 +1,20 @@
 name: Publish API client
 
+# Releases @everfall/txadmin-client whenever client/package.json carries a version that has not
+# been released yet. No tag push is needed: the workflow creates the client-vX.Y.Z tag and the
+# GitHub release itself. It can also be run by hand from the Actions tab (or the API).
 on:
   push:
-    tags:
-      - "client-v[0-9]+.[0-9]+.[0-9]+*"
+    branches:
+      - master
+    paths:
+      - "client/**"
+      - ".github/workflows/publish-client.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-client
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -17,30 +28,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Resolve the client version and whether it is already released
+        id: version
+        run: |
+          VERSION=$(node -p "require('./client/package.json').version")
+          TAG="client-v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$TAG already exists, nothing to release. Bump client/package.json to publish a new version."
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install pnpm
+        if: steps.version.outputs.released == 'false'
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
       - name: Use Node.js 22
+        if: steps.version.outputs.released == 'false'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
+        if: steps.version.outputs.released == 'false'
         run: pnpm install --frozen-lockfile
 
-      - name: Check the tag matches client/package.json
-        run: |
-          PKG_VERSION=$(node -p "require('./client/package.json').version")
-          TAG_VERSION="${GITHUB_REF_NAME#client-v}"
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match client/package.json version $PKG_VERSION" >&2
-            exit 1
-          fi
-
       - name: Build and pack
+        if: steps.version.outputs.released == 'false'
         run: |
           pnpm --filter @everfall/txadmin-client build
           cd client
@@ -48,20 +68,23 @@ jobs:
           cd ..
           sha256sum txadmin-client.tgz
 
-      - name: Create GitHub release with the tarball
+      - name: Create the tag and GitHub release with the tarball
+        if: steps.version.outputs.released == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ github.ref_name }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ steps.version.outputs.tag }}
           body: |
-            `@everfall/txadmin-client` ${{ github.ref_name }}. Install from this release without a registry:
+            `@everfall/txadmin-client` ${{ steps.version.outputs.version }}. Install from this release without a registry:
 
             ```sh
-            pnpm add https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/txadmin-client.tgz
+            pnpm add https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/txadmin-client.tgz
             ```
           files: txadmin-client.tgz
 
       - name: Publish to npm (when NPM_TOKEN is configured)
-        if: ${{ env.NODE_AUTH_TOKEN != '' }}
+        if: steps.version.outputs.released == 'false' && env.NODE_AUTH_TOKEN != ''
         run: pnpm --filter @everfall/txadmin-client publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
