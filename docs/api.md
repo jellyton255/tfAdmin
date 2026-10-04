@@ -49,7 +49,8 @@ Failure, with a matching HTTP status:
 | 403 | `FORBIDDEN` | Key lacks the permission, or tried to grant one its creator lacks |
 | 404 | `NOT_FOUND` | Unknown route or resource |
 | 409 | `CONFLICT` | e.g. an active key with that name already exists |
-| 503 | `SERVER_OFFLINE` | The data needs a running FXServer (resources) and it is offline or did not answer |
+| 409 | `PLAYER_OFFLINE` | Kick or direct message to a player who is not connected |
+| 503 | `SERVER_OFFLINE` | The action needs a running FXServer and it is offline or did not answer |
 | 415 | `VALIDATION_ERROR` | Write request without `Content-Type: application/json` |
 | 429 | `RATE_LIMITED` | Per-key limit hit; see `Retry-After` |
 | 500 | `INTERNAL_ERROR` | Unexpected error; `details.requestId` matches the `X-Request-Id` header |
@@ -69,7 +70,8 @@ next page; it is `null` on the last page. Cursors stay valid while rows are adde
 ## Rate limits
 
 Per key: about 120 requests per minute for normal routes, and about 10 per minute for routes that need
-`control.server`, `console.write` or `commands.resources`. The existing per-IP limiter still applies on top.
+`control.server`, `console.write` or `commands.resources` (server start/stop/restart, kick-all, console
+commands and resource commands). The existing per-IP limiter still applies on top.
 
 ## Endpoints (phase 1)
 
@@ -102,7 +104,39 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 Action records carry `banStatus` (`active`, `expired`, `permanent`, or `null` for warns), `expiresAt`, `acked` for warns,
 and `revokedAt` / `revokedBy`.
 
-Writes (bans, kicks, warns, whitelist changes, server control) and webhooks come in the next phases; see the plan.
+## Endpoints (phase 3, writes)
+
+Writes behave exactly like the matching panel buttons: same database records, same admin log lines
+(attributed to `api:<key name>`) and the same `txAdmin:events:*` events to the server. Bodies are JSON.
+
+`duration` for bans is `permanent` or `<n> hours|days|weeks|months`, e.g. `2 days`.
+
+| Method and path | Permission | Body and result |
+| --- | --- | --- |
+| `POST /api/v1/players/{license}/ban` | `players.ban` | `{ reason, duration }`. 201 with `{ action, eventSent }`; kicks the player if online |
+| `POST /api/v1/players/{license}/warn` | `players.warn` | `{ reason }`. 201 with `{ action, eventSent }` |
+| `POST /api/v1/players/{license}/kick` | `players.kick` | `{ reason? }`. Player must be online (409 `PLAYER_OFFLINE`) |
+| `POST /api/v1/players/{license}/message` | `players.direct_message` | `{ message }`. Player must be online |
+| `PUT /api/v1/players/{license}/whitelist` | `players.whitelist` | `{ whitelisted: true\|false }` |
+| `PUT /api/v1/players/{license}/note` | any valid key | `{ note }`; an empty string clears it |
+| `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
+| `POST /api/v1/actions/{id}/revoke` | `players.ban` for bans, `players.warn` for warns | Revokes the action; 409 if already revoked. Returns `{ action }` |
+| `POST /api/v1/whitelist/approvals` | `players.whitelist` | `{ identifier }`. 201 with `{ approval }`; 409 if already approved |
+| `DELETE /api/v1/whitelist/approvals/{identifier}` | `players.whitelist` | Removes the approval |
+| `POST /api/v1/whitelist/requests/{id}/approve` | `players.whitelist` | Approves the pending request (`R0001`), 201 with `{ approval }` |
+| `POST /api/v1/whitelist/requests/{id}/deny` | `players.whitelist` | Removes the request |
+| `POST /api/v1/whitelist/requests/deny-all` | `players.whitelist` | `{ before?: epochMs }`. Removes every request last attempted at or before `before` (default now). Returns `{ removed }` |
+| `POST /api/v1/server/start`, `/stop`, `/restart` | `control.server` | Returns `{ action, result, message }`; `result` is `started`, `stopped`, `restarting`, `scheduled` (restart delayed by the spawn backoff) or `noop` |
+| `POST /api/v1/server/kick-all` | `control.server` | `{ reason? }` |
+| `POST /api/v1/server/announce` | `announcement` | `{ message }`. In-game announcement plus the Discord announcement channel |
+| `POST /api/v1/server/command` | `console.write` | `{ command }`. Raw console command, logged like the Live Console |
+| `POST /api/v1/resources/{name}/{start\|stop\|restart\|ensure}` | `commands.resources` | Sends the resource command. Starting `runcode` is refused |
+| `POST /api/v1/resources/refresh` | `commands.resources` | Sends `refresh` |
+
+`eventSent: false` on a ban or warn means the record was saved but the in-game event could not be
+delivered (server offline or stdin error), the same case where the panel shows a warning toast.
+
+Webhooks and the OpenAPI document come in phase 4; see the plan.
 
 ## Example
 
