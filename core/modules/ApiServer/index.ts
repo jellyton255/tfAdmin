@@ -41,11 +41,17 @@ export default class ApiServer {
         }
     }
 
-    public handleShutdown() {
+    /**
+     * Stops timers and flushes pending debounced writes. Returns once the writes have settled,
+     * so callers that need the data folder quiescent (shutdown, tests) can await it.
+     */
+    public handleShutdown(): Promise<void> {
         this.dispatcher.destroy();
-        this.keyStore.flush().catch(() => { });
-        this.webhookStore.flush().catch(() => { });
         this.rateLimiter.destroy();
+        return Promise.all([
+            this.keyStore.flush().catch(() => { }),
+            this.webhookStore.flush().catch(() => { }),
+        ]).then(() => undefined);
     }
 
 
