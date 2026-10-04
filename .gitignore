@@ -83,3 +83,4 @@ yarn.lock
 
 # everfall:api client build output
 client/dist/
+*.tsbuildinfo
