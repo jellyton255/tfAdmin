@@ -295,6 +295,11 @@ describe('player moderation', () => {
         expect(lastEvent('whitelistPlayer')).toMatchObject({ action: 'added', license: LIC_OFF });
         expect(adminLog.some((l) => l.endsWith(`: Added ${LIC_OFF} to the whitelist.`))).toBe(true);
 
+        const noNoteToken = (await apiServer.keyStore.create({ name: 'note-denied', permissions: ['players.kick'] }, 'test')).token;
+        const deniedNote = await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: 'nope' }, noNoteToken);
+        expect(deniedNote.status).toBe(403);
+        expect(deniedNote.json.error.details.permission).toBe('players.note');
+
         const note = await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: '  watch this one ' }, kickOnlyToken);
         expect(note.status).toBe(200);
         expect(players[1].notes).toMatchObject({ text: 'watch this one', lastAdmin: 'api:kicker' });

@@ -1450,7 +1450,7 @@
     "/actions/{id}/revoke": {
       "post": {
         "summary": "Revoke a ban or warn",
-        "description": "Needs `players.ban` for bans and `players.warn` for warns.\n\nAny valid key (read-only keys included).",
+        "description": "Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected.",
         "tags": [
           "Moderation"
         ],
