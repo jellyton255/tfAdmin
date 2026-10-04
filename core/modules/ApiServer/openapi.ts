@@ -54,6 +54,7 @@ type OpOptions = {
     meta?: Schema;
     errors?: number[];
     description?: string;
+    permissionNote?: string; //overrides the generated scope sentence (per-type scope checks)
 };
 const op = (o: OpOptions): Schema => {
     const responses: Record<string, any> = {
@@ -68,11 +69,11 @@ const op = (o: OpOptions): Schema => {
     for (const code of o.errors ?? []) {
         responses[String(code)] = errRef(ERROR_RESPONSES[code]);
     }
-    const permissionNote = o.permission === null
+    const permissionNote = o.permissionNote ?? (o.permission === null
         ? 'No authentication.'
         : o.permission
             ? `Requires the \`${o.permission}\` scope.`
-            : 'Any valid key (read-only keys included).';
+            : 'Any valid key (read-only keys included).');
     return {
         summary: o.summary,
         description: [o.description, permissionNote].filter(Boolean).join('\n\n'),
@@ -347,7 +348,7 @@ const paths: Record<string, Schema> = {
         post: op({
             tag: 'Moderation', summary: 'Revoke a ban or warn', params: [paramPath('id', str())],
             response: obj({ action: ref('Action') }), errors: [403, 404, 409],
-            description: 'Needs `players.ban` for bans and `players.warn` for warns.',
+            permissionNote: 'Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected.',
         }),
     },
     '/whitelist/approvals': {
