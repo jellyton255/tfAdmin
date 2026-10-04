@@ -37,6 +37,33 @@ export default () => {
     //Admin roster (needs manage.admins)
     router.get('/admins', apiKeyAuthMw('manage.admins'), v1.admins as any);
 
+    //Player moderation
+    router.post('/players/:license/ban', apiKeyAuthMw('players.ban'), v1.players_ban as any);
+    router.post('/players/:license/warn', apiKeyAuthMw('players.warn'), v1.players_warn as any);
+    router.post('/players/:license/kick', apiKeyAuthMw('players.kick'), v1.players_kick as any);
+    router.post('/players/:license/message', apiKeyAuthMw('players.direct_message'), v1.players_message as any);
+    router.put('/players/:license/whitelist', apiKeyAuthMw('players.whitelist'), v1.players_whitelist as any);
+    router.put('/players/:license/note', apiKeyAuthMw(), v1.players_note as any);
+
+    //Actions (bans/warns) writes
+    router.post('/actions/ban-identifiers', apiKeyAuthMw('players.ban'), v1.actions_banIds as any);
+    router.post('/actions/:id/revoke', apiKeyAuthMw(), v1.actions_revoke as any); //per-type permission inside
+
+    //Whitelist writes
+    router.post('/whitelist/approvals', apiKeyAuthMw('players.whitelist'), v1.whitelist_addApproval as any);
+    router.delete('/whitelist/approvals/:identifier', apiKeyAuthMw('players.whitelist'), v1.whitelist_removeApproval as any);
+    router.post('/whitelist/requests/deny-all', apiKeyAuthMw('players.whitelist'), v1.whitelist_denyAllRequests as any);
+    router.post('/whitelist/requests/:id/approve', apiKeyAuthMw('players.whitelist'), v1.whitelist_approveRequest as any);
+    router.post('/whitelist/requests/:id/deny', apiKeyAuthMw('players.whitelist'), v1.whitelist_denyRequest as any);
+
+    //Server control and commands (heavy rate-limit bucket)
+    router.post('/server/announce', apiKeyAuthMw('announcement'), v1.server_announce as any);
+    router.post('/server/kick-all', apiKeyAuthMw('control.server'), v1.server_kickAll as any);
+    router.post('/server/command', apiKeyAuthMw('console.write'), v1.server_command as any);
+    router.post('/server/:action', apiKeyAuthMw('control.server'), v1.server_control as any);
+    router.post('/resources/refresh', apiKeyAuthMw('commands.resources'), v1.resources_refresh as any);
+    router.post('/resources/:name/:command', apiKeyAuthMw('commands.resources'), v1.resources_command as any);
+
     return router;
 };
 

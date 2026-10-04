@@ -12,6 +12,7 @@ export const API_ERROR_CODES = [
     'RATE_LIMITED',
     'CONFLICT',
     'SERVER_OFFLINE',
+    'PLAYER_OFFLINE',
     'INTERNAL_ERROR',
 ] as const;
 export type ApiErrorCode = typeof API_ERROR_CODES[number];
@@ -255,3 +256,38 @@ export type ApiResourceRecord = {
     description: string | null;
 };
 export type ApiResourcesResp = ApiResp<{ resources: ApiResourceRecord[] }>;
+
+
+/**
+ * Writes (phase 3)
+ */
+/** Ban duration: 'permanent' or '<n> hours|days|weeks|months', like the panel. */
+export type ApiBanDuration = string;
+
+export type ApiBanPlayerReq = { reason: string; duration: ApiBanDuration };
+export type ApiWarnPlayerReq = { reason: string };
+export type ApiKickPlayerReq = { reason?: string };
+export type ApiMessagePlayerReq = { message: string };
+export type ApiSetWhitelistReq = { whitelisted: boolean };
+export type ApiSetNoteReq = { note: string };
+export type ApiBanIdsReq = { identifiers: string[]; reason: string; duration: ApiBanDuration };
+
+export type ApiActionWriteResp = ApiResp<{
+    action: ApiActionRecord;
+    /** false when the action was saved but the in-game event could not be sent (server offline or stdin error). */
+    eventSent: boolean;
+}>;
+export type ApiOkResp = ApiResp<{ ok: true }>;
+export type ApiWhitelistApprovalResp = ApiResp<{ approval: ApiWhitelistApproval }>;
+export type ApiWhitelistRequestsResolvedResp = ApiResp<{ removed: number }>;
+
+export type ApiServerControlResp = ApiResp<{
+    action: 'start' | 'stop' | 'restart';
+    /** What happened: started, stopped, restarting, scheduled (restart delayed by the spawn backoff) or noop. */
+    result: 'started' | 'stopped' | 'restarting' | 'scheduled' | 'noop';
+    message: string;
+}>;
+export type ApiServerCommandReq = { command: string };
+export type ApiAnnounceReq = { message: string };
+export type ApiKickAllReq = { reason?: string };
+export type ApiResourceCommandResp = ApiResp<{ resource: string | null; command: string }>;
