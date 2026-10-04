@@ -4,6 +4,7 @@ import KoaRateLimit from 'koa-ratelimit';
 
 import * as routes from '@routes/index';
 import { apiAuthMw, hostAuthMw, intercomAuthMw, webAuthMw } from './middlewares/authMws';
+import apiV1Router from '@modules/ApiServer/router'; // everfall:api
 
 
 /**
@@ -116,6 +117,15 @@ export default () => {
 
     //Host routes
     router.get('/host/status', hostAuthMw, routes.host_status);
+
+    //API Keys management (panel) - everfall:api
+    router.get('/apiKeys', apiAuthMw, routes.apiKeys_list);
+    router.post('/apiKeys/create', apiAuthMw, routes.apiKeys_create);
+    router.post('/apiKeys/revoke', apiAuthMw, routes.apiKeys_revoke);
+
+    //Public API - everfall:api
+    const apiRouter = apiV1Router();
+    router.use(apiRouter.routes(), apiRouter.allowedMethods());
 
     //DevDebug routes - no auth
     if (txDevEnv.ENABLED) {

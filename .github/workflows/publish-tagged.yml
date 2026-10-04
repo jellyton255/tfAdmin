@@ -20,13 +20,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install pnpm
+
+        uses: pnpm/action-setup@v4
+
+        with:
+
+          version: 10
+
+
       - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Download all modules
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       # Not truly necessary for build, but for now the vite config requires it
       - name: Create .env file
@@ -36,7 +45,7 @@ jobs:
 
       - name: Build project
         run: |
-          npm run build
+          pnpm run build
           cat .github/.cienv >> $GITHUB_ENV
 
       - name: Compress build output with zip

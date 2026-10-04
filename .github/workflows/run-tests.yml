@@ -19,13 +19,22 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install pnpm
+
+        uses: pnpm/action-setup@v4
+
+        with:
+
+          version: 10
+
+
       - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Download all modules
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Create .env file
         run: |
@@ -35,4 +44,4 @@ jobs:
       - name: Run Tests
         env:
           CI: true
-        run: npm run test --workspaces
+        run: pnpm -r test
