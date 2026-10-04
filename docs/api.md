@@ -22,11 +22,33 @@ only its SHA-256 hash in `txData/apiKeys.json`.
 Each key has:
 
 - a **name**, which shows up in the admin action log as `api:<name>` for every action the key performs;
-- a set of **permissions**, taken from the normal txAdmin permission list (`players.ban`, `control.server`, ...).
-  A key can never hold a permission its creator does not hold;
+- a set of **scopes**. Every valid key can read (status, players, bans and warns, whitelist, resources,
+  events); a key with no scopes is read-only. Each scope unlocks one group of writes and is named after what
+  it lets the key do (see the table below). A key can never hold a scope backed by an admin permission its
+  creator does not hold;
 - an optional **expiry** and an optional **IP allowlist** (plain IPs or CIDRs).
 
 Revoking a key takes effect immediately. Revoked keys stay listed for audit.
+
+### Scopes
+
+| Scope id | Shown as | Unlocks |
+| --- | --- | --- |
+| *(none)* | Read access | Every `GET` route except `/keys`, `/webhooks` and `/admins` |
+| `players.ban` | Ban players | Ban players or identifiers, revoke bans |
+| `players.warn` | Warn players | Warn players, revoke warns |
+| `players.kick` | Kick players | Kick an online player |
+| `players.direct_message` | Message players | Direct message an online player |
+| `players.note` | Edit player notes | Set the admin note on a player |
+| `players.whitelist` | Manage whitelist | Whitelist flag, approvals and requests |
+| `announcement` | Send announcements | Broadcast an announcement |
+| `control.server` | Control the server | Start, stop, restart, kick everyone |
+| `console.write` | Run console commands | Execute console commands |
+| `commands.resources` | Manage resources | Refresh and resource start/stop/restart/ensure |
+| `manage.admins` | Manage API keys and webhooks | Keys, webhooks and the admin roster |
+| `all_permissions` | Full access | Everything, including future scopes |
+
+`GET /api/v1/keys` returns this catalogue as `scopes` so clients and the panel never hard-code it.
 
 ## Envelope
 
@@ -39,14 +61,14 @@ Responses are JSON. Success:
 Failure, with a matching HTTP status:
 
 ```json
-{ "error": { "code": "FORBIDDEN", "message": "This API key lacks the required permission.", "details": { "permission": "players.ban" } } }
+{ "error": { "code": "FORBIDDEN", "message": "This API key lacks the required scope.", "details": { "permission": "players.ban" } } }
 ```
 
 | Status | `error.code` | When |
 | --- | --- | --- |
 | 400 | `VALIDATION_ERROR` | Body or params failed validation; `details` lists the issues |
 | 401 | `UNAUTHORIZED` | Missing, malformed, unknown, revoked or expired key, or IP not allowed |
-| 403 | `FORBIDDEN` | Key lacks the permission, or tried to grant one its creator lacks |
+| 403 | `FORBIDDEN` | Key lacks the scope, or tried to grant one its creator lacks |
 | 404 | `NOT_FOUND` | Unknown route or resource |
 | 409 | `CONFLICT` | e.g. an active key with that name already exists |
 | 409 | `PLAYER_OFFLINE` | Kick or direct message to a player who is not connected |
@@ -75,18 +97,18 @@ commands and resource commands). The existing per-IP limiter still applies on to
 
 ## Endpoints (phase 1)
 
-| Method and path | Permission | Returns |
+| Method and path | Scope | Returns |
 | --- | --- | --- |
 | `GET /api/v1/me` | any valid key | The calling key's record, txAdmin version, server time |
-| `GET /api/v1/keys` | `manage.admins` | All keys (no hashes) and the permission catalogue |
-| `POST /api/v1/keys` | `manage.admins` | Creates a key. Body: `{ name, permissions[], expiresAt?, allowedIps? }`. Returns `{ key, token }` with status 201 |
+| `GET /api/v1/keys` | `manage.admins` | All keys (no hashes) and the scope catalogue |
+| `POST /api/v1/keys` | `manage.admins` | Creates a key. Body: `{ name, permissions[] (scope ids, empty = read-only), expiresAt?, allowedIps? }`. Returns `{ key, token }` with status 201 |
 | `DELETE /api/v1/keys/{id}` | `manage.admins` | Revokes a key |
 
 ## Endpoints (phase 2, reads)
 
 All of these work with any valid key, mirroring the panel pages every admin can see, except `/admins`.
 
-| Method and path | Permission | Returns |
+| Method and path | Scope | Returns |
 | --- | --- | --- |
 | `GET /api/v1/status` | any valid key | txAdmin and FXServer state: health, uptime, player count and slots, project name, cfx.re join link, whitelist mode, next scheduled restart, Discord bot status |
 | `GET /api/v1/players/online` | any valid key | Connected players: `netid`, `displayName`, `pureName`, `license` |
@@ -111,14 +133,14 @@ Writes behave exactly like the matching panel buttons: same database records, sa
 
 `duration` for bans is `permanent` or `<n> hours|days|weeks|months`, e.g. `2 days`.
 
-| Method and path | Permission | Body and result |
+| Method and path | Scope | Body and result |
 | --- | --- | --- |
 | `POST /api/v1/players/{license}/ban` | `players.ban` | `{ reason, duration }`. 201 with `{ action, eventSent }`; kicks the player if online |
 | `POST /api/v1/players/{license}/warn` | `players.warn` | `{ reason }`. 201 with `{ action, eventSent }` |
 | `POST /api/v1/players/{license}/kick` | `players.kick` | `{ reason? }`. Player must be online (409 `PLAYER_OFFLINE`) |
 | `POST /api/v1/players/{license}/message` | `players.direct_message` | `{ message }`. Player must be online |
 | `PUT /api/v1/players/{license}/whitelist` | `players.whitelist` | `{ whitelisted: true\|false }` |
-| `PUT /api/v1/players/{license}/note` | any valid key | `{ note }`; an empty string clears it |
+| `PUT /api/v1/players/{license}/note` | `players.note` | `{ note }`; an empty string clears it |
 | `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
 | `POST /api/v1/actions/{id}/revoke` | `players.ban` for bans, `players.warn` for warns | Revokes the action; 409 if already revoked. Returns `{ action }` |
 | `POST /api/v1/whitelist/approvals` | `players.whitelist` | `{ identifier }`. 201 with `{ approval }`; 409 if already approved |
@@ -162,14 +184,14 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 
 ### Polling
 
-| Method and path | Permission | Notes |
+| Method and path | Scope | Notes |
 | --- | --- | --- |
 | `GET /api/v1/events?since={cursor}&types=a,b&limit=100` | any valid key | Last 1000 events (`admin.login`, `apiKey.firstUse` and `webhook.test` only for keys with `manage.admins`). `meta.cursor` is what to pass back as `since`; `meta.hasMore` means call again now; `meta.dropped` means `since` was older than the buffer and events were lost |
 | `GET /api/v1/events/types` | any valid key | The catalogue above |
 
 ### Webhooks
 
-| Method and path | Permission | Notes |
+| Method and path | Scope | Notes |
 | --- | --- | --- |
 | `GET /api/v1/webhooks` | `manage.admins` | List (secrets are never returned) plus the event catalogue |
 | `POST /api/v1/webhooks` | `manage.admins` | `{ name, url, events[], secret? }`. `url` must be `https://` (plain `http://` only for localhost/private hosts). `events` is a list of types or `["*"]`. Returns the secret once. Max 10 webhooks |

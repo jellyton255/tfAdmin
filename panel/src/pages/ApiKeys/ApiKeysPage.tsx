@@ -13,6 +13,7 @@ import { useOpenConfirmDialog } from "@/hooks/dialogs";
 import { tsToLocaleDateTimeString } from "@/lib/dateTime";
 import { cn } from "@/lib/utils";
 import type { ApiKeyListResp, ApiKeyPublicRecord, ApiKeyRevokeResp } from "@shared/apiV1Types";
+import type { ApiScopeInfo } from "@shared/apiScopes";
 import ApiKeyCreateDialog from "./ApiKeyCreateDialog";
 import ApiKeyTokenDialog from "./ApiKeyTokenDialog";
 import WebhooksSection from "./WebhooksSection";
@@ -31,10 +32,11 @@ const statusBadgeClass: Record<KeyStatus, string> = {
 };
 
 
-function ApiKeyRow({ apiKey, onRevoke, canManage }: {
+function ApiKeyRow({ apiKey, onRevoke, canManage, scopes }: {
     apiKey: ApiKeyPublicRecord;
     onRevoke: (key: ApiKeyPublicRecord) => void;
     canManage: boolean;
+    scopes: ApiScopeInfo[];
 }) {
     const status = getKeyStatus(apiKey, Date.now());
     return (
@@ -48,8 +50,13 @@ function ApiKeyRow({ apiKey, onRevoke, canManage }: {
             </TableCell>
             <TableCell className="max-w-[18rem]">
                 <div className="flex flex-wrap gap-1">
-                    {apiKey.permissions.map((perm) => (
-                        <Badge key={perm} variant="secondary" className="font-mono text-xs font-normal">{perm}</Badge>
+                    {apiKey.permissions.length === 0 && (
+                        <Badge variant="outline" className="text-xs font-normal">Read-only</Badge>
+                    )}
+                    {apiKey.permissions.map((scopeId) => (
+                        <Badge key={scopeId} variant="secondary" className="text-xs font-normal" title={scopeId}>
+                            {scopes.find((s) => s.id === scopeId)?.label ?? scopeId}
+                        </Badge>
                     ))}
                 </div>
             </TableCell>
@@ -159,7 +166,7 @@ export default function ApiKeysPage() {
 
             <p className="text-sm text-muted-foreground px-2 -mt-2">
                 API keys let external tools (bots, websites, scripts) call the <code className="font-mono">/api/v1</code> endpoints
-                with a <code className="font-mono">Authorization: Bearer</code> header. Each key only carries the permissions you
+                with a <code className="font-mono">Authorization: Bearer</code> header. Every key can read; each one only carries the write scopes you
                 give it, and every action it takes is logged under <code className="font-mono">api:&lt;key name&gt;</code>.
             </p>
 
@@ -183,7 +190,7 @@ export default function ApiKeysPage() {
                             <TableRow>
                                 <TableHead>Key</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Permissions</TableHead>
+                                <TableHead>Scopes</TableHead>
                                 <TableHead>Created</TableHead>
                                 <TableHead>Last used</TableHead>
                                 <TableHead>Expires</TableHead>
@@ -192,7 +199,7 @@ export default function ApiKeysPage() {
                         </TableHeader>
                         <TableBody>
                             {sortedKeys.map((key) => (
-                                <ApiKeyRow key={key.id} apiKey={key} onRevoke={handleRevoke} canManage={canManage} />
+                                <ApiKeyRow key={key.id} apiKey={key} onRevoke={handleRevoke} canManage={canManage} scopes={swr.data.scopes} />
                             ))}
                         </TableBody>
                     </Table>
@@ -204,7 +211,7 @@ export default function ApiKeysPage() {
                     isOpen={isCreateOpen}
                     onClose={() => setIsCreateOpen(false)}
                     onCreated={handleCreated}
-                    availablePermissions={swr.data.permissions}
+                    scopes={swr.data.scopes}
                 />
             )}
             <ApiKeyTokenDialog

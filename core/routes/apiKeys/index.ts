@@ -5,6 +5,7 @@ import consoleFactory from '@lib/console';
 import type { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { ApiError } from '@modules/ApiServer/envelope';
 import { apiKeyCreateSchema } from '@modules/ApiServer/ApiKeyStore';
+import { API_SCOPES } from '@shared/apiScopes';
 import type { ApiKeyCreateResp, ApiKeyListResp, ApiKeyRevokeResp } from '@shared/apiV1Types';
 const console = consoleFactory(modulename);
 
@@ -38,7 +39,7 @@ export async function list(ctx: AuthedCtx) {
     return ctx.send<ApiKeyListResp>({
         data: {
             keys: txCore.apiServer.keyStore.list(),
-            permissions: txCore.adminStore.getPermissionsList(),
+            scopes: API_SCOPES,
         },
     });
 };

@@ -141,6 +141,14 @@ describe('/api/v1', () => {
         expect(r.json.error.details.permissions).toEqual(['players.ban']);
         const ok = await call('POST', '/api/v1/keys', limited.token, { name: 'fine', permissions: ['players.kick'] });
         expect(ok.status).toBe(201);
+        //scopes with no admin permission behind them (notes) and read-only keys need nothing extra
+        const notes = await call('POST', '/api/v1/keys', limited.token, { name: 'notes', permissions: ['players.note'] });
+        expect(notes.status).toBe(201);
+        const readOnly = await call('POST', '/api/v1/keys', limited.token, { name: 'reader', permissions: [] });
+        expect(readOnly.status).toBe(201);
+        expect(readOnly.json.data.key.permissions).toEqual([]);
+        const me = await call('GET', '/api/v1/me', readOnly.json.data.token);
+        expect(me.status).toBe(200);
     });
 
     it('validates bodies and content types', async () => {
@@ -168,7 +176,7 @@ describe('/api/v1', () => {
         const list = await call('GET', '/api/v1/keys', adminToken);
         expect(list.status).toBe(200);
         expect(list.json.data.keys.length).toBeGreaterThanOrEqual(3);
-        expect(list.json.data.permissions['players.ban']).toBe('Ban');
+        expect(list.json.data.scopes.find((s: any) => s.id === 'players.ban').label).toBe('Ban players');
         const bot = list.json.data.keys.find((k: any) => k.name === 'bot');
 
         const rev = await call('DELETE', `/api/v1/keys/${bot.id}`, adminToken);

@@ -54,6 +54,7 @@ type OpOptions = {
     meta?: Schema;
     errors?: number[];
     description?: string;
+    permissionNote?: string; //overrides the generated scope sentence (per-type scope checks)
 };
 const op = (o: OpOptions): Schema => {
     const responses: Record<string, any> = {
@@ -68,11 +69,11 @@ const op = (o: OpOptions): Schema => {
     for (const code of o.errors ?? []) {
         responses[String(code)] = errRef(ERROR_RESPONSES[code]);
     }
-    const permissionNote = o.permission === null
+    const permissionNote = o.permissionNote ?? (o.permission === null
         ? 'No authentication.'
         : o.permission
-            ? `Requires the \`${o.permission}\` permission.`
-            : 'Any valid key.';
+            ? `Requires the \`${o.permission}\` scope.`
+            : 'Any valid key (read-only keys included).');
     return {
         summary: o.summary,
         description: [o.description, permissionNote].filter(Boolean).join('\n\n'),
@@ -92,7 +93,7 @@ const ERROR_RESPONSES: Record<number, string> = {
 };
 const responses: Record<string, Schema> = {
     Unauthorized: errResp('Missing, invalid, revoked or expired key'),
-    Forbidden: errResp('The key lacks the permission this route needs (see the description)'),
+    Forbidden: errResp('The key lacks the scope this route needs (see the description)'),
     RateLimited: errResp('Rate limit exceeded, see the Retry-After header'),
     ValidationError: errResp('Validation error, details lists the offending fields'),
     NotFound: errResp('Not found'),
@@ -114,14 +115,18 @@ const schemas: Record<string, Schema> = {
         nextCursor: nullable(str({ description: 'Pass as ?cursor= for the next page' })),
     }),
     Ok: obj({ ok: { type: 'boolean', const: true } }),
+    ApiScope: obj({
+        id: str(), label: str(), description: str(),
+        grantRequires: nullable(str({ description: 'Admin permission the issuer must hold to grant this scope' })),
+    }, ['id', 'label', 'description', 'grantRequires']),
     ApiKey: obj({
-        id: str(), name: str(), permissions: arr(str()), createdBy: str(), createdAt: epochMs(),
+        id: str(), name: str(), permissions: arr(str({ description: 'Scope id' })), createdBy: str(), createdAt: epochMs(),
         lastUsedAt: nullable(epochMs()), expiresAt: nullable(epochMs()), allowedIps: arr(str()),
         revokedAt: nullable(epochMs()), revokedBy: nullable(str()),
     }),
     ApiKeyCreate: obj({
         name: str({ maxLength: 48, pattern: '^[a-zA-Z0-9 _.-]+$' }),
-        permissions: arr(str()),
+        permissions: arr(str({ description: 'Scope id, see GET /keys. Empty = read-only key' })),
         expiresAt: nullable(epochMs()),
         allowedIps: arr(str({ description: 'IP or CIDR' })),
     }, ['name', 'permissions']),
@@ -233,12 +238,12 @@ const paths: Record<string, Schema> = {
     '/keys': {
         get: op({
             tag: 'Keys', summary: 'List API keys', permission: 'manage.admins',
-            response: obj({ keys: arr(ref('ApiKey')), permissions: { type: 'object', additionalProperties: str() } }),
+            response: obj({ keys: arr(ref('ApiKey')), scopes: arr(ref('ApiScope')) }),
         }),
         post: op({
             tag: 'Keys', summary: 'Create an API key', permission: 'manage.admins', body: ref('ApiKeyCreate'), status: 201,
             response: obj({ key: ref('ApiKey'), token: str({ description: 'Plaintext token, shown once' }) }), errors: [409],
-            description: 'A key can only carry permissions the caller holds.',
+            description: 'Scopes come from the catalogue returned by GET /keys. A key with no scopes is read-only. The caller must hold the admin permission behind every scope it grants.',
         }),
     },
     '/keys/{id}': {
@@ -308,7 +313,7 @@ const paths: Record<string, Schema> = {
     },
     '/players/{license}/note': {
         put: op({
-            tag: 'Players', summary: 'Set player note', params: [licenseParam],
+            tag: 'Players', summary: 'Set player note', permission: 'players.note', params: [licenseParam],
             body: obj({ note: str({ maxLength: 2048 }) }), response: ref('Ok'), errors: [404],
         }),
     },
@@ -343,7 +348,7 @@ const paths: Record<string, Schema> = {
         post: op({
             tag: 'Moderation', summary: 'Revoke a ban or warn', params: [paramPath('id', str())],
             response: obj({ action: ref('Action') }), errors: [403, 404, 409],
-            description: 'Needs `players.ban` for bans and `players.warn` for warns.',
+            permissionNote: 'Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected.',
         }),
     },
     '/whitelist/approvals': {

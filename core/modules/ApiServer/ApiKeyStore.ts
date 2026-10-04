@@ -14,6 +14,7 @@ import {
     API_KEY_PREFIX,
     type ApiKeyPublicRecord,
 } from '@shared/apiV1Types';
+import { API_SCOPE_ALL } from '@shared/apiScopes';
 const console = consoleFactory(modulename);
 
 const genKeyId = customAlphabet(dict49, 12);
@@ -48,7 +49,7 @@ const storeFileSchema = z.object({
 export const apiKeyCreateSchema = z.object({
     name: z.string().trim().min(1).max(API_KEY_NAME_MAX_LENGTH)
         .regex(/^[a-zA-Z0-9 _.-]+$/, 'name may only contain letters, numbers, spaces and _.-'),
-    permissions: z.array(z.string().min(1)).min(1, 'at least one permission is required'),
+    permissions: z.array(z.string().min(1)), //scope ids, empty = read-only
     expiresAt: z.number().int().positive().nullable().optional(),
     allowedIps: z.array(z.string().trim().min(1)).max(API_KEY_ALLOWED_IPS_MAX).optional(),
 });
@@ -207,8 +208,8 @@ export default class ApiKeyStore {
 
 
     /**
-     * Creates a new key. The caller is responsible for checking that `createdBy` holds every
-     * permission being granted (see ApiServer.assertCanGrant).
+     * Creates a new key. The caller is responsible for checking that the scopes are known and that
+     * `createdBy` may grant them (see ApiServer.assertCanGrant).
      * Returns the record plus the plaintext token, which is never stored.
      */
     async create(input: ApiKeyCreateInput, createdBy: string) {
@@ -217,9 +218,9 @@ export default class ApiKeyStore {
             throw new ApiKeyStoreError('invalid_expiry', 'expiresAt must be in the future');
         }
 
-        //Dedupe permissions, collapse all_permissions
+        //Dedupe scopes, collapse full access
         let permissions = [...new Set(validated.permissions)];
-        if (permissions.includes('all_permissions')) permissions = ['all_permissions'];
+        if (permissions.includes(API_SCOPE_ALL)) permissions = [API_SCOPE_ALL];
 
         const secret = genSecret();
         let record!: StoredApiKey;
