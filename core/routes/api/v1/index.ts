@@ -13,3 +13,4 @@ export { control as server_control, announce as server_announce, kickAll as serv
 export { list as events_list, types as events_types } from './events';
 export { list as webhooks_list, create as webhooks_create, update as webhooks_update, remove as webhooks_remove, test as webhooks_test, deliveries as webhooks_deliveries } from './webhooks';
 export { default as openapi } from './openapi';
+export { default as docs } from './docs';

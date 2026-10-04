@@ -89,7 +89,8 @@ export type TxAdminClientOptions = {
 };
 
 type Query = Record<string, string | number | boolean | undefined | null>;
-type Unwrap<R> = R extends ApiDataBody<infer T, infer M> ? (M extends undefined ? T : { data: T; meta: M }) : never;
+//Structural on purpose: inferring through the ApiDataBody conditional alias resolves to never under TypeScript 7.
+type Unwrap<R> = R extends { data: infer T; meta: infer M } ? { data: T; meta: M } : R extends { data: infer T } ? T : never;
 type Data<R> = Unwrap<Exclude<R, ApiErrorBody>>;
 
 export type PlayerSearchQuery = {

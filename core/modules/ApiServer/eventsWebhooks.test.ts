@@ -266,6 +266,22 @@ describe('routes', () => {
         expect(hidden.body.meta.cursor).toBe(page.body.meta.cursor);
     });
 
+    it('hides admin.login from keys without manage.admins', async () => {
+        apiServer.publishEvent('admin.login', { name: 'tabarra', method: 'password', ip: '127.0.0.1' });
+        const page = await api('GET', '/events?types=admin.login&limit=500', rootToken);
+        expect(page.body.data.events.some((e: any) => e.data.name === 'tabarra' && e.data.method === 'password')).toBe(true);
+        const hidden = await api('GET', '/events?types=admin.login&limit=500', readOnlyToken);
+        expect(hidden.body.data.events).toEqual([]);
+        expect(hidden.body.meta.cursor).toBe(page.body.meta.cursor);
+    });
+
+    it('serves the Swagger page without a key', async () => {
+        const res = await fetch(`${baseUrl}/api/v1/docs`);
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toContain('text/html');
+        expect(await res.text()).toContain('openapi.json');
+    });
+
     it('publishes apiKey.firstUse even when the first request is forbidden', async () => {
         const token = (await apiServer.keyStore.create({ name: 'forbidden-first', permissions: ['players.kick'] }, 'test')).token;
         expect((await api('GET', '/webhooks', token)).status).toBe(403);

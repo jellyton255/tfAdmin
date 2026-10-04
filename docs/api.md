@@ -156,6 +156,7 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 | `player.banned`, `player.warned`, `player.kicked`, `player.directMessage` | Same payload as `txAdmin:events:playerBanned` etc. `author` is `api:<key>` for API actions |
 | `whitelist.player`, `whitelist.preApproval`, `whitelist.request` | Whitelist changes |
 | `action.revoked` | `{ actionId, actionType, actionReason, actionAuthor, playerName, playerIds, playerHwids, revokedBy }` |
+| `admin.login` | A panel admin signed in. `{ name, method: 'password' \| 'citizenfx', ip }` |
 | `apiKey.firstUse` | First request made with a new key. `{ keyId, keyName, ip }` |
 | `webhook.test` | Sent by the test button / endpoint to that webhook only |
 
@@ -163,7 +164,7 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 
 | Method and path | Permission | Notes |
 | --- | --- | --- |
-| `GET /api/v1/events?since={cursor}&types=a,b&limit=100` | any valid key | Last 1000 events (`apiKey.firstUse` and `webhook.test` only for keys with `manage.admins`). `meta.cursor` is what to pass back as `since`; `meta.hasMore` means call again now; `meta.dropped` means `since` was older than the buffer and events were lost |
+| `GET /api/v1/events?since={cursor}&types=a,b&limit=100` | any valid key | Last 1000 events (`admin.login`, `apiKey.firstUse` and `webhook.test` only for keys with `manage.admins`). `meta.cursor` is what to pass back as `since`; `meta.hasMore` means call again now; `meta.dropped` means `since` was older than the buffer and events were lost |
 | `GET /api/v1/events/types` | any valid key | The catalogue above |
 
 ### Webhooks
@@ -212,6 +213,7 @@ Or use `parseWebhookRequest()` from the client package below.
 
 ## OpenAPI and client
 
+- `GET /api/v1/docs` is a Swagger UI page over the document below, handy for trying calls with a key.
 - `GET /api/v1/openapi.json` serves the OpenAPI 3.1 document (no auth, no server data). The same
   file is committed at `docs/openapi.json`; `openapi.test.ts` fails when the routes and the committed
   spec drift, so every contract change shows in the PR diff. Regenerate with
@@ -219,7 +221,10 @@ Or use `parseWebhookRequest()` from the client package below.
 - `client/` is `@everfall/txadmin-client`, a zero-dependency typed client (fetch based) covering every
   endpoint, a polling iterator for `/events` and the webhook verification helpers. It compiles against
   `shared/apiV1Types.ts`, so the types can never drift from the server. Build with
-  `pnpm --filter @everfall/txadmin-client build`.
+  `pnpm --filter @everfall/txadmin-client build`. Releases: push a `client-vX.Y.Z` tag matching
+  `client/package.json` and the `publish-client` workflow attaches the packed tarball to a GitHub
+  release (and publishes to npm when an `NPM_TOKEN` secret exists). Consumers can depend on the
+  release tarball URL directly, see `client/README.md`.
 
 ## Example
 

@@ -82,6 +82,28 @@
         }
       }
     },
+    "/docs": {
+      "get": {
+        "summary": "Interactive docs",
+        "description": "Swagger UI rendering of this document. No authentication.",
+        "tags": [
+          "Meta"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "HTML page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/me": {
       "get": {
         "summary": "The calling key",
@@ -2493,7 +2515,7 @@
     "/events": {
       "get": {
         "summary": "Poll recent events",
-        "description": "Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.\n\nAny valid key.",
+        "description": "Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `admin.login`, `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.\n\nAny valid key.",
         "tags": [
           "Events"
         ],
@@ -4147,6 +4169,7 @@
           "whitelist.preApproval",
           "whitelist.request",
           "action.revoked",
+          "admin.login",
           "apiKey.firstUse",
           "webhook.test"
         ]
