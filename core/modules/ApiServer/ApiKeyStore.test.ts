@@ -119,7 +119,8 @@ describe('ApiKeyStore', () => {
         const store = new ApiKeyStore(filePath);
         await expect(store.create({ name: '', permissions: ['x'] }, 'j')).rejects.toThrow();
         await expect(store.create({ name: 'bad<name>', permissions: ['x'] }, 'j')).rejects.toThrow();
-        await expect(store.create({ name: 'ok', permissions: [] }, 'j')).rejects.toThrow();
+        const readOnly = await store.create({ name: 'reader', permissions: [] }, 'j');
+        expect(readOnly.key.permissions).toEqual([]);
         await expect(store.create({ name: 'ok', permissions: ['x'], expiresAt: Date.now() - 1 }, 'j')).rejects.toThrow(/future/);
     });
 

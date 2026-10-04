@@ -25,7 +25,7 @@ export default () => {
     router.post('/keys', apiKeyAuthMw('manage.admins'), v1.keys_create as any);
     router.delete('/keys/:id', apiKeyAuthMw('manage.admins'), v1.keys_revoke as any);
 
-    //Read endpoints (any valid key, like the panel pages they mirror)
+    //Read endpoints (any valid key, including read-only keys with no scopes)
     router.get('/status', apiKeyAuthMw(), v1.status as any);
     router.get('/players', apiKeyAuthMw(), v1.players_search as any);
     router.get('/players/online', apiKeyAuthMw(), v1.players_online as any);
@@ -57,7 +57,7 @@ export default () => {
     router.post('/players/:license/kick', apiKeyAuthMw('players.kick'), v1.players_kick as any);
     router.post('/players/:license/message', apiKeyAuthMw('players.direct_message'), v1.players_message as any);
     router.put('/players/:license/whitelist', apiKeyAuthMw('players.whitelist'), v1.players_whitelist as any);
-    router.put('/players/:license/note', apiKeyAuthMw(), v1.players_note as any);
+    router.put('/players/:license/note', apiKeyAuthMw('players.note'), v1.players_note as any);
 
     //Actions (bans/warns) writes
     router.post('/actions/ban-identifiers', apiKeyAuthMw('players.ban'), v1.actions_banIds as any);

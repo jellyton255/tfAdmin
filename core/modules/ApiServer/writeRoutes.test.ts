@@ -87,7 +87,7 @@ beforeEach(async () => {
 beforeAll(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'txapiwrite-'));
     apiServer = new ApiServer({ keysFilePath: path.join(tmpDir, 'apiKeys.json'), webhooksFilePath: path.join(tmpDir, 'webhooks.json') });
-    kickOnlyToken = (await apiServer.keyStore.create({ name: 'kicker', permissions: ['players.kick', 'players.warn'] }, 'test')).token;
+    kickOnlyToken = (await apiServer.keyStore.create({ name: 'kicker', permissions: ['players.kick', 'players.warn', 'players.note'] }, 'test')).token;
     players = makePlayers();
 
     vi.stubGlobal('txConfig', {

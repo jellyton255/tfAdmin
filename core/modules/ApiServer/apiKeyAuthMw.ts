@@ -7,7 +7,7 @@ import { sendError } from './envelope';
 import type { StoredApiKey } from './ApiKeyStore';
 const console = consoleFactory(modulename);
 
-//Permissions whose actions get the stricter rate-limit bucket
+//Scopes whose actions get the stricter rate-limit bucket
 const HEAVY_PERMISSIONS = new Set(['control.server', 'console.write', 'commands.resources']);
 
 export type ApiKeyCtx = InitializedCtx & {
@@ -44,7 +44,7 @@ export const buildApiKeyPrincipal = (key: StoredApiKey) => {
 /**
  * Auth middleware factory for /api/v1 routes.
  * - Bearer token only, never cookies/sessions/CSRF
- * - optional `requiredPermission` checked before the handler runs
+ * - optional `requiredPermission` (a scope id) checked before the handler runs
  */
 export const apiKeyAuthMw = (requiredPermission?: string) => {
     return async (ctx: InitializedCtx, next: Next) => {
@@ -82,7 +82,7 @@ export const apiKeyAuthMw = (requiredPermission?: string) => {
         //Principal + permission
         const admin = buildApiKeyPrincipal(result.key);
         if (requiredPermission && !admin.hasPermission(requiredPermission)) {
-            return sendError(ctx, 403, 'FORBIDDEN', 'This API key lacks the required permission.', { permission: requiredPermission });
+            return sendError(ctx, 403, 'FORBIDDEN', 'This API key lacks the required scope.', { permission: requiredPermission });
         }
 
         (ctx as ApiKeyCtx).admin = admin;
