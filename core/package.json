@@ -66,6 +66,7 @@
   },
   "devDependencies": {
     "@types/bytes": "^3.1.4",
+    "@types/cookies": "^0.9.2",
     "@types/d3-array": "^3.2.1",
     "@types/dateformat": "^5.0.2",
     "@types/ejs": "^3.1.5",
