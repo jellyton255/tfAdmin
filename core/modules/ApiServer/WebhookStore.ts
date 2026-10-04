@@ -1,6 +1,7 @@
 const modulename = 'ApiServer:WebhookStore';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
+import { isIP } from 'node:net';
 import { customAlphabet } from 'nanoid';
 import dict49 from 'nanoid-dictionary/nolookalikes';
 import { z } from 'zod';
@@ -54,8 +55,35 @@ const storeFileSchema = z.object({
     webhooks: z.array(storedWebhookSchema),
 });
 
+/**
+ * Plain http is only allowed towards local/private hosts; everything else must be https because
+ * the payloads carry player identifiers, ban reasons and direct messages.
+ */
+export const isLocalWebhookHost = (hostname: string) => {
+    const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    if (host === 'localhost' || host.endsWith('.localhost')) return true;
+    const ipVersion = isIP(host);
+    if (ipVersion === 4) {
+        const [a, b] = host.split('.').map(Number);
+        return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+    }
+    if (ipVersion === 6) {
+        return host === '::1' || host.startsWith('fc') || host.startsWith('fd') || host.startsWith('::ffff:127.');
+    }
+    return false;
+};
+export const isAllowedWebhookUrl = (input: string) => {
+    let parsed: URL;
+    try {
+        parsed = new URL(input);
+    } catch {
+        return false;
+    }
+    if (parsed.protocol === 'https:') return true;
+    return parsed.protocol === 'http:' && isLocalWebhookHost(parsed.hostname);
+};
 const urlSchema = z.string().trim().min(1).max(API_WEBHOOK_URL_MAX_LENGTH).url()
-    .refine((url) => /^https?:\/\//i.test(url), 'url must start with http:// or https://');
+    .refine(isAllowedWebhookUrl, 'url must be https://, or http:// only for localhost/private hosts');
 
 export const webhookCreateSchema = z.object({
     name: z.string().trim().min(1).max(API_WEBHOOK_NAME_MAX_LENGTH)

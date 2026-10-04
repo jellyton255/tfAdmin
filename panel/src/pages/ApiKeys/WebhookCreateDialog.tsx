@@ -69,9 +69,10 @@ export default function WebhookCreateDialog({ isOpen, onClose, onCreated, eventT
         e.preventDefault();
         setError(null);
         if (!name.trim()) return setError('Name is required.');
-        if (!/^https?:\/\//i.test(url.trim())) return setError('URL must start with http:// or https://.');
+        if (!/^https?:\/\//i.test(url.trim())) return setError('URL must start with https:// (or http:// for a local host).');
         if (!allEvents && !selected.size) return setError('Select at least one event, or send all events.');
-        if (secret && secret.length < API_WEBHOOK_SECRET_MIN_LENGTH) return setError(`Secret must be at least ${API_WEBHOOK_SECRET_MIN_LENGTH} characters.`);
+        const trimmedSecret = secret.trim();
+        if (trimmedSecret && trimmedSecret.length < API_WEBHOOK_SECRET_MIN_LENGTH) return setError(`Secret must be at least ${API_WEBHOOK_SECRET_MIN_LENGTH} characters.`);
 
         setIsSaving(true);
         try {
@@ -80,7 +81,7 @@ export default function WebhookCreateDialog({ isOpen, onClose, onCreated, eventT
                     name: name.trim(),
                     url: url.trim(),
                     events: allEvents ? ['*'] : [...selected],
-                    ...(secret ? { secret } : {}),
+                    ...(trimmedSecret ? { secret: trimmedSecret } : {}),
                 },
             });
             if (!resp) throw new Error('No response from server.');

@@ -212,7 +212,7 @@ export default function WebhooksSection({ canManage }: { canManage: boolean }) {
                 </Button>
             </div>
             <p className="text-sm text-muted-foreground px-2">
-                Webhooks push events (bans, warns, joins, server status...) to your own services as signed HTTPS POSTs.
+                Webhooks push events (bans, warns, joins, server status...) to your own services as signed POSTs (HTTPS, or plain HTTP for local hosts only).
                 Failed deliveries are retried for about an hour. Consumers that can't receive callbacks can poll <code className="font-mono">GET /api/v1/events</code> instead.
             </p>
 

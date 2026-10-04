@@ -260,6 +260,29 @@ describe('routes', () => {
         const page = await api('GET', '/events?types=apiKey.firstUse&limit=500', rootToken);
         const mine = page.body.data.events.filter((e: any) => e.data.keyName === 'fresh');
         expect(mine).toHaveLength(1);
+        //a key without manage.admins never sees key/webhook events, even though the cursor advances
+        const hidden = await api('GET', '/events?types=apiKey.firstUse&limit=500', readOnlyToken);
+        expect(hidden.body.data.events).toEqual([]);
+        expect(hidden.body.meta.cursor).toBe(page.body.meta.cursor);
+    });
+
+    it('publishes apiKey.firstUse even when the first request is forbidden', async () => {
+        const token = (await apiServer.keyStore.create({ name: 'forbidden-first', permissions: ['players.kick'] }, 'test')).token;
+        expect((await api('GET', '/webhooks', token)).status).toBe(403);
+        const page = await api('GET', '/events?types=apiKey.firstUse&limit=500', rootToken);
+        expect(page.body.data.events.filter((e: any) => e.data.keyName === 'forbidden-first')).toHaveLength(1);
+    });
+
+    it('test endpoint returns promptly when the receiver fails', async () => {
+        respondWith = () => ({ status: 500 });
+        const created = await api('POST', '/webhooks', rootToken, { name: 'failing', url: 'https://failing.test/hook', events: ['*'] });
+        const started = Date.now();
+        const test = await api('POST', `/webhooks/${created.body.data.webhook.id}/test`, rootToken);
+        expect(Date.now() - started).toBeLessThan(2000);
+        expect(test.body.data.delivery.status).toBe('pending');
+        expect(test.body.data.delivery.attempts).toBe(1);
+        expect(test.body.data.delivery.error).toBe('HTTP 500');
+        await api('DELETE', `/webhooks/${created.body.data.webhook.id}`, rootToken);
     });
 
     it('GET /events/types lists the catalogue', async () => {
@@ -322,6 +345,10 @@ describe('routes', () => {
 
     it('validates webhook input', async () => {
         expect((await api('POST', '/webhooks', rootToken, { name: 'bad', url: 'ftp://x.test', events: ['*'] })).status).toBe(400);
+        expect((await api('POST', '/webhooks', rootToken, { name: 'bad', url: 'http://example.com/hook', events: ['*'] })).status).toBe(400);
+        const local = await api('POST', '/webhooks', rootToken, { name: 'local', url: 'http://127.0.0.1:3000/hook', events: ['*'] });
+        expect(local.status).toBe(201);
+        await api('DELETE', `/webhooks/${local.body.data.webhook.id}`, rootToken);
         expect((await api('POST', '/webhooks', rootToken, { name: 'bad', url: 'https://x.test', events: [] })).status).toBe(400);
         const unknown = await api('POST', '/webhooks', rootToken, { name: 'bad', url: 'https://x.test', events: ['player.flew'] });
         expect(unknown.status).toBe(400);

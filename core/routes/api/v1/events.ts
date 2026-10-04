@@ -9,11 +9,14 @@ const querySchema = z.object({
     limit: z.coerce.number().int().min(1).max(API_EVENTS_PAGE_MAX).default(100),
 });
 const VALID_TYPES = new Set<string>(API_EVENT_TYPES);
+//Events that reveal key/webhook details: only keys with manage.admins see them
+const ADMIN_ONLY_TYPES = new Set<ApiEventType>(['apiKey.firstUse', 'webhook.test']);
 
 
 /**
  * GET /api/v1/events?since=<cursor>&types=a,b&limit=100
- * Polling fallback for consumers that can't receive webhooks. Any valid key.
+ * Polling fallback for consumers that can't receive webhooks. Any valid key; apiKey.firstUse and
+ * webhook.test are only returned to keys holding manage.admins.
  */
 export async function list(ctx: ApiKeyCtx) {
     const query = querySchema.parse(ctx.query);
@@ -27,7 +30,11 @@ export async function list(ctx: ApiKeyCtx) {
         types = parsed as ApiEventType[];
     }
     const page = txCore.apiServer.events.list({ since: query.since, types, limit: query.limit });
-    return sendData(ctx, { events: page.events }, 200, {
+    //the cursor still advances past filtered events, so they are never re-read
+    const events = ctx.admin.hasPermission('manage.admins')
+        ? page.events
+        : page.events.filter((e) => !ADMIN_ONLY_TYPES.has(e.type));
+    return sendData(ctx, { events }, 200, {
         cursor: page.cursor,
         hasMore: page.hasMore,
         dropped: page.dropped,

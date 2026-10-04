@@ -163,7 +163,7 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 
 | Method and path | Permission | Notes |
 | --- | --- | --- |
-| `GET /api/v1/events?since={cursor}&types=a,b&limit=100` | any valid key | Last 1000 events. `meta.cursor` is what to pass back as `since`; `meta.hasMore` means call again now; `meta.dropped` means `since` was older than the buffer and events were lost |
+| `GET /api/v1/events?since={cursor}&types=a,b&limit=100` | any valid key | Last 1000 events (`apiKey.firstUse` and `webhook.test` only for keys with `manage.admins`). `meta.cursor` is what to pass back as `since`; `meta.hasMore` means call again now; `meta.dropped` means `since` was older than the buffer and events were lost |
 | `GET /api/v1/events/types` | any valid key | The catalogue above |
 
 ### Webhooks
@@ -171,7 +171,7 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 | Method and path | Permission | Notes |
 | --- | --- | --- |
 | `GET /api/v1/webhooks` | `manage.admins` | List (secrets are never returned) plus the event catalogue |
-| `POST /api/v1/webhooks` | `manage.admins` | `{ name, url, events[], secret? }`. `events` is a list of types or `["*"]`. Returns the secret once. Max 10 webhooks |
+| `POST /api/v1/webhooks` | `manage.admins` | `{ name, url, events[], secret? }`. `url` must be `https://` (plain `http://` only for localhost/private hosts). `events` is a list of types or `["*"]`. Returns the secret once. Max 10 webhooks |
 | `PATCH /api/v1/webhooks/{id}` | `manage.admins` | `{ enabled?, events? }` |
 | `DELETE /api/v1/webhooks/{id}` | `manage.admins` | Drops pending retries too |
 | `POST /api/v1/webhooks/{id}/test` | `manage.admins` | Sends `webhook.test` and waits for the first attempt. Returns the delivery |
@@ -186,7 +186,7 @@ and these headers:
 | --- | --- |
 | `X-TxAdmin-Signature` | `t=<epoch ms>,v1=<hex hmac-sha256(secret, "<t>.<raw body>")>` |
 | `X-TxAdmin-Event` | the event type |
-| `X-TxAdmin-Delivery` | the delivery id (changes per retry) |
+| `X-TxAdmin-Delivery` | the delivery id (same on every retry; `attempt` in the body increments) |
 | `X-TxAdmin-Webhook` | the webhook id |
 
 Respond with any 2xx within 5 seconds. Anything else (or a timeout) is retried after 10 s, 1 min,
@@ -198,10 +198,13 @@ body and reject timestamps more than 5 minutes old:
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 function verify(secret, header, rawBody) {
+    if (typeof header !== 'string') return false;
     const { t, v1 } = Object.fromEntries(header.split(',').map((kv) => kv.split('=')));
+    if (typeof v1 !== 'string' || !Number.isFinite(Number(t))) return false;
     if (Math.abs(Date.now() - Number(t)) > 5 * 60_000) return false;
-    const expected = createHmac('sha256', secret).update(`${t}.${rawBody}`).digest('hex');
-    return expected.length === v1.length && timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
+    const expected = createHmac('sha256', secret).update(`${t}.${rawBody}`).digest();
+    const given = Buffer.from(v1, 'hex');
+    return given.length === expected.length && timingSafeEqual(given, expected);
 }
 ```
 

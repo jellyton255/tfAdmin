@@ -2493,7 +2493,7 @@
     "/events": {
       "get": {
         "summary": "Poll recent events",
-        "description": "Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer.\n\nAny valid key.",
+        "description": "Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.\n\nAny valid key.",
         "tags": [
           "Events"
         ],
@@ -4300,7 +4300,7 @@
           "url": {
             "type": "string",
             "format": "uri",
-            "description": "http(s) URL that receives the POSTs"
+            "description": "https URL that receives the POSTs (http only for localhost/private hosts)"
           },
           "events": {
             "type": "array",

@@ -257,7 +257,8 @@ export default class WebhookDispatcher {
         const found = this.find(deliveryId);
         if (!found) return null;
         const start = Date.now();
-        while (this.pending.has(deliveryId) && found.attempts <= 1 && Date.now() - start < timeoutMs) {
+        //nextAttemptAt is null only while an attempt is in flight; a scheduled retry means the first attempt settled
+        while (this.pending.has(deliveryId) && found.nextAttemptAt === null && Date.now() - start < timeoutMs) {
             await new Promise((r) => setTimeout(r, 25));
         }
         return found;
