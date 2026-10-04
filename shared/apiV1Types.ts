@@ -316,6 +316,7 @@ export const API_EVENT_TYPES = [
     'whitelist.preApproval',
     'whitelist.request',
     'action.revoked',
+    'admin.login',
     'apiKey.firstUse',
     'webhook.test',
 ] as const;

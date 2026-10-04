@@ -70,6 +70,7 @@ export default async function AuthVerifyPassword(ctx: InitializedCtx) {
 
         const authedAdmin = new AuthedAdmin(vaultAdmin, sessData.csrfToken);
         authedAdmin.logAction(`logged in from ${ctx.ip} via password auth`);
+        txCore.apiServer?.publishEvent('admin.login', { name: vaultAdmin.name, method: 'password', ip: ctx.ip }); // everfall:api
         txCore.metrics.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txCore.metrics.txRuntime.loginMethods.count('password');
         return ctx.send<ReactAuthDataType>(authedAdmin.getAuthData());

@@ -15,6 +15,7 @@ export default () => {
 
     //Spec (no auth, no server data)
     router.get('/openapi.json', v1.openapi as any);
+    router.get('/docs', v1.docs as any);
 
     //Identity
     router.get('/me', apiKeyAuthMw(), v1.me as any);

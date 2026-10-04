@@ -3,6 +3,17 @@
 Typed client for the Everfall txAdmin API (`/api/v1`). Zero dependencies, uses the global `fetch` (Node 18+, Bun, Workers).
 The request/response types are the same ones the server compiles against (`shared/apiV1Types.ts`), so a type error here means a real contract change.
 
+## Install
+
+Every `client-vX.Y.Z` tag publishes a GitHub release carrying the packed tarball, so no registry login is needed:
+
+```sh
+pnpm add https://github.com/jellyton255/tfAdmin/releases/download/client-v0.1.0/txadmin-client.tgz
+```
+
+When an `NPM_TOKEN` secret is configured on the repo the same workflow also publishes to npm, and `pnpm add @everfall/txadmin-client` works too.
+Interactive docs for the server you are talking to live at `https://<your txAdmin>/api/v1/docs`.
+
 ```ts
 import { TxAdminClient, TxAdminApiError } from '@everfall/txadmin-client';
 

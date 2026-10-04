@@ -3,6 +3,14 @@
     "version": "0.1.0",
     "description": "Typed TypeScript client for the Everfall txAdmin API (/api/v1) and its webhooks.",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jellyton255/tfAdmin.git",
+        "directory": "client"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
     "type": "module",
     "main": "./dist/client/src/index.js",
     "types": "./dist/client/src/index.d.ts",
