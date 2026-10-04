@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { ApiKeyListResp, ApiKeyPublicRecord, ApiKeyRevokeResp } from "@shared/apiV1Types";
 import ApiKeyCreateDialog from "./ApiKeyCreateDialog";
 import ApiKeyTokenDialog from "./ApiKeyTokenDialog";
+import WebhooksSection from "./WebhooksSection";
 
 
 type KeyStatus = 'active' | 'expired' | 'revoked';
@@ -210,6 +211,8 @@ export default function ApiKeysPage() {
                 data={newToken}
                 onClose={() => setNewToken(null)}
             />
+
+            <WebhooksSection canManage={canManage} />
         </div>
     );
 }

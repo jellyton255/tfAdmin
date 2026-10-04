@@ -75,6 +75,7 @@ export class ApiKeyStoreError extends Error {
 export type ApiKeyVerifyResult = {
     success: true;
     key: StoredApiKey;
+    firstUse: boolean;
 } | {
     success: false;
     reason: 'malformed' | 'unknown_key' | 'bad_secret' | 'revoked' | 'expired' | 'ip_not_allowed';
@@ -289,8 +290,9 @@ export default class ApiKeyStore {
             return { success: false, reason: 'ip_not_allowed' };
         }
 
+        const firstUse = key.lastUsedAt === null;
         this.touch(key);
-        return { success: true, key };
+        return { success: true, key, firstUse };
     }
 
 

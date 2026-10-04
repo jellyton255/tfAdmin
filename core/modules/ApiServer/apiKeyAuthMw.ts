@@ -79,6 +79,13 @@ export const apiKeyAuthMw = (requiredPermission?: string) => {
 
         (ctx as ApiKeyCtx).admin = admin;
         (ctx as ApiKeyCtx).apiKey = result.key;
+        if (result.firstUse) {
+            txCore.apiServer.publishEvent('apiKey.firstUse', {
+                keyId: result.key.id,
+                keyName: result.key.name,
+                ip: ctx.txVars.realIP,
+            });
+        }
         await next();
     };
 };

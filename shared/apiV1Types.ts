@@ -291,3 +291,116 @@ export type ApiServerCommandReq = { command: string };
 export type ApiAnnounceReq = { message: string };
 export type ApiKickAllReq = { reason?: string };
 export type ApiResourceCommandResp = ApiResp<{ resource: string | null; command: string }>;
+
+
+/**
+ * Phase 4: events and webhooks
+ */
+export const API_EVENT_TYPES = [
+    'server.online',
+    'server.partial',
+    'server.offline',
+    'server.shuttingDown',
+    'server.scheduledRestart',
+    'server.scheduledRestartSkipped',
+    'server.nextRestartSkipped',
+    'server.announcement',
+    'server.configChanged',
+    'player.joined',
+    'player.left',
+    'player.banned',
+    'player.warned',
+    'player.kicked',
+    'player.directMessage',
+    'whitelist.player',
+    'whitelist.preApproval',
+    'whitelist.request',
+    'action.revoked',
+    'apiKey.firstUse',
+    'webhook.test',
+] as const;
+export type ApiEventType = typeof API_EVENT_TYPES[number];
+
+export const API_EVENTS_BUFFER_SIZE = 1000;
+export const API_EVENTS_PAGE_MAX = 500;
+
+export type ApiEvent = {
+    id: string; //monotonic, usable as a cursor
+    type: ApiEventType;
+    ts: number; //epoch ms
+    data: Record<string, unknown>;
+};
+export type ApiEventsMeta = {
+    cursor: string | null; //id of the last event returned, pass as ?since=
+    hasMore: boolean;
+    dropped: boolean; //true when ?since= points before the buffer start (events were lost)
+};
+export type ApiEventsResp = ApiResp<{ events: ApiEvent[] }, ApiEventsMeta>;
+export type ApiEventTypesResp = ApiResp<{ types: ApiEventType[] }>;
+
+export const API_WEBHOOKS_MAX = 10;
+export const API_WEBHOOK_NAME_MAX_LENGTH = 48;
+export const API_WEBHOOK_URL_MAX_LENGTH = 512;
+export const API_WEBHOOK_SECRET_MIN_LENGTH = 16;
+export const API_WEBHOOK_SECRET_MAX_LENGTH = 128;
+export const API_WEBHOOK_SIGNATURE_HEADER = 'x-txadmin-signature';
+export const API_WEBHOOK_DELIVERIES_KEPT = 50;
+
+export type ApiWebhookRecord = {
+    id: string;
+    name: string;
+    url: string;
+    events: ApiEventType[] | ['*'];
+    enabled: boolean;
+    createdBy: string;
+    createdAt: number;
+    deliveredCount: number;
+    failedCount: number;
+    lastDeliveryAt: number | null;
+    lastDeliveryOk: boolean | null;
+};
+export type ApiWebhookCreateReq = {
+    name: string;
+    url: string;
+    events: string[]; //event types, or ['*'] for everything
+    secret?: string; //generated when omitted
+};
+export type ApiWebhookUpdateReq = {
+    enabled?: boolean;
+    events?: string[];
+};
+export type ApiWebhookCreateResp = ApiResp<{
+    webhook: ApiWebhookRecord;
+    secret: string; //shown once
+}>;
+export type ApiWebhooksListResp = ApiResp<{
+    webhooks: ApiWebhookRecord[];
+    eventTypes: ApiEventType[];
+}>;
+export type ApiWebhookResp = ApiResp<{ webhook: ApiWebhookRecord }>;
+
+export type ApiWebhookDeliveryStatus = 'pending' | 'ok' | 'failed';
+export type ApiWebhookDelivery = {
+    id: string;
+    webhookId: string;
+    eventId: string;
+    eventType: ApiEventType;
+    status: ApiWebhookDeliveryStatus;
+    attempts: number;
+    httpStatus: number | null;
+    error: string | null;
+    createdAt: number;
+    lastAttemptAt: number | null;
+    nextAttemptAt: number | null;
+};
+export type ApiWebhookDeliveriesResp = ApiResp<{ deliveries: ApiWebhookDelivery[] }>;
+export type ApiWebhookTestResp = ApiResp<{ delivery: ApiWebhookDelivery }>;
+
+/** Body of every webhook POST. Signature header: `t=<ts>,v1=<hex hmac-sha256 of "<ts>.<body>">`. */
+export type ApiWebhookPayload = {
+    event: ApiEvent;
+    webhookId: string;
+    deliveryId: string;
+    attempt: number;
+    server: { name: string; txAdminVersion: string };
+};

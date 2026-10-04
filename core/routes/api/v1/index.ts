@@ -10,3 +10,6 @@ export { ban as players_ban, warn as players_warn, kick as players_kick, message
 export { banIds as actions_banIds, revoke as actions_revoke } from './actionWrites';
 export { addApproval as whitelist_addApproval, removeApproval as whitelist_removeApproval, approveRequest as whitelist_approveRequest, denyRequest as whitelist_denyRequest, denyAllRequests as whitelist_denyAllRequests } from './whitelistWrites';
 export { control as server_control, announce as server_announce, kickAll as server_kickAll, command as server_command, resourceCommand as resources_command, refreshResources as resources_refresh } from './server';
+export { list as events_list, types as events_types } from './events';
+export { list as webhooks_list, create as webhooks_create, update as webhooks_update, remove as webhooks_remove, test as webhooks_test, deliveries as webhooks_deliveries } from './webhooks';
+export { default as openapi } from './openapi';

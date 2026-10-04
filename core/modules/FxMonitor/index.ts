@@ -127,6 +127,7 @@ export default class FxMonitor {
         this.currentStatus = newStatus;
         txCore.discordBot.updateBotStatus().catch((e) => { });
         txCore.webServer.webSocket.pushRefresh('status');
+        txCore.apiServer?.publishEvent(newStatus === FxMonitorHealth.ONLINE ? 'server.online' : newStatus === FxMonitorHealth.PARTIAL ? 'server.partial' : 'server.offline', { status: newStatus }); // everfall:api
     }
 
 

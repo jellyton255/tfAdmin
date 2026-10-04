@@ -122,6 +122,12 @@ export default () => {
     router.get('/apiKeys', apiAuthMw, routes.apiKeys_list);
     router.post('/apiKeys/create', apiAuthMw, routes.apiKeys_create);
     router.post('/apiKeys/revoke', apiAuthMw, routes.apiKeys_revoke);
+    router.get('/webhooks', apiAuthMw, routes.webhooks_list);
+    router.get('/webhooks/deliveries', apiAuthMw, routes.webhooks_deliveries);
+    router.post('/webhooks/create', apiAuthMw, routes.webhooks_create);
+    router.post('/webhooks/update', apiAuthMw, routes.webhooks_update);
+    router.post('/webhooks/remove', apiAuthMw, routes.webhooks_remove);
+    router.post('/webhooks/test', apiAuthMw, routes.webhooks_test);
 
     //Public API - everfall:api
     const apiRouter = apiV1Router();

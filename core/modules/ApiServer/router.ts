@@ -13,6 +13,9 @@ export default () => {
     const router = new Router({ prefix: '/api/v1' });
     router.use(apiEnvelopeMw as any);
 
+    //Spec (no auth, no server data)
+    router.get('/openapi.json', v1.openapi as any);
+
     //Identity
     router.get('/me', apiKeyAuthMw(), v1.me as any);
 
@@ -36,6 +39,16 @@ export default () => {
 
     //Admin roster (needs manage.admins)
     router.get('/admins', apiKeyAuthMw('manage.admins'), v1.admins as any);
+
+    //Events (polling fallback) and webhooks
+    router.get('/events', apiKeyAuthMw(), v1.events_list as any);
+    router.get('/events/types', apiKeyAuthMw(), v1.events_types as any);
+    router.get('/webhooks', apiKeyAuthMw('manage.admins'), v1.webhooks_list as any);
+    router.post('/webhooks', apiKeyAuthMw('manage.admins'), v1.webhooks_create as any);
+    router.patch('/webhooks/:id', apiKeyAuthMw('manage.admins'), v1.webhooks_update as any);
+    router.delete('/webhooks/:id', apiKeyAuthMw('manage.admins'), v1.webhooks_remove as any);
+    router.post('/webhooks/:id/test', apiKeyAuthMw('manage.admins'), v1.webhooks_test as any);
+    router.get('/webhooks/:id/deliveries', apiKeyAuthMw('manage.admins'), v1.webhooks_deliveries as any);
 
     //Player moderation
     router.post('/players/:license/ban', apiKeyAuthMw('players.ban'), v1.players_ban as any);
