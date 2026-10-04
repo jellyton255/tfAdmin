@@ -79,7 +79,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
-    apiServer.handleShutdown();
+    await apiServer.handleShutdown();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     fs.rmSync(tmpDir, { recursive: true, force: true });
     vi.unstubAllGlobals();
@@ -279,7 +279,10 @@ describe('routes', () => {
         const res = await fetch(`${baseUrl}/api/v1/docs`);
         expect(res.status).toBe(200);
         expect(res.headers.get('content-type')).toContain('text/html');
-        expect(await res.text()).toContain('openapi.json');
+        const html = await res.text();
+        expect(html).toContain('openapi.json');
+        //both CDN assets carry subresource integrity
+        expect(html.match(/integrity="sha384-[A-Za-z0-9+/=]+" crossorigin="anonymous"/g)).toHaveLength(2);
     });
 
     it('publishes apiKey.firstUse even when the first request is forbidden', async () => {
