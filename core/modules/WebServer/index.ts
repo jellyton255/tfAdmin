@@ -28,6 +28,7 @@ import { isProxy } from 'node:util/types';
 import serveStaticMw from './middlewares/serveStaticMw';
 import serveRuntimeMw from './middlewares/serveRuntimeMw';
 import consts from '@shared/consts';
+import { apiNotFound } from '@modules/ApiServer/router'; // everfall:api
 const console = consoleFactory(modulename);
 const nanoid = customAlphabet(dict49, 32);
 
@@ -142,6 +143,8 @@ export default class WebServer {
                 } else if (ctx.path.endsWith('.map')) {
                     ctx.status = 404;
                     return ctx.send('Not found.');
+                } else if (ctx.path.startsWith('/api/')) {
+                    return apiNotFound(ctx as any); // everfall:api
                 } else {
                     return ctx.utils.serveReactIndex();
                 }

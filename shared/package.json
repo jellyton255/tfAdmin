@@ -6,7 +6,7 @@
     "scripts": {
         "test": "echo \"No tests for this workspace. Skipping...\"",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "license:report": "npx license-report > ../.reports/license/shared.html"
+        "license:report": "pnpm dlx license-report > ../.reports/license/shared.html"
     },
     "keywords": [],
     "author": "André Tabarra",
