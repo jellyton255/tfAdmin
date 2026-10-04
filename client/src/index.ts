@@ -137,7 +137,7 @@ export class TxAdminClient {
     /**
      * Low-level request. Resolves with `data` (or `{data, meta}` for paginated routes), rejects with TxAdminApiError.
      */
-    async request<R extends ApiResp<any, any>>(method: string, path: string, options: { query?: Query; body?: unknown } = {}): Promise<Data<R>> {
+    async request<R extends ApiResp<any, any>>(method: string, path: string, options: { query?: Query; body?: unknown; signal?: AbortSignal } = {}): Promise<Data<R>> {
         const url = new URL(`${this.baseUrl}/api/v1${path}`);
         for (const [key, value] of Object.entries(options.query ?? {})) {
             if (value === undefined || value === null || value === '') continue;
@@ -152,6 +152,8 @@ export class TxAdminClient {
 
         const controller = typeof AbortController === 'function' ? new AbortController() : null;
         const timer = controller ? setTimeout(() => controller.abort(), this.timeoutMs) : null;
+        const onOuterAbort = () => controller?.abort();
+        options.signal?.addEventListener('abort', onOuterAbort, { once: true });
         let resp: Response;
         try {
             resp = await this.fetchImpl(url.toString(), {
@@ -164,6 +166,7 @@ export class TxAdminClient {
             throw new TxAdminApiError(0, 'NETWORK_ERROR', (error as Error).message);
         } finally {
             if (timer) clearTimeout(timer);
+            options.signal?.removeEventListener('abort', onOuterAbort);
         }
 
         const requestId = resp.headers.get('x-request-id');
@@ -282,22 +285,33 @@ export class TxAdminClient {
 
     private async *pollEvents(options: { types?: ApiEventType[]; intervalMs?: number; since?: string; signal?: AbortSignal; onDropped?: () => void }) {
         const intervalMs = options.intervalMs ?? 5_000;
+        const { signal } = options;
+        const list = (since?: string) => this.request<ApiEventsResp>('GET', '/events', {
+            query: { since, types: options.types?.join(','), limit: 500 },
+            signal,
+        });
         let since = options.since;
         if (since === undefined) {
-            //start from "now": take the current cursor without replaying history
-            const head = await this.events.list({ types: options.types, limit: 1 });
+            //start from "now": drain the buffer to its head without yielding history
+            let head = await list();
+            while (head.meta.hasMore && !signal?.aborted) {
+                head = await list(head.meta.cursor ?? undefined);
+            }
             since = head.meta.cursor ?? undefined;
-            //the single event we just fetched is the newest; skip it by using the buffer cursor
         }
-        while (!options.signal?.aborted) {
-            const page = await this.events.list({ types: options.types, since, limit: 500 });
+        while (!signal?.aborted) {
+            const page = await list(since);
             if (page.meta.dropped) options.onDropped?.();
             for (const event of page.data.events) yield event;
             if (page.meta.cursor) since = page.meta.cursor;
             if (!page.meta.hasMore) {
                 await new Promise<void>((resolve) => {
-                    const t = setTimeout(resolve, intervalMs);
-                    options.signal?.addEventListener('abort', () => { clearTimeout(t); resolve(); }, { once: true });
+                    const onAbort = () => { clearTimeout(t); resolve(); };
+                    const t = setTimeout(() => {
+                        signal?.removeEventListener('abort', onAbort);
+                        resolve();
+                    }, intervalMs);
+                    signal?.addEventListener('abort', onAbort, { once: true });
                 });
             }
         }

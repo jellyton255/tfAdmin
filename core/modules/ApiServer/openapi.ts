@@ -191,7 +191,7 @@ const schemas: Record<string, Schema> = {
     }),
     WebhookCreate: obj({
         name: str({ maxLength: 48, pattern: '^[a-zA-Z0-9 _.-]+$' }),
-        url: str({ format: 'uri', description: 'http(s) URL that receives the POSTs' }),
+        url: str({ format: 'uri', description: 'https URL that receives the POSTs (http only for localhost/private hosts)' }),
         events: arr(str({ description: 'Event type, or `*` for all' })),
         secret: str({ minLength: 16, maxLength: 128, description: 'HMAC secret; generated when omitted' }),
     }, ['name', 'url', 'events']),
@@ -419,7 +419,7 @@ const paths: Record<string, Schema> = {
                 paramQ('limit', int({ minimum: 1, maximum: 500, default: 100 })),
             ],
             response: obj({ events: arr(ref('Event')) }), meta: ref('EventsMeta'),
-            description: 'Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer.',
+            description: 'Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.',
         }),
     },
     '/events/types': {
