@@ -2,6 +2,7 @@
  * Types for the Everfall public API (/api/v1) and its key management.
  * Shared between core (routes + ApiServer module) and the panel (API Keys page).
  */
+import type { ApiScopeInfo } from './apiScopes';
 
 //Error codes returned inside the `error.code` field of the envelope
 export const API_ERROR_CODES = [
@@ -41,6 +42,7 @@ export const API_KEY_ALLOWED_IPS_MAX = 32;
 export type ApiKeyPublicRecord = {
     id: string;
     name: string;
+    /** Scope ids (see apiScopes.ts). Empty = read-only key. */
     permissions: string[];
     createdBy: string;
     createdAt: number; //epoch ms
@@ -53,6 +55,7 @@ export type ApiKeyPublicRecord = {
 
 export type ApiKeyCreateReq = {
     name: string;
+    /** Scope ids to grant. Empty = read-only key. */
     permissions: string[];
     expiresAt?: number | null;
     allowedIps?: string[];
@@ -66,8 +69,8 @@ export type ApiKeyCreateResp = ApiResp<{
 
 export type ApiKeyListResp = ApiResp<{
     keys: ApiKeyPublicRecord[];
-    /** Permission id -> human description, for the panel checkboxes. */
-    permissions: Record<string, string>;
+    /** The scopes a key can be given, for the panel selector. */
+    scopes: ApiScopeInfo[];
 }>;
 
 export type ApiKeyRevokeResp = ApiResp<{ key: ApiKeyPublicRecord }>;

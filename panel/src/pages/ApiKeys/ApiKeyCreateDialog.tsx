@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBackendApi } from "@/hooks/fetch";
 import { useAdminPerms } from "@/hooks/auth";
 import { API_KEY_NAME_MAX_LENGTH, type ApiKeyCreateReq, type ApiKeyCreateResp } from "@shared/apiV1Types";
+import { API_SCOPE_ALL, type ApiScopeInfo } from "@shared/apiScopes";
 
 
 const EXPIRY_OPTIONS = [
@@ -25,10 +26,10 @@ type Props = {
     isOpen: boolean;
     onClose: () => void;
     onCreated: (name: string, token: string) => void;
-    availablePermissions: Record<string, string>;
+    scopes: ApiScopeInfo[];
 };
 
-export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, availablePermissions }: Props) {
+export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, scopes }: Props) {
     const { hasPerm } = useAdminPerms();
     const [name, setName] = useState('');
     const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -53,20 +54,19 @@ export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, availab
         setIsSaving(false);
     }, [isOpen]);
 
-    //Only permissions the current admin holds can be granted
+    //Only scopes backed by a permission the current admin holds can be granted
     const grantable = useMemo(() => {
-        return Object.entries(availablePermissions)
-            .filter(([perm]) => hasPerm(perm));
-    }, [availablePermissions, hasPerm]);
+        return scopes.filter((scope) => scope.grantRequires === null || hasPerm(scope.grantRequires));
+    }, [scopes, hasPerm]);
 
-    const togglePerm = (perm: string, checked: boolean) => {
+    const toggleScope = (scopeId: string, checked: boolean) => {
         setSelected((prev) => {
             const next = new Set(prev);
-            if (perm === 'all_permissions') {
-                return checked ? new Set(['all_permissions']) : new Set();
+            if (scopeId === API_SCOPE_ALL) {
+                return checked ? new Set([API_SCOPE_ALL]) : new Set();
             }
-            next.delete('all_permissions');
-            if (checked) next.add(perm); else next.delete(perm);
+            next.delete(API_SCOPE_ALL);
+            if (checked) next.add(scopeId); else next.delete(scopeId);
             return next;
         });
     };
@@ -75,7 +75,6 @@ export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, availab
         e.preventDefault();
         setError(null);
         if (!name.trim()) return setError('Name is required.');
-        if (!selected.size) return setError('Select at least one permission.');
         const ipList = allowedIps.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
         const expiresAt = expiry === 'never' ? null : Date.now() + Number(expiry) * 24 * 60 * 60 * 1000;
 
@@ -110,7 +109,7 @@ export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, availab
                     <DialogHeader>
                         <DialogTitle>New API key</DialogTitle>
                         <DialogDescription>
-                            The token is shown once after creation. Give the key only the permissions it needs.
+                            The token is shown once after creation. Every key can read; tick only the write scopes it needs.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -127,28 +126,46 @@ export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, availab
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label>Permissions</Label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 max-h-64 overflow-y-auto border rounded-md p-3">
-                            {grantable.map(([perm, desc]) => {
-                                const isAll = perm === 'all_permissions';
-                                const allSelected = selected.has('all_permissions');
+                        <Label>Scopes</Label>
+                        <div className="border rounded-md divide-y max-h-72 overflow-y-auto">
+                            <div className="flex items-start gap-2 p-3 text-sm bg-muted/40">
+                                <Checkbox className="mt-0.5" checked disabled />
+                                <div>
+                                    <div className="font-medium">Read access</div>
+                                    <div className="text-xs text-muted-foreground">
+                                        Always included: status, players, bans and warns, whitelist, resources and events.
+                                        A key with nothing else ticked is read-only.
+                                    </div>
+                                </div>
+                            </div>
+                            {grantable.map((scope) => {
+                                const isAll = scope.id === API_SCOPE_ALL;
+                                const allSelected = selected.has(API_SCOPE_ALL);
                                 return (
                                     <label
-                                        key={perm}
-                                        className="flex items-start gap-2 text-sm cursor-pointer"
-                                        title={perm}
+                                        key={scope.id}
+                                        className="flex items-start gap-2 p-3 text-sm cursor-pointer hover:bg-muted/40"
+                                        title={scope.id}
                                     >
                                         <Checkbox
                                             className="mt-0.5"
-                                            checked={selected.has(perm)}
+                                            checked={selected.has(scope.id)}
                                             disabled={!isAll && allSelected}
-                                            onCheckedChange={(c) => togglePerm(perm, c === true)}
+                                            onCheckedChange={(c) => toggleScope(scope.id, c === true)}
                                         />
-                                        <span className={isAll ? 'font-semibold' : ''}>{desc}</span>
+                                        <div>
+                                            <div className={isAll ? 'font-semibold' : 'font-medium'}>{scope.label}</div>
+                                            <div className="text-xs text-muted-foreground">{scope.description}</div>
+                                        </div>
                                     </label>
                                 );
                             })}
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            {selected.size
+                                ? `Granting ${selected.size} write scope${selected.size === 1 ? '' : 's'}.`
+                                : 'No write scopes selected, this will be a read-only key.'}
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

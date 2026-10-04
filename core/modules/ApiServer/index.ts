@@ -6,6 +6,7 @@ import ApiEventBus from './events';
 import WebhookStore, { WebhookStoreError, type WebhookCreateInput, type WebhookUpdateInput } from './WebhookStore';
 import WebhookDispatcher, { type DispatcherOptions } from './dispatcher';
 import type { ApiEventType } from '@shared/apiV1Types';
+import { API_SCOPE_IDS, getApiScope } from '@shared/apiScopes';
 import { ApiError } from './envelope';
 import { invalidIpEntries } from './ipAllowlist';
 import type { AuthedAdminType } from '@modules/WebServer/authLogic';
@@ -132,20 +133,22 @@ export default class ApiServer {
 
     /**
      * Validates a create-key request against the issuing admin:
-     * - every permission must be a registered txAdmin permission
-     * - the issuer must hold every permission being granted (no privilege escalation)
+     * - every scope must exist in the API scope catalogue (shared/apiScopes.ts)
+     * - the issuer must hold the admin permission behind each scope (no privilege escalation)
      * - allowedIps entries must be valid IPs/CIDRs
      * Throws ApiError on failure.
      */
     public assertCanGrant(admin: AuthedAdminType, input: ApiKeyCreateInput) {
-        const registered = txCore.adminStore.getPermissionsList() as Record<string, string>;
-        const unknown = input.permissions.filter((p) => !(p in registered));
+        const unknown = input.permissions.filter((p) => !API_SCOPE_IDS.has(p));
         if (unknown.length) {
-            throw new ApiError(400, 'VALIDATION_ERROR', 'Unknown permission(s).', { permissions: unknown });
+            throw new ApiError(400, 'VALIDATION_ERROR', 'Unknown scope(s).', { permissions: unknown });
         }
-        const notHeld = input.permissions.filter((p) => !admin.hasPermission(p));
+        const notHeld = input.permissions.filter((p) => {
+            const required = getApiScope(p)?.grantRequires;
+            return required !== null && required !== undefined && !admin.hasPermission(required);
+        });
         if (notHeld.length) {
-            throw new ApiError(403, 'FORBIDDEN', 'You cannot grant permissions you do not hold.', { permissions: notHeld });
+            throw new ApiError(403, 'FORBIDDEN', 'You cannot grant scopes you do not hold.', { permissions: notHeld });
         }
         if (input.allowedIps?.length) {
             const invalid = invalidIpEntries(input.allowedIps);
@@ -173,7 +176,7 @@ export default class ApiServer {
             }
             throw error; //disk errors etc. reach the 500 handler
         }
-        admin.logAction(`Created API key '${result.key.name}' (${result.key.id}) with permissions: ${result.key.permissions.join(', ')}`);
+        admin.logAction(`Created API key '${result.key.name}' (${result.key.id}) with scopes: ${result.key.permissions.join(', ') || 'read-only'}`);
         return result;
     }
 

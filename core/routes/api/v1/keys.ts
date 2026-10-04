@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { sendData } from '@modules/ApiServer/envelope';
 import { apiKeyCreateSchema } from '@modules/ApiServer/ApiKeyStore';
+import { API_SCOPES } from '@shared/apiScopes';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 
 const idParamSchema = z.object({ id: z.string().min(8).max(32) });
@@ -12,7 +13,7 @@ const idParamSchema = z.object({ id: z.string().min(8).max(32) });
 export async function list(ctx: ApiKeyCtx) {
     return sendData(ctx, {
         keys: txCore.apiServer.keyStore.list(),
-        permissions: txCore.adminStore.getPermissionsList(),
+        scopes: API_SCOPES,
     });
 };
 

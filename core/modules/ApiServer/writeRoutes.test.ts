@@ -87,7 +87,7 @@ beforeEach(async () => {
 beforeAll(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'txapiwrite-'));
     apiServer = new ApiServer({ keysFilePath: path.join(tmpDir, 'apiKeys.json'), webhooksFilePath: path.join(tmpDir, 'webhooks.json') });
-    kickOnlyToken = (await apiServer.keyStore.create({ name: 'kicker', permissions: ['players.kick', 'players.warn'] }, 'test')).token;
+    kickOnlyToken = (await apiServer.keyStore.create({ name: 'kicker', permissions: ['players.kick', 'players.warn', 'players.note'] }, 'test')).token;
     players = makePlayers();
 
     vi.stubGlobal('txConfig', {
@@ -294,6 +294,11 @@ describe('player moderation', () => {
         expect(players[1].tsWhitelisted).toBeTypeOf('number');
         expect(lastEvent('whitelistPlayer')).toMatchObject({ action: 'added', license: LIC_OFF });
         expect(adminLog.some((l) => l.endsWith(`: Added ${LIC_OFF} to the whitelist.`))).toBe(true);
+
+        const noNoteToken = (await apiServer.keyStore.create({ name: 'note-denied', permissions: ['players.kick'] }, 'test')).token;
+        const deniedNote = await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: 'nope' }, noNoteToken);
+        expect(deniedNote.status).toBe(403);
+        expect(deniedNote.json.error.details.permission).toBe('players.note');
 
         const note = await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: '  watch this one ' }, kickOnlyToken);
         expect(note.status).toBe(200);

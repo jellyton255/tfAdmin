@@ -53,7 +53,7 @@ export async function whitelist(ctx: ApiKeyCtx) {
     return sendData(ctx, { ok: true as const });
 };
 
-/** PUT /api/v1/players/:license/note  (any key, like the panel) */
+/** PUT /api/v1/players/:license/note  (players.note) */
 export async function note(ctx: ApiKeyCtx) {
     const player = target(ctx);
     const body = noteBodySchema.parse(ctx.request.body);
