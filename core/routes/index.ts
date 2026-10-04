@@ -77,6 +77,14 @@ export {
     create as apiKeys_create,
     revoke as apiKeys_revoke,
 } from './apiKeys';
+export {
+    list as webhooks_list,
+    create as webhooks_create,
+    update as webhooks_update,
+    remove as webhooks_remove,
+    test as webhooks_test,
+    deliveries as webhooks_deliveries,
+} from './apiKeys/webhooks';
 
 export {
     get as dev_get,

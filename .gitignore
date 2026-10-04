@@ -80,3 +80,7 @@ yarn.lock
 
 # next.js build output
 .next
+
+# everfall:api client build output
+client/dist/
+*.tsbuildinfo

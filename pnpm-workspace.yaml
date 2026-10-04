@@ -3,3 +3,4 @@ packages:
   - nui
   - panel
   - shared
+  - client

@@ -393,6 +393,7 @@ export default class FxRunner {
      */
     public sendEvent(eventType: string, data = {}) {
         if (typeof eventType !== 'string' || !eventType) throw new Error('invalid eventType');
+        txCore.apiServer?.publishServerEvent(eventType, data); // everfall:api
         try {
             return this.sendCommand('txaEvent', [eventType, data], SYM_SYSTEM_AUTHOR);
         } catch (error) {
