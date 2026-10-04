@@ -215,6 +215,15 @@ const paths: Record<string, Schema> = {
     '/openapi.json': {
         get: op({ tag: 'Meta', summary: 'This document', permission: null, response: { type: 'object' } }),
     },
+    '/docs': {
+        get: {
+            summary: 'Interactive docs',
+            description: 'Swagger UI rendering of this document. No authentication.',
+            tags: ['Meta'],
+            security: [],
+            responses: { '200': { description: 'HTML page', content: { 'text/html': { schema: { type: 'string' } } } } },
+        },
+    },
     '/me': {
         get: op({
             tag: 'Meta', summary: 'The calling key',
@@ -419,7 +428,7 @@ const paths: Record<string, Schema> = {
                 paramQ('limit', int({ minimum: 1, maximum: 500, default: 100 })),
             ],
             response: obj({ events: arr(ref('Event')) }), meta: ref('EventsMeta'),
-            description: 'Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.',
+            description: 'Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `admin.login`, `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.',
         }),
     },
     '/events/types': {

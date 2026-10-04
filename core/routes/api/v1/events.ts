@@ -9,14 +9,14 @@ const querySchema = z.object({
     limit: z.coerce.number().int().min(1).max(API_EVENTS_PAGE_MAX).default(100),
 });
 const VALID_TYPES = new Set<string>(API_EVENT_TYPES);
-//Events that reveal key/webhook details: only keys with manage.admins see them
-const ADMIN_ONLY_TYPES = new Set<ApiEventType>(['apiKey.firstUse', 'webhook.test']);
+//Events that reveal admin/key/webhook details: only keys with manage.admins see them
+const ADMIN_ONLY_TYPES = new Set<ApiEventType>(['admin.login', 'apiKey.firstUse', 'webhook.test']);
 
 
 /**
  * GET /api/v1/events?since=<cursor>&types=a,b&limit=100
- * Polling fallback for consumers that can't receive webhooks. Any valid key; apiKey.firstUse and
- * webhook.test are only returned to keys holding manage.admins.
+ * Polling fallback for consumers that can't receive webhooks. Any valid key; admin.login,
+ * apiKey.firstUse and webhook.test are only returned to keys holding manage.admins.
  */
 export async function list(ctx: ApiKeyCtx) {
     const query = querySchema.parse(ctx.query);
