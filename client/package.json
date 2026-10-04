@@ -1,0 +1,31 @@
+{
+    "name": "@everfall/txadmin-client",
+    "version": "0.1.0",
+    "description": "Typed TypeScript client for the Everfall txAdmin API (/api/v1) and its webhooks.",
+    "license": "MIT",
+    "type": "module",
+    "main": "./dist/client/src/index.js",
+    "types": "./dist/client/src/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/client/src/index.d.ts",
+            "import": "./dist/client/src/index.js"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "test": "echo \"No tests for this workspace. Skipping...\"",
+        "license:report": "pnpm dlx license-report > ../.reports/license/client.html"
+    },
+    "engines": {
+        "node": ">=18"
+    },
+    "devDependencies": {
+        "typescript": "^5.6.3"
+    }
+}

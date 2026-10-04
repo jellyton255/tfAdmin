@@ -61,6 +61,14 @@ export const apiKeyAuthMw = (requiredPermission?: string) => {
             ctx.set('WWW-Authenticate', 'Bearer realm="txAdmin API", error="invalid_token"');
             return sendError(ctx, 401, 'UNAUTHORIZED', REJECT_MESSAGES[result.reason] ?? 'Unauthorized.');
         }
+        //Published before the rate-limit/permission checks: verify() already marked the key as used
+        if (result.firstUse) {
+            txCore.apiServer.publishEvent('apiKey.firstUse', {
+                keyId: result.key.id,
+                keyName: result.key.name,
+                ip: ctx.txVars.realIP,
+            });
+        }
 
         //Rate limit
         const heavy = !!requiredPermission && HEAVY_PERMISSIONS.has(requiredPermission);

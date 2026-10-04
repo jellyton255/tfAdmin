@@ -19,7 +19,7 @@ const adminLog: string[] = [];
 
 beforeAll(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'txapirouter-'));
-    apiServer = new ApiServer(path.join(tmpDir, 'apiKeys.json'));
+    apiServer = new ApiServer({ keysFilePath: path.join(tmpDir, 'apiKeys.json'), webhooksFilePath: path.join(tmpDir, 'webhooks.json') });
 
     vi.stubGlobal('txCore', {
         apiServer,

@@ -227,6 +227,7 @@ export default class FxPlayerlist {
                     pureName: svPlayer.pureName,
                     license: svPlayer.license,
                 });
+                txCore.apiServer?.publishEvent('player.joined', { netid: svPlayer.netid, displayName: svPlayer.displayName, license: svPlayer.license, ids: svPlayer.idsOnline }); // everfall:api
             } catch (error) {
                 console.verbose.warn(`playerJoining event error: ${(error as Error).message}`);
             }
@@ -252,6 +253,7 @@ export default class FxPlayerlist {
                     netid: this.#playerlist[payload.id]!.netid,
                     reasonCategory: reasonCategory ? reasonCategory : undefined,
                 });
+                txCore.apiServer?.publishEvent('player.left', { netid: payload.id, displayName: this.#playerlist[payload.id]!.displayName, license: this.#playerlist[payload.id]!.license, reason: payload.reason ?? null, reasonCategory: reasonCategory || null }); // everfall:api
             } catch (error) {
                 console.verbose.warn(`playerDropped event error: ${(error as Error).message}`);
             }

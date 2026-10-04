@@ -97,7 +97,7 @@ const matchesFilter = <T>(list: T[], filter: object | Function | undefined) => {
 
 beforeAll(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'txapiread-'));
-    apiServer = new ApiServer(path.join(tmpDir, 'apiKeys.json'));
+    apiServer = new ApiServer({ keysFilePath: path.join(tmpDir, 'apiKeys.json'), webhooksFilePath: path.join(tmpDir, 'webhooks.json') });
     token = (await apiServer.keyStore.create({ name: 'root', permissions: ['all_permissions'] }, 'test')).token;
     limitedToken = (await apiServer.keyStore.create({ name: 'reader', permissions: ['players.kick'] }, 'test')).token;
 
