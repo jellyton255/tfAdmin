@@ -2,7 +2,9 @@ name: Publish API client
 
 # Releases @everfall/txadmin-client whenever client/package.json carries a version that has not
 # been released yet. No tag push is needed: the workflow creates the client-vX.Y.Z tag and the
-# GitHub release itself. It can also be run by hand from the Actions tab (or the API).
+# GitHub release itself. Only pushes to master trigger it, so the workflow definition and the
+# code it releases always come from the protected branch; a failed run can be re-run from the
+# Actions tab.
 on:
   push:
     branches:
@@ -10,7 +12,6 @@ on:
     paths:
       - "client/**"
       - ".github/workflows/publish-client.yml"
-  workflow_dispatch:
 
 concurrency:
   group: publish-client

@@ -222,10 +222,11 @@ Or use `parseWebhookRequest()` from the client package below.
   endpoint, a polling iterator for `/events` and the webhook verification helpers. It compiles against
   `shared/apiV1Types.ts`, so the types can never drift from the server. Build with
   `pnpm --filter @everfall/txadmin-client build`. Releases: bump the version in
-  `client/package.json` and merge to master; the `publish-client` workflow creates the
-  `client-vX.Y.Z` tag and a GitHub release carrying the packed tarball (and publishes to npm when
-  an `NPM_TOKEN` secret exists). Nobody pushes tags by hand; the workflow can also be run manually
-  from the Actions tab. Consumers can depend on the
+  `client/package.json` and merge to master. When no `client-vX.Y.Z` tag exists for that version
+  yet, the `publish-client` workflow creates the tag and a GitHub release carrying the packed
+  tarball (and publishes to npm when an `NPM_TOKEN` secret exists); when the tag already exists
+  the run is a no-op. Nobody pushes tags by hand, and the workflow only runs from master, so a
+  failed run is re-run from the Actions tab rather than dispatched by hand. Consumers can depend on the
   release tarball URL directly, see `client/README.md`.
 
 ## Example
