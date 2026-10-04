@@ -14,7 +14,7 @@ const console = consoleFactory(modulename);
  */
 const revokeBodySchema = z.object({ id: z.string().min(8).max(32) });
 
-const sendApiError = (ctx: AuthedCtx, error: unknown) => {
+export const sendApiError = (ctx: AuthedCtx, error: unknown) => {
     if (error instanceof ApiError) {
         return ctx.send({ error: { code: error.code, message: error.message, details: error.details } });
     }

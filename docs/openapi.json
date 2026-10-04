@@ -1,0 +1,4496 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Everfall txAdmin API",
+    "version": "1.0.0",
+    "description": "Public HTTP API of the Everfall txAdmin fork. Bearer keys are created on the panel (System > API Keys) or via POST /keys. Timestamps are Unix epoch milliseconds. Every response is `{data}`, `{data, meta}` or `{error: {code, message, details?}}`."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Meta"
+    },
+    {
+      "name": "Keys"
+    },
+    {
+      "name": "Server"
+    },
+    {
+      "name": "Players"
+    },
+    {
+      "name": "Moderation"
+    },
+    {
+      "name": "Actions"
+    },
+    {
+      "name": "Whitelist"
+    },
+    {
+      "name": "Admins"
+    },
+    {
+      "name": "Resources"
+    },
+    {
+      "name": "Events"
+    },
+    {
+      "name": "Webhooks"
+    }
+  ],
+  "paths": {
+    "/openapi.json": {
+      "get": {
+        "summary": "This document",
+        "description": "No authentication.",
+        "tags": [
+          "Meta"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "summary": "The calling key",
+        "description": "Any valid key.",
+        "tags": [
+          "Meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "$ref": "#/components/schemas/ApiKey"
+                        },
+                        "txAdminVersion": {
+                          "type": "string"
+                        },
+                        "serverTime": {
+                          "type": "integer",
+                          "description": "Unix epoch milliseconds"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "txAdminVersion",
+                        "serverTime"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/keys": {
+      "get": {
+        "summary": "List API keys",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Keys"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "keys": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ApiKey"
+                          }
+                        },
+                        "permissions": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "keys",
+                        "permissions"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create an API key",
+        "description": "A key can only carry permissions the caller holds.\n\nRequires the `manage.admins` permission.",
+        "tags": [
+          "Keys"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "$ref": "#/components/schemas/ApiKey"
+                        },
+                        "token": {
+                          "type": "string",
+                          "description": "Plaintext token, shown once"
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "token"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/keys/{id}": {
+      "delete": {
+        "summary": "Revoke an API key",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Keys"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "$ref": "#/components/schemas/ApiKey"
+                        }
+                      },
+                      "required": [
+                        "key"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "summary": "Server and txAdmin status",
+        "description": "Any valid key.",
+        "tags": [
+          "Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Status"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players": {
+      "get": {
+        "summary": "Search players",
+        "description": "Any valid key.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "ids",
+                "notes"
+              ]
+            },
+            "description": "What `q` matches (default name)"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma separated: isAdmin, isOnline, isWhitelisted, hasNote"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "playTime",
+                "tsJoined",
+                "tsLastConnection"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque cursor from meta.nextCursor"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "players": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PlayerSummary"
+                          }
+                        }
+                      },
+                      "required": [
+                        "players"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/online": {
+      "get": {
+        "summary": "Players online now",
+        "description": "Any valid key.",
+        "tags": [
+          "Players"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "players": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/OnlinePlayer"
+                          }
+                        }
+                      },
+                      "required": [
+                        "players"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/stats": {
+      "get": {
+        "summary": "Player counts",
+        "description": "Any valid key.",
+        "tags": [
+          "Players"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PlayersStats"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}": {
+      "get": {
+        "summary": "Player detail with history",
+        "description": "Any valid key.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "player": {
+                          "$ref": "#/components/schemas/PlayerDetail"
+                        }
+                      },
+                      "required": [
+                        "player"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/ban": {
+      "post": {
+        "summary": "Ban a player",
+        "description": "Requires the `players.ban` permission.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2048
+                  },
+                  "duration": {
+                    "$ref": "#/components/schemas/BanDuration"
+                  }
+                },
+                "required": [
+                  "reason",
+                  "duration"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionWrite"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/warn": {
+      "post": {
+        "summary": "Warn a player",
+        "description": "Requires the `players.warn` permission.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionWrite"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/kick": {
+      "post": {
+        "summary": "Kick an online player",
+        "description": "Requires the `players.kick` permission.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/players/{license}/message": {
+      "post": {
+        "summary": "Direct message an online player",
+        "description": "Requires the `players.direct_message` permission.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/players/{license}/whitelist": {
+      "put": {
+        "summary": "Set player whitelist flag",
+        "description": "Requires the `players.whitelist` permission.",
+        "tags": [
+          "Whitelist"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "whitelisted": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "whitelisted"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/note": {
+      "put": {
+        "summary": "Set player note",
+        "description": "Any valid key.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "note"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions": {
+      "get": {
+        "summary": "Search bans and warns",
+        "description": "Any valid key.",
+        "tags": [
+          "Actions"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "reason",
+                "ids"
+              ]
+            },
+            "description": "What `q` matches (default ids)"
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ban",
+                "warn"
+              ]
+            }
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "revoked"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque cursor from meta.nextCursor"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "actions": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Action"
+                          }
+                        }
+                      },
+                      "required": [
+                        "actions"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions/stats": {
+      "get": {
+        "summary": "Action counts",
+        "description": "Any valid key.",
+        "tags": [
+          "Actions"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionsStats"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions/ban-identifiers": {
+      "post": {
+        "summary": "Ban raw identifiers",
+        "description": "Requires the `players.ban` permission.",
+        "tags": [
+          "Moderation"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2048
+                  },
+                  "duration": {
+                    "$ref": "#/components/schemas/BanDuration"
+                  }
+                },
+                "required": [
+                  "identifiers",
+                  "reason",
+                  "duration"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ActionWrite"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions/{id}": {
+      "get": {
+        "summary": "Action detail",
+        "description": "Any valid key.",
+        "tags": [
+          "Actions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "$ref": "#/components/schemas/Action"
+                        }
+                      },
+                      "required": [
+                        "action"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions/{id}/revoke": {
+      "post": {
+        "summary": "Revoke a ban or warn",
+        "description": "Needs `players.ban` for bans and `players.warn` for warns.\n\nAny valid key.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "$ref": "#/components/schemas/Action"
+                        }
+                      },
+                      "required": [
+                        "action"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/whitelist/approvals": {
+      "get": {
+        "summary": "List whitelist approvals",
+        "description": "Any valid key.",
+        "tags": [
+          "Whitelist"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque cursor from meta.nextCursor"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "approvals": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhitelistApproval"
+                          }
+                        }
+                      },
+                      "required": [
+                        "approvals"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "post": {
+        "summary": "Approve an identifier",
+        "description": "Requires the `players.whitelist` permission.",
+        "tags": [
+          "Whitelist"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string",
+                    "description": "eg. discord:123456789012345678 or license:…"
+                  }
+                },
+                "required": [
+                  "identifier"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "approval": {
+                          "$ref": "#/components/schemas/WhitelistApproval"
+                        }
+                      },
+                      "required": [
+                        "approval"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/whitelist/approvals/{identifier}": {
+      "delete": {
+        "summary": "Remove an approval",
+        "description": "Requires the `players.whitelist` permission.",
+        "tags": [
+          "Whitelist"
+        ],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/whitelist/requests": {
+      "get": {
+        "summary": "List pending whitelist requests",
+        "description": "Any valid key.",
+        "tags": [
+          "Whitelist"
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque cursor from meta.nextCursor"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "requests": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhitelistRequest"
+                          }
+                        }
+                      },
+                      "required": [
+                        "requests"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PageMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/whitelist/requests/deny-all": {
+      "post": {
+        "summary": "Deny all pending requests",
+        "description": "Requires the `players.whitelist` permission.",
+        "tags": [
+          "Whitelist"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "before": {
+                    "type": "integer",
+                    "description": "Only requests last attempted before this time"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "removed": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "removed"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/whitelist/requests/{id}/approve": {
+      "post": {
+        "summary": "Approve a request",
+        "description": "Requires the `players.whitelist` permission.",
+        "tags": [
+          "Whitelist"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "approval": {
+                          "$ref": "#/components/schemas/WhitelistApproval"
+                        }
+                      },
+                      "required": [
+                        "approval"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/whitelist/requests/{id}/deny": {
+      "post": {
+        "summary": "Deny a request",
+        "description": "Requires the `players.whitelist` permission.",
+        "tags": [
+          "Whitelist"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/admins": {
+      "get": {
+        "summary": "Admin roster",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Admins"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "admins": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Admin"
+                          }
+                        }
+                      },
+                      "required": [
+                        "admins"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/resources": {
+      "get": {
+        "summary": "Resource list from the running server",
+        "description": "Any valid key.",
+        "tags": [
+          "Resources"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "resources": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Resource"
+                          }
+                        }
+                      },
+                      "required": [
+                        "resources"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/resources/refresh": {
+      "post": {
+        "summary": "Run `refresh`",
+        "description": "Requires the `commands.resources` permission.",
+        "tags": [
+          "Resources"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "resource": {
+                          "type": "null"
+                        },
+                        "command": {
+                          "const": "refresh"
+                        }
+                      },
+                      "required": [
+                        "resource",
+                        "command"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/resources/{name}/{command}": {
+      "post": {
+        "summary": "Start, stop, restart or ensure a resource",
+        "description": "Requires the `commands.resources` permission.",
+        "tags": [
+          "Resources"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "command",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "start",
+                "stop",
+                "restart",
+                "ensure"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "resource": {
+                          "type": "string"
+                        },
+                        "command": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "resource",
+                        "command"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/server/announce": {
+      "post": {
+        "summary": "Broadcast an announcement",
+        "description": "Requires the `announcement` permission.",
+        "tags": [
+          "Server"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 1024
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/server/kick-all": {
+      "post": {
+        "summary": "Kick everyone",
+        "description": "Requires the `control.server` permission.",
+        "tags": [
+          "Server"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/server/command": {
+      "post": {
+        "summary": "Run a console command",
+        "description": "Requires the `console.write` permission.",
+        "tags": [
+          "Server"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/server/{action}": {
+      "post": {
+        "summary": "Start, stop or restart the server",
+        "description": "Requires the `control.server` permission.",
+        "tags": [
+          "Server"
+        ],
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "start",
+                "stop",
+                "restart"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ServerControl"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "summary": "Poll recent events",
+        "description": "Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer.\n\nAny valid key.",
+        "tags": [
+          "Events"
+        ],
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{1,20}$"
+            },
+            "description": "Event id to resume after (exclusive)"
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma separated event types"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "events": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Event"
+                          }
+                        }
+                      },
+                      "required": [
+                        "events"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/EventsMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/events/types": {
+      "get": {
+        "summary": "Event catalogue",
+        "description": "Any valid key.",
+        "tags": [
+          "Events"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "types": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/EventType"
+                          }
+                        }
+                      },
+                      "required": [
+                        "types"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/webhooks": {
+      "get": {
+        "summary": "List webhooks",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "webhooks": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Webhook"
+                          }
+                        },
+                        "eventTypes": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/EventType"
+                          }
+                        }
+                      },
+                      "required": [
+                        "webhooks",
+                        "eventTypes"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a webhook",
+        "description": "At most 10 webhooks. Every delivery is a POST with `X-TxAdmin-Signature: t=<ms>,v1=<hex hmac-sha256(secret, \"<ms>.<body>\")>`.\n\nRequires the `manage.admins` permission.",
+        "tags": [
+          "Webhooks"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "webhook": {
+                          "$ref": "#/components/schemas/Webhook"
+                        },
+                        "secret": {
+                          "type": "string",
+                          "description": "HMAC secret, shown once"
+                        }
+                      },
+                      "required": [
+                        "webhook",
+                        "secret"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/webhooks/{id}": {
+      "patch": {
+        "summary": "Enable, disable or change events",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "webhook": {
+                          "$ref": "#/components/schemas/Webhook"
+                        }
+                      },
+                      "required": [
+                        "webhook"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a webhook",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "webhook": {
+                          "$ref": "#/components/schemas/Webhook"
+                        }
+                      },
+                      "required": [
+                        "webhook"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/webhooks/{id}/test": {
+      "post": {
+        "summary": "Send a `webhook.test` event",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "delivery": {
+                          "$ref": "#/components/schemas/WebhookDelivery"
+                        }
+                      },
+                      "required": [
+                        "delivery"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/webhooks/{id}/deliveries": {
+      "get": {
+        "summary": "Recent deliveries (last 50)",
+        "description": "Requires the `manage.admins` permission.",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "deliveries": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WebhookDelivery"
+                          }
+                        }
+                      },
+                      "required": [
+                        "deliveries"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "txk_<id>.<secret>"
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing, invalid, revoked or expired key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The key lacks the permission this route needs (see the description)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded, see the Retry-After header",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Validation error, details lists the offending fields",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflict with the current state",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "Server offline (SERVER_OFFLINE) or player offline (PLAYER_OFFLINE)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "VALIDATION_ERROR",
+                  "RATE_LIMITED",
+                  "CONFLICT",
+                  "SERVER_OFFLINE",
+                  "PLAYER_OFFLINE",
+                  "INTERNAL_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {}
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "PageMeta": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "nextCursor": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Pass as ?cursor= for the next page"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "limit",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "Ok": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "lastUsedAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "allowedIps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revokedAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedBy": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "permissions",
+          "createdBy",
+          "createdAt",
+          "lastUsedAt",
+          "expiresAt",
+          "allowedIps",
+          "revokedAt",
+          "revokedBy"
+        ],
+        "additionalProperties": false
+      },
+      "ApiKeyCreate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 48,
+            "pattern": "^[a-zA-Z0-9 _.-]+$"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "allowedIps": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "IP or CIDR"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ],
+        "additionalProperties": false
+      },
+      "Status": {
+        "type": "object",
+        "properties": {
+          "txAdmin": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "configState": {
+                "type": "string"
+              },
+              "serverTime": {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              }
+            },
+            "required": [
+              "version",
+              "configState",
+              "serverTime"
+            ],
+            "additionalProperties": false
+          },
+          "server": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "health": {
+                "type": "string",
+                "enum": [
+                  "OFFLINE",
+                  "ONLINE",
+                  "PARTIAL"
+                ]
+              },
+              "healthReason": {
+                "type": "string"
+              },
+              "uptime": {
+                "type": "integer",
+                "description": "ms since boot, 0 when offline"
+              },
+              "isProcessAlive": {
+                "type": "boolean"
+              },
+              "isRunnerIdle": {
+                "type": "boolean"
+              },
+              "whitelistMode": {
+                "type": "string",
+                "enum": [
+                  "disabled",
+                  "adminOnly",
+                  "approvedLicense",
+                  "discordMember",
+                  "discordRoles"
+                ]
+              },
+              "playerCount": {
+                "type": "integer"
+              },
+              "playerSlots": {
+                "oneOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "projectName": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "projectDesc": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "gameName": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "fivem",
+                      "redm"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "cfxId": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "joinLink": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "health",
+              "healthReason",
+              "uptime",
+              "isProcessAlive",
+              "isRunnerIdle",
+              "whitelistMode",
+              "playerCount",
+              "playerSlots",
+              "projectName",
+              "projectDesc",
+              "gameName",
+              "cfxId",
+              "joinLink"
+            ],
+            "additionalProperties": false
+          },
+          "scheduler": {
+            "type": "object",
+            "properties": {
+              "nextRestartAt": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "description": "Unix epoch milliseconds"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "nextSkip": {
+                "type": "boolean"
+              },
+              "nextIsTemp": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "nextRestartAt",
+              "nextSkip",
+              "nextIsTemp"
+            ],
+            "additionalProperties": false
+          },
+          "discord": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "disabled",
+                  "starting",
+                  "ready",
+                  "error"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "txAdmin",
+          "server",
+          "scheduler",
+          "discord"
+        ],
+        "additionalProperties": false
+      },
+      "OnlinePlayer": {
+        "type": "object",
+        "properties": {
+          "netid": {
+            "type": "integer"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "pureName": {
+            "type": "string"
+          },
+          "license": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "connectedAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "netid",
+          "displayName",
+          "pureName",
+          "license",
+          "connectedAt",
+          "ids"
+        ],
+        "additionalProperties": false
+      },
+      "PlayerSummary": {
+        "type": "object",
+        "properties": {
+          "license": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "pureName": {
+            "type": "string"
+          },
+          "playTime": {
+            "type": "integer",
+            "description": "minutes"
+          },
+          "joinedAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "lastConnectionAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "whitelistedAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "isOnline": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "license",
+          "displayName",
+          "pureName",
+          "playTime",
+          "joinedAt",
+          "lastConnectionAt",
+          "whitelistedAt",
+          "notes",
+          "isAdmin",
+          "isOnline"
+        ],
+        "additionalProperties": false
+      },
+      "PlayerDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PlayerSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "hwids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "notesLastEditedBy": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "notesLastEditedAt": {
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "description": "Unix epoch milliseconds"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "session": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "netid": {
+                        "type": "integer"
+                      },
+                      "connectedAt": {
+                        "type": "integer",
+                        "description": "Unix epoch milliseconds"
+                      },
+                      "idsOnline": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "hwidsOnline": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "netid",
+                      "connectedAt",
+                      "idsOnline",
+                      "hwidsOnline"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Action"
+                }
+              }
+            },
+            "required": [
+              "ids",
+              "hwids",
+              "notesLastEditedBy",
+              "notesLastEditedAt",
+              "session",
+              "actions"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "PlayersStats": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "playedLast24h": {
+            "type": "integer"
+          },
+          "joinedLast24h": {
+            "type": "integer"
+          },
+          "joinedLast7d": {
+            "type": "integer"
+          },
+          "onlineNow": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "playedLast24h",
+          "joinedLast24h",
+          "joinedLast7d",
+          "onlineNow"
+        ],
+        "additionalProperties": false
+      },
+      "Action": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "ban",
+              "warn"
+            ]
+          },
+          "playerName": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hwids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "expiresAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Bans only, null = permanent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "banStatus": {
+            "oneOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "expired",
+                  "permanent"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "acked": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedBy": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "playerName",
+          "ids",
+          "hwids",
+          "reason",
+          "author",
+          "createdAt",
+          "expiresAt",
+          "banStatus",
+          "acked",
+          "revokedAt",
+          "revokedBy"
+        ],
+        "additionalProperties": false
+      },
+      "ActionsStats": {
+        "type": "object",
+        "properties": {
+          "totalWarns": {
+            "type": "integer"
+          },
+          "warnsLast7d": {
+            "type": "integer"
+          },
+          "totalBans": {
+            "type": "integer"
+          },
+          "bansLast7d": {
+            "type": "integer"
+          },
+          "byAdmin": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "actions": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "name",
+                "actions"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "totalWarns",
+          "warnsLast7d",
+          "totalBans",
+          "bansLast7d",
+          "byAdmin"
+        ],
+        "additionalProperties": false
+      },
+      "ActionWrite": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Action"
+          },
+          "eventSent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "eventSent"
+        ],
+        "additionalProperties": false
+      },
+      "BanDuration": {
+        "type": "string",
+        "description": "`permanent` or `<n> hours|days|weeks|months`",
+        "examples": [
+          "permanent",
+          "2 days"
+        ]
+      },
+      "WhitelistApproval": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "playerName": {
+            "type": "string"
+          },
+          "playerAvatar": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approvedAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "approvedBy": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "playerName",
+          "playerAvatar",
+          "approvedAt",
+          "approvedBy"
+        ],
+        "additionalProperties": false
+      },
+      "WhitelistRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "playerDisplayName": {
+            "type": "string"
+          },
+          "playerPureName": {
+            "type": "string"
+          },
+          "discordTag": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "discordAvatar": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastAttemptAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          }
+        },
+        "required": [
+          "id",
+          "license",
+          "playerDisplayName",
+          "playerPureName",
+          "discordTag",
+          "discordAvatar",
+          "lastAttemptAt"
+        ],
+        "additionalProperties": false
+      },
+      "Admin": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "master": {
+            "type": "boolean"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "identifiers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "master",
+          "permissions",
+          "identifiers"
+        ],
+        "additionalProperties": false
+      },
+      "Resource": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "version": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "author": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "path",
+          "version",
+          "author",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "ServerControl": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "stop",
+              "restart"
+            ]
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "started",
+              "stopped",
+              "restarting",
+              "scheduled",
+              "noop"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "result",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "EventType": {
+        "type": "string",
+        "enum": [
+          "server.online",
+          "server.partial",
+          "server.offline",
+          "server.shuttingDown",
+          "server.scheduledRestart",
+          "server.scheduledRestartSkipped",
+          "server.nextRestartSkipped",
+          "server.announcement",
+          "server.configChanged",
+          "player.joined",
+          "player.left",
+          "player.banned",
+          "player.warned",
+          "player.kicked",
+          "player.directMessage",
+          "whitelist.player",
+          "whitelist.preApproval",
+          "whitelist.request",
+          "action.revoked",
+          "apiKey.firstUse",
+          "webhook.test"
+        ]
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Monotonic id, usable as ?since= cursor"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "ts": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "ts",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "EventsMeta": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "dropped": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cursor",
+          "hasMore",
+          "dropped"
+        ],
+        "additionalProperties": false
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "events": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EventType"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "const": "*"
+                },
+                "minItems": 1,
+                "maxItems": 1
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "deliveredCount": {
+            "type": "integer"
+          },
+          "failedCount": {
+            "type": "integer"
+          },
+          "lastDeliveryAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastDeliveryOk": {
+            "oneOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "events",
+          "enabled",
+          "createdBy",
+          "createdAt",
+          "deliveredCount",
+          "failedCount",
+          "lastDeliveryAt",
+          "lastDeliveryOk"
+        ],
+        "additionalProperties": false
+      },
+      "WebhookCreate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 48,
+            "pattern": "^[a-zA-Z0-9 _.-]+$"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "http(s) URL that receives the POSTs"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Event type, or `*` for all"
+            }
+          },
+          "secret": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 128,
+            "description": "HMAC secret; generated when omitted"
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "events"
+        ],
+        "additionalProperties": false
+      },
+      "WebhookUpdate": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "WebhookDelivery": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "webhookId": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "eventType": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "ok",
+              "failed"
+            ]
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "httpStatus": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "lastAttemptAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nextAttemptAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Unix epoch milliseconds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "webhookId",
+          "eventId",
+          "eventType",
+          "status",
+          "attempts",
+          "httpStatus",
+          "error",
+          "createdAt",
+          "lastAttemptAt",
+          "nextAttemptAt"
+        ],
+        "additionalProperties": false
+      },
+      "WebhookPayload": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          },
+          "webhookId": {
+            "type": "string"
+          },
+          "deliveryId": {
+            "type": "string"
+          },
+          "attempt": {
+            "type": "integer"
+          },
+          "server": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "txAdminVersion": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "txAdminVersion"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "event",
+          "webhookId",
+          "deliveryId",
+          "attempt",
+          "server"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "webhooks": {
+    "event": {
+      "post": {
+        "summary": "Event delivery",
+        "description": "Sent to every subscribed webhook. Verify `X-TxAdmin-Signature` (t=<ms>,v1=<hex>) by computing hmac-sha256(secret, `${t}.${rawBody}`) and reject timestamps older than 5 minutes. Respond 2xx within 5 s; anything else is retried after 10 s, 1 min, 10 min and 1 h.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Delivered"
+          }
+        }
+      }
+    }
+  }
+}
