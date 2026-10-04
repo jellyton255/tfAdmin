@@ -204,9 +204,9 @@ beforeAll(async () => {
     baseUrl = `http://127.0.0.1:${port}`;
 });
 
-afterAll(() => {
+afterAll(async () => {
     server?.close();
-    apiServer.handleShutdown();
+    await apiServer.handleShutdown();
     vi.unstubAllGlobals();
     fs.rmSync(tmpDir, { recursive: true, force: true });
 });

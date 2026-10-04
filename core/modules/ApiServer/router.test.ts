@@ -58,7 +58,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     server?.close();
-    apiServer.handleShutdown();
+    await apiServer.handleShutdown();
     vi.unstubAllGlobals();
     fs.rmSync(tmpDir, { recursive: true, force: true });
 });

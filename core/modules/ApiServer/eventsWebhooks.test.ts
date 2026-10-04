@@ -79,7 +79,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
-    apiServer.handleShutdown();
+    await apiServer.handleShutdown();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     fs.rmSync(tmpDir, { recursive: true, force: true });
     vi.unstubAllGlobals();
