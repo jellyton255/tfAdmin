@@ -107,7 +107,7 @@
     "/me": {
       "get": {
         "summary": "The calling key",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Meta"
         ],
@@ -161,7 +161,7 @@
     "/keys": {
       "get": {
         "summary": "List API keys",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Keys"
         ],
@@ -182,16 +182,16 @@
                             "$ref": "#/components/schemas/ApiKey"
                           }
                         },
-                        "permissions": {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "string"
+                        "scopes": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ApiScope"
                           }
                         }
                       },
                       "required": [
                         "keys",
-                        "permissions"
+                        "scopes"
                       ],
                       "additionalProperties": false
                     }
@@ -217,7 +217,7 @@
       },
       "post": {
         "summary": "Create an API key",
-        "description": "A key can only carry permissions the caller holds.\n\nRequires the `manage.admins` permission.",
+        "description": "Scopes come from the catalogue returned by GET /keys. A key with no scopes is read-only. The caller must hold the admin permission behind every scope it grants.\n\nRequires the `manage.admins` scope.",
         "tags": [
           "Keys"
         ],
@@ -286,7 +286,7 @@
     "/keys/{id}": {
       "delete": {
         "summary": "Revoke an API key",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Keys"
         ],
@@ -350,7 +350,7 @@
     "/status": {
       "get": {
         "summary": "Server and txAdmin status",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Server"
         ],
@@ -386,7 +386,7 @@
     "/players": {
       "get": {
         "summary": "Search players",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Players"
         ],
@@ -520,7 +520,7 @@
     "/players/online": {
       "get": {
         "summary": "Players online now",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Players"
         ],
@@ -568,7 +568,7 @@
     "/players/stats": {
       "get": {
         "summary": "Player counts",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Players"
         ],
@@ -604,7 +604,7 @@
     "/players/{license}": {
       "get": {
         "summary": "Player detail with history",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Players"
         ],
@@ -667,7 +667,7 @@
     "/players/{license}/ban": {
       "post": {
         "summary": "Ban a player",
-        "description": "Requires the `players.ban` permission.",
+        "description": "Requires the `players.ban` scope.",
         "tags": [
           "Moderation"
         ],
@@ -748,7 +748,7 @@
     "/players/{license}/warn": {
       "post": {
         "summary": "Warn a player",
-        "description": "Requires the `players.warn` permission.",
+        "description": "Requires the `players.warn` scope.",
         "tags": [
           "Moderation"
         ],
@@ -825,7 +825,7 @@
     "/players/{license}/kick": {
       "post": {
         "summary": "Kick an online player",
-        "description": "Requires the `players.kick` permission.",
+        "description": "Requires the `players.kick` scope.",
         "tags": [
           "Moderation"
         ],
@@ -903,7 +903,7 @@
     "/players/{license}/message": {
       "post": {
         "summary": "Direct message an online player",
-        "description": "Requires the `players.direct_message` permission.",
+        "description": "Requires the `players.direct_message` scope.",
         "tags": [
           "Moderation"
         ],
@@ -983,7 +983,7 @@
     "/players/{license}/whitelist": {
       "put": {
         "summary": "Set player whitelist flag",
-        "description": "Requires the `players.whitelist` permission.",
+        "description": "Requires the `players.whitelist` scope.",
         "tags": [
           "Whitelist"
         ],
@@ -1059,7 +1059,7 @@
     "/players/{license}/note": {
       "put": {
         "summary": "Set player note",
-        "description": "Any valid key.",
+        "description": "Requires the `players.note` scope.",
         "tags": [
           "Players"
         ],
@@ -1121,6 +1121,9 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
@@ -1133,7 +1136,7 @@
     "/actions": {
       "get": {
         "summary": "Search bans and warns",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Actions"
         ],
@@ -1277,7 +1280,7 @@
     "/actions/stats": {
       "get": {
         "summary": "Action counts",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Actions"
         ],
@@ -1313,7 +1316,7 @@
     "/actions/ban-identifiers": {
       "post": {
         "summary": "Ban raw identifiers",
-        "description": "Requires the `players.ban` permission.",
+        "description": "Requires the `players.ban` scope.",
         "tags": [
           "Moderation"
         ],
@@ -1386,7 +1389,7 @@
     "/actions/{id}": {
       "get": {
         "summary": "Action detail",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Actions"
         ],
@@ -1447,7 +1450,7 @@
     "/actions/{id}/revoke": {
       "post": {
         "summary": "Revoke a ban or warn",
-        "description": "Needs `players.ban` for bans and `players.warn` for warns.\n\nAny valid key.",
+        "description": "Needs `players.ban` for bans and `players.warn` for warns.\n\nAny valid key (read-only keys included).",
         "tags": [
           "Moderation"
         ],
@@ -1514,7 +1517,7 @@
     "/whitelist/approvals": {
       "get": {
         "summary": "List whitelist approvals",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Whitelist"
         ],
@@ -1609,7 +1612,7 @@
       },
       "post": {
         "summary": "Approve an identifier",
-        "description": "Requires the `players.whitelist` permission.",
+        "description": "Requires the `players.whitelist` scope.",
         "tags": [
           "Whitelist"
         ],
@@ -1683,7 +1686,7 @@
     "/whitelist/approvals/{identifier}": {
       "delete": {
         "summary": "Remove an approval",
-        "description": "Requires the `players.whitelist` permission.",
+        "description": "Requires the `players.whitelist` scope.",
         "tags": [
           "Whitelist"
         ],
@@ -1738,7 +1741,7 @@
     "/whitelist/requests": {
       "get": {
         "summary": "List pending whitelist requests",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Whitelist"
         ],
@@ -1835,7 +1838,7 @@
     "/whitelist/requests/deny-all": {
       "post": {
         "summary": "Deny all pending requests",
-        "description": "Requires the `players.whitelist` permission.",
+        "description": "Requires the `players.whitelist` scope.",
         "tags": [
           "Whitelist"
         ],
@@ -1904,7 +1907,7 @@
     "/whitelist/requests/{id}/approve": {
       "post": {
         "summary": "Approve a request",
-        "description": "Requires the `players.whitelist` permission.",
+        "description": "Requires the `players.whitelist` scope.",
         "tags": [
           "Whitelist"
         ],
@@ -1971,7 +1974,7 @@
     "/whitelist/requests/{id}/deny": {
       "post": {
         "summary": "Deny a request",
-        "description": "Requires the `players.whitelist` permission.",
+        "description": "Requires the `players.whitelist` scope.",
         "tags": [
           "Whitelist"
         ],
@@ -2026,7 +2029,7 @@
     "/admins": {
       "get": {
         "summary": "Admin roster",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Admins"
         ],
@@ -2077,7 +2080,7 @@
     "/resources": {
       "get": {
         "summary": "Resource list from the running server",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Resources"
         ],
@@ -2128,7 +2131,7 @@
     "/resources/refresh": {
       "post": {
         "summary": "Run `refresh`",
-        "description": "Requires the `commands.resources` permission.",
+        "description": "Requires the `commands.resources` scope.",
         "tags": [
           "Resources"
         ],
@@ -2183,7 +2186,7 @@
     "/resources/{name}/{command}": {
       "post": {
         "summary": "Start, stop, restart or ensure a resource",
-        "description": "Requires the `commands.resources` permission.",
+        "description": "Requires the `commands.resources` scope.",
         "tags": [
           "Resources"
         ],
@@ -2265,7 +2268,7 @@
     "/server/announce": {
       "post": {
         "summary": "Broadcast an announcement",
-        "description": "Requires the `announcement` permission.",
+        "description": "Requires the `announcement` scope.",
         "tags": [
           "Server"
         ],
@@ -2327,7 +2330,7 @@
     "/server/kick-all": {
       "post": {
         "summary": "Kick everyone",
-        "description": "Requires the `control.server` permission.",
+        "description": "Requires the `control.server` scope.",
         "tags": [
           "Server"
         ],
@@ -2390,7 +2393,7 @@
     "/server/command": {
       "post": {
         "summary": "Run a console command",
-        "description": "Requires the `console.write` permission.",
+        "description": "Requires the `console.write` scope.",
         "tags": [
           "Server"
         ],
@@ -2455,7 +2458,7 @@
     "/server/{action}": {
       "post": {
         "summary": "Start, stop or restart the server",
-        "description": "Requires the `control.server` permission.",
+        "description": "Requires the `control.server` scope.",
         "tags": [
           "Server"
         ],
@@ -2515,7 +2518,7 @@
     "/events": {
       "get": {
         "summary": "Poll recent events",
-        "description": "Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `admin.login`, `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.\n\nAny valid key.",
+        "description": "Ring buffer of the last 1000 events. `meta.dropped` is true when `since` is older than the buffer. `admin.login`, `apiKey.firstUse` and `webhook.test` are only returned to keys with `manage.admins`.\n\nAny valid key (read-only keys included).",
         "tags": [
           "Events"
         ],
@@ -2602,7 +2605,7 @@
     "/events/types": {
       "get": {
         "summary": "Event catalogue",
-        "description": "Any valid key.",
+        "description": "Any valid key (read-only keys included).",
         "tags": [
           "Events"
         ],
@@ -2650,7 +2653,7 @@
     "/webhooks": {
       "get": {
         "summary": "List webhooks",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Webhooks"
         ],
@@ -2706,7 +2709,7 @@
       },
       "post": {
         "summary": "Create a webhook",
-        "description": "At most 10 webhooks. Every delivery is a POST with `X-TxAdmin-Signature: t=<ms>,v1=<hex hmac-sha256(secret, \"<ms>.<body>\")>`.\n\nRequires the `manage.admins` permission.",
+        "description": "At most 10 webhooks. Every delivery is a POST with `X-TxAdmin-Signature: t=<ms>,v1=<hex hmac-sha256(secret, \"<ms>.<body>\")>`.\n\nRequires the `manage.admins` scope.",
         "tags": [
           "Webhooks"
         ],
@@ -2775,7 +2778,7 @@
     "/webhooks/{id}": {
       "patch": {
         "summary": "Enable, disable or change events",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Webhooks"
         ],
@@ -2847,7 +2850,7 @@
       },
       "delete": {
         "summary": "Delete a webhook",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Webhooks"
         ],
@@ -2911,7 +2914,7 @@
     "/webhooks/{id}/test": {
       "post": {
         "summary": "Send a `webhook.test` event",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Webhooks"
         ],
@@ -2975,7 +2978,7 @@
     "/webhooks/{id}/deliveries": {
       "get": {
         "summary": "Recent deliveries (last 50)",
-        "description": "Requires the `manage.admins` permission.",
+        "description": "Requires the `manage.admins` scope.",
         "tags": [
           "Webhooks"
         ],
@@ -3060,7 +3063,7 @@
         }
       },
       "Forbidden": {
-        "description": "The key lacks the permission this route needs (see the description)",
+        "description": "The key lacks the scope this route needs (see the description)",
         "content": {
           "application/json": {
             "schema": {
@@ -3195,6 +3198,38 @@
         ],
         "additionalProperties": false
       },
+      "ApiScope": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "grantRequires": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Admin permission the issuer must hold to grant this scope"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "grantRequires"
+        ],
+        "additionalProperties": false
+      },
       "ApiKey": {
         "type": "object",
         "properties": {
@@ -3207,7 +3242,8 @@
           "permissions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "description": "Scope id"
             }
           },
           "createdBy": {
@@ -3292,7 +3328,8 @@
           "permissions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "description": "Scope id, see GET /keys. Empty = read-only key"
             }
           },
           "expiresAt": {
