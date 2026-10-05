@@ -136,8 +136,6 @@ export default function WebhooksSection({ canManage }: { canManage: boolean }) {
         if (!resp) throw new Error('No data returned');
         if ('error' in resp) throw new Error(resp.error.message);
         return resp.data;
-    }, {
-        isPaused: () => isCreateOpen || !!newSecret,
     });
 
     const handleToggle = async (webhook: ApiWebhookRecord, enabled: boolean) => {
