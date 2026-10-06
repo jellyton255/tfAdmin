@@ -167,6 +167,9 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -230,6 +233,9 @@
           "Keys"
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          },
           {
             "$ref": "#/components/parameters/Actor"
           }
@@ -311,6 +317,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -699,6 +708,9 @@
             "description": "Player license (40 hex chars)"
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -783,6 +795,9 @@
             "description": "Player license (40 hex chars)"
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -861,6 +876,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -942,6 +960,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -1027,6 +1048,9 @@
             "description": "Player license (40 hex chars)"
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -1104,6 +1128,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -1356,6 +1383,9 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -1501,6 +1531,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -1660,6 +1693,9 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -1745,6 +1781,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -1894,6 +1933,9 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -1976,6 +2018,9 @@
             }
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -2046,6 +2091,9 @@
             }
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -2095,6 +2143,9 @@
           "Admins"
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          },
           {
             "$ref": "#/components/parameters/Actor"
           }
@@ -2206,6 +2257,9 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -2291,6 +2345,9 @@
             }
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -2353,6 +2410,9 @@
           "Server"
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          },
           {
             "$ref": "#/components/parameters/Actor"
           }
@@ -2421,6 +2481,9 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -2488,6 +2551,9 @@
           "Server"
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          },
           {
             "$ref": "#/components/parameters/Actor"
           }
@@ -2570,6 +2636,9 @@
                 "restart"
               ]
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -2757,6 +2826,9 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -2820,6 +2892,9 @@
           "Webhooks"
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          },
           {
             "$ref": "#/components/parameters/Actor"
           }
@@ -2903,6 +2978,9 @@
             }
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -2978,6 +3056,9 @@
             }
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -3043,6 +3124,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           },
           {
             "$ref": "#/components/parameters/Actor"
@@ -3112,6 +3196,9 @@
             }
           },
           {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
             "$ref": "#/components/parameters/Actor"
           }
         ],
@@ -3175,6 +3262,16 @@
       }
     },
     "parameters": {
+      "ActorId": {
+        "name": "X-TxAdmin-Actor-Id",
+        "in": "header",
+        "required": false,
+        "description": "Stable id of the staff member the key acts for: `discord:<id>` or `fivem:<id>` (needs the `api.actor` scope). If it matches a txAdmin admin's linked account the action is recorded under that admin's txAdmin name, so renames on the consumer side do not split the record; otherwise as `<X-TxAdmin-Actor> [<id>]`. Prefer it over X-TxAdmin-Actor alone.",
+        "schema": {
+          "type": "string",
+          "pattern": "^(discord:\\d{17,20}|fivem:\\d{1,20})$"
+        }
+      },
       "Actor": {
         "name": "X-TxAdmin-Actor",
         "in": "header",

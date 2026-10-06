@@ -33,38 +33,28 @@ Revoking a key takes effect immediately. Revoked keys stay listed for audit.
 ### Acting for a staff member
 
 A consumer that lets its own staff press the buttons (ticket system, in-game admin panel) can say who pressed
-them. Give its key the `api.actor` scope and send the staff member's name on each write:
+them. Give its key the `api.actor` scope and send the staff member's stable id, plus their display name:
 
 ```
+X-TxAdmin-Actor-Id: discord:272800190639898628
 X-TxAdmin-Actor: Julian
 ```
 
-The action log, the ban or warn record, the in-game `txAdmin:events:*` payloads and webhooks then show
-`Julian (via api:Tickets)` instead of `api:Tickets`. The name is 1-48 characters of letters, digits, space and
-`_ . ' # @ -`; anything else is a 400, and a key without `api.actor` gets a 403. txAdmin does not check the
-name against its admin list: the consumer is responsible for authenticating its staff and checking their
-permission before calling.
+How the action is recorded (record author, revocations, notes, admin log, in-game `txAdmin:events:*` and
+webhooks), for a key named `Tickets`:
 
-### Scopes
+| Headers sent | Recorded as |
+| --- | --- |
+| Id that matches a txAdmin admin's linked Discord or FiveM account | `<txAdmin admin name> (via api:Tickets)`, the same name the admin's panel actions use, and it follows renames in txAdmin |
+| Id with no matching admin, plus a name | `Julian [discord:272800190639898628] (via api:Tickets)` |
+| Id only, no match | `discord:272800190639898628 (via api:Tickets)` |
+| Name only | `Julian (via api:Tickets)` (works, but a rename on the consumer side splits the record, so send the id) |
+| Neither | `api:Tickets` |
 
-| Scope id | Shown as | Unlocks |
-| --- | --- | --- |
-| *(none)* | Read access | Every `GET` route except `/keys`, `/webhooks` and `/admins` |
-| `players.ban` | Ban players | Ban players or identifiers, revoke bans |
-| `players.warn` | Warn players | Warn players, revoke warns |
-| `players.kick` | Kick players | Kick an online player |
-| `players.direct_message` | Message players | Direct message an online player |
-| `players.note` | Edit player notes | Set the admin note on a player |
-| `players.whitelist` | Manage whitelist | Whitelist flag, approvals and requests |
-| `api.actor` | Act for staff members | Lets the key name the staff member behind a write with `X-TxAdmin-Actor` |
-| `announcement` | Send announcements | Broadcast an announcement |
-| `control.server` | Control the server | Start, stop, restart, kick everyone |
-| `console.write` | Run console commands | Execute console commands |
-| `commands.resources` | Manage resources | Refresh and resource start/stop/restart/ensure |
-| `manage.admins` | Manage API keys and webhooks | Keys, webhooks and the admin roster |
-| `all_permissions` | Full access | Everything, including future scopes |
-
-`GET /api/v1/keys` returns this catalogue as `scopes` so clients and the panel never hard-code it.
+The id is `discord:<17-20 digits>` or `fivem:<digits>`; the name is 1-48 characters of letters, digits,
+space and `_ . ' # @ -`. Anything else is a 400, and a key without `api.actor` gets a 403 for either header.
+The key's scopes still decide what it can do; txAdmin does not check the staff member's own permissions, so
+the consumer is responsible for authenticating its staff and checking their permission before calling.
 
 ## Envelope
 

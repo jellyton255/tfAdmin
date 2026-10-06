@@ -30,11 +30,13 @@ try {
 }
 ```
 
-To record which staff member pressed the button, give the key the `api.actor` scope and use `asActor`; the
-action then shows as `Julian (via api:Tickets)` in txAdmin. Check the staff member's own permissions first:
+To record which staff member pressed the button, give the key the `api.actor` scope and use `asActor` with the
+staff member's Discord id. If that Discord account is linked to a txAdmin admin, the action shows under the
+admin's txAdmin name (`Julian (via api:Tickets)`); otherwise as `Julian [discord:…] (via api:Tickets)`.
+Check the staff member's own permissions first:
 
 ```ts
-await tx.asActor('Julian').players.warn(license, { reason: 'RDM' });
+await tx.asActor({ id: `discord:${staff.discordId}`, name: staff.name }).players.warn(players[0].license, { reason: 'RDM' });
 ```
 
 Paginated calls return `{ data, meta }`; pass `meta.nextCursor` back as `cursor` for the next page.

@@ -104,6 +104,7 @@ beforeAll(async () => {
             getAdminsIdentifiers: () => [],
             getAdminsList: () => [],
             getAdminPublicName: (name: string) => `public(${name})`,
+            getAdminByIdentifiers: (ids: string[]) => (ids.includes('discord:111111111111111111') ? { name: 'JulianTx' } : false),
         },
         cacheStore: { get: () => undefined },
         logger: { admin: { write: (author: string, msg: string) => adminLog.push(`${author}: ${msg}`) } },
@@ -363,6 +364,28 @@ describe('acting for a staff member', () => {
         //without the header the key name alone is recorded
         const plain = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'again' }, actorToken);
         expect(plain.json.data.action.author).toBe('api:Tickets');
+    });
+
+    it('resolves a stable actor id to the linked txAdmin admin, or keeps the id', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Panel', permissions: ['api.actor', 'players.warn'] }, 'test')).token;
+        const warn = (headers: Record<string, string>) => call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' }, actorToken, headers);
+
+        //linked admin: txAdmin name wins over whatever display name the consumer sends
+        const linked = await warn({ 'X-TxAdmin-Actor-Id': 'DISCORD:111111111111111111', 'X-TxAdmin-Actor': 'Jules' });
+        expect(linked.status).toBe(201);
+        expect(linked.json.data.action.author).toBe('JulianTx (via api:Panel)');
+
+        const unlinked = await warn({ 'X-TxAdmin-Actor-Id': 'discord:222222222222222222', 'X-TxAdmin-Actor': 'Kate' });
+        expect(unlinked.json.data.action.author).toBe('Kate [discord:222222222222222222] (via api:Panel)');
+
+        const idOnly = await warn({ 'X-TxAdmin-Actor-Id': 'fivem:42' });
+        expect(idOnly.json.data.action.author).toBe('fivem:42 (via api:Panel)');
+
+        for (const bad of ['discord:123', 'license:abc', 'discord:1;x']) {
+            expect((await warn({ 'X-TxAdmin-Actor-Id': bad })).status, bad).toBe(400);
+        }
+        const denied = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, kickOnlyToken, { 'X-TxAdmin-Actor-Id': 'fivem:42' });
+        expect(denied.status).toBe(403);
     });
 
     it('rejects the header without the api.actor scope or with a bad name', async () => {
