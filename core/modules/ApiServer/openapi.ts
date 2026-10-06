@@ -65,7 +65,7 @@ const op = (o: OpOptions): Schema => {
         responses['429'] = errRef('RateLimited');
     }
     if (o.permission) responses['403'] = errRef('Forbidden');
-    if (o.body || o.params?.length) responses['400'] = errRef('ValidationError');
+    if (o.body || o.params?.length || o.permission || o.permissionNote) responses['400'] = errRef('ValidationError');
     for (const code of o.errors ?? []) {
         responses[String(code)] = errRef(ERROR_RESPONSES[code]);
     }
@@ -74,12 +74,14 @@ const op = (o: OpOptions): Schema => {
         : o.permission
             ? `Requires the \`${o.permission}\` scope.`
             : 'Any valid key (read-only keys included).');
+    //Writes (scoped routes) accept X-TxAdmin-Actor to name the staff member behind the call
+    const params = [...(o.params ?? []), ...(o.permission || o.permissionNote ? [{ $ref: '#/components/parameters/Actor' }] : [])];
     return {
         summary: o.summary,
         description: [o.description, permissionNote].filter(Boolean).join('\n\n'),
         tags: [o.tag],
         ...(o.permission === null ? { security: [] } : {}),
-        ...(o.params?.length ? { parameters: o.params } : {}),
+        ...(params.length ? { parameters: params } : {}),
         ...(o.body ? { requestBody: jsonBody(o.body, !o.bodyOptional) } : {}),
         responses,
     };
@@ -477,6 +479,15 @@ export const buildOpenApiDocument = () => ({
     components: {
         securitySchemes: {
             bearerAuth: { type: 'http', scheme: 'bearer', description: 'txk_<id>.<secret>' },
+        },
+        parameters: {
+            Actor: {
+                name: 'X-TxAdmin-Actor',
+                in: 'header',
+                required: false,
+                description: 'Staff member the key acts for (needs the `api.actor` scope). The action is recorded as `<actor> (via api:<key name>)`. 1-48 characters: letters, digits, space and `_ . \' # @ -`; 400 if invalid, 403 without the scope.',
+                schema: { type: 'string', maxLength: 48 },
+            },
         },
         responses,
         schemas,

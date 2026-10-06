@@ -17,6 +17,20 @@ export type ApiKeyCtx = InitializedCtx & {
     request: any;
 };
 
+//Header naming the staff member a consumer is acting for (needs the api.actor scope)
+export const ACTOR_HEADER = 'x-txadmin-actor';
+export const ACTOR_SCOPE = 'api.actor';
+const ACTOR_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} _.'#@-]{0,47}$/u;
+
+/**
+ * Validates an X-TxAdmin-Actor value. Returns the trimmed name, or null if it is not acceptable.
+ * Kept to letters, digits and a few separators so it can't spoof the "(via api:...)" suffix or break log lines.
+ */
+export const parseActor = (raw: string) => {
+    const actor = raw.trim();
+    return ACTOR_PATTERN.test(actor) ? actor : null;
+};
+
 const REJECT_MESSAGES: Record<string, string> = {
     malformed: 'Malformed API key.',
     unknown_key: 'Unknown API key.',
@@ -31,10 +45,12 @@ const REJECT_MESSAGES: Record<string, string> = {
  * Builds the principal used as ctx.admin for API key requests.
  * It is a regular AuthedAdmin named `api:<keyName>`, so every existing permission check
  * and admin log line works unchanged and the action log attributes writes to the key.
+ * With an actor (X-TxAdmin-Actor) the name becomes `<actor> (via api:<keyName>)`, so the record
+ * shows the staff member and still names the key.
  */
-export const buildApiKeyPrincipal = (key: StoredApiKey) => {
+export const buildApiKeyPrincipal = (key: StoredApiKey, actor?: string) => {
     return new AuthedAdmin({
-        name: `api:${key.name}`,
+        name: actor ? `${actor} (via api:${key.name})` : `api:${key.name}`,
         master: false,
         permissions: key.permissions,
     });
@@ -79,8 +95,25 @@ export const apiKeyAuthMw = (requiredPermission?: string) => {
             return sendError(ctx, 429, 'RATE_LIMITED', 'Rate limit exceeded.', { retryAfterSec: rl.retryAfterSec });
         }
 
+        //Optional actor: only keys holding api.actor may name a staff member
+        let actor: string | undefined;
+        const actorHeader = ctx.headers[ACTOR_HEADER];
+        if (actorHeader !== undefined) {
+            if (!buildApiKeyPrincipal(result.key).hasPermission(ACTOR_SCOPE)) {
+                return sendError(ctx, 403, 'FORBIDDEN', 'This API key cannot set X-TxAdmin-Actor.', { permission: ACTOR_SCOPE });
+            }
+            const parsed = typeof actorHeader === 'string' ? parseActor(actorHeader) : null;
+            if (!parsed) {
+                return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor header.', {
+                    header: 'X-TxAdmin-Actor',
+                    expected: '1-48 characters: letters, digits, space, _ . \' # @ -',
+                });
+            }
+            actor = parsed;
+        }
+
         //Principal + permission
-        const admin = buildApiKeyPrincipal(result.key);
+        const admin = buildApiKeyPrincipal(result.key, actor);
         if (requiredPermission && !admin.hasPermission(requiredPermission)) {
             return sendError(ctx, 403, 'FORBIDDEN', 'This API key lacks the required scope.', { permission: requiredPermission });
         }

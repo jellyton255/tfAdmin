@@ -211,10 +211,11 @@ afterAll(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-const call = async (method: string, route: string, body?: unknown, bearer = rootToken) => {
+const call = async (method: string, route: string, body?: unknown, bearer = rootToken, extraHeaders: Record<string, string> = {}) => {
     const resp = await fetch(baseUrl + route, {
         method,
         headers: {
+            ...extraHeaders,
             Authorization: `Bearer ${bearer}`,
             ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         },
@@ -338,6 +339,42 @@ describe('actions', () => {
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' });
         const revokeWarn = await call('POST', `/api/v1/actions/${warn.json.data.action.id}/revoke`, undefined, kickOnlyToken);
         expect(revokeWarn.status).toBe(200);
+    });
+});
+
+
+describe('acting for a staff member', () => {
+    it('records the actor and the key on bans, warns and revokes', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Tickets', permissions: ['api.actor', 'players.ban', 'players.warn'] }, 'test')).token;
+        const asJulian = { 'X-TxAdmin-Actor': ' Julian ' };
+
+        const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'cheating', duration: '1 day' }, actorToken, asJulian);
+        expect(ban.status).toBe(201);
+        expect(ban.json.data.action.author).toBe('Julian (via api:Tickets)');
+        expect(adminLog.at(-1)).toMatch(/^Julian \(via api:Tickets\): Banned player "Alice": cheating$/);
+        expect(lastEvent('playerBanned')).toMatchObject({ author: 'Julian (via api:Tickets)' });
+
+        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' }, actorToken, { 'X-TxAdmin-Actor': 'Mod_Kate#2' });
+        expect(warn.json.data.action.author).toBe('Mod_Kate#2 (via api:Tickets)');
+
+        const revoke = await call('POST', `/api/v1/actions/${ban.json.data.action.id}/revoke`, undefined, actorToken, asJulian);
+        expect(revoke.json.data.action.revokedBy).toBe('Julian (via api:Tickets)');
+
+        //without the header the key name alone is recorded
+        const plain = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'again' }, actorToken);
+        expect(plain.json.data.action.author).toBe('api:Tickets');
+    });
+
+    it('rejects the header without the api.actor scope or with a bad name', async () => {
+        const denied = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, kickOnlyToken, { 'X-TxAdmin-Actor': 'Julian' });
+        expect(denied.status).toBe(403);
+        expect(denied.json.error.details.permission).toBe('api.actor');
+
+        for (const bad of ['', '   ', 'Julian (via api:root)', 'a'.repeat(49), '<script>', '-lead']) {
+            const r = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, rootToken, { 'X-TxAdmin-Actor': bad });
+            expect(r.status, bad).toBe(400);
+        }
+        expect(actions).toHaveLength(0);
     });
 });
 

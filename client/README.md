@@ -8,7 +8,7 @@ The request/response types are the same ones the server compiles against (`share
 A version bump of `client/package.json` merged to master publishes a `client-vX.Y.Z` GitHub release carrying the packed tarball (skipped when that tag already exists), so no registry login is needed:
 
 ```sh
-pnpm add https://github.com/jellyton255/tfAdmin/releases/download/client-v0.1.0/txadmin-client.tgz
+pnpm add https://github.com/jellyton255/tfAdmin/releases/download/client-v0.2.0/txadmin-client.tgz
 ```
 
 When an `NPM_TOKEN` secret is configured on the repo the same workflow also publishes to npm, and `pnpm add @everfall/txadmin-client` works too.
@@ -28,6 +28,13 @@ try {
 } catch (err) {
     if (err instanceof TxAdminApiError && err.code === 'RATE_LIMITED') console.log(`retry in ${err.retryAfterSec}s`);
 }
+```
+
+To record which staff member pressed the button, give the key the `api.actor` scope and use `asActor`; the
+action then shows as `Julian (via api:Tickets)` in txAdmin. Check the staff member's own permissions first:
+
+```ts
+await tx.asActor('Julian').players.warn(license, { reason: 'RDM' });
 ```
 
 Paginated calls return `{ data, meta }`; pass `meta.nextCursor` back as `cursor` for the next page.
