@@ -390,7 +390,7 @@ describe('acting for a staff member', () => {
         //scopes without a backing admin permission are not narrowed
         expect((await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: 'hi' }, actorToken, HELPER)).status).toBe(200);
         //master admins keep the key's full scopes
-        expect((await call('POST', '/api/v1/server/announce', { message: 'hi' }, actorToken, { 'X-TxAdmin-Actor-Id': 'fivem:7' })).status).not.toBe(403);
+        expect((await call('POST', '/api/v1/server/announce', { message: 'hi' }, actorToken, { 'X-TxAdmin-Actor-Id': 'fivem:7' })).status).toBe(200);
     });
 
     it('rejects unlinked staff, bad ids and keys without api.actor', async () => {
