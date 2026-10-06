@@ -165,6 +165,11 @@
         "tags": [
           "Keys"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -204,6 +209,9 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -220,6 +228,11 @@
         "description": "Scopes come from the catalogue returned by GET /keys. A key with no scopes is read-only. The caller must hold the admin permission behind every scope it grants.\n\nRequires the `manage.admins` scope.",
         "tags": [
           "Keys"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
         ],
         "requestBody": {
           "required": true,
@@ -298,6 +311,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -681,6 +697,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "requestBody": {
@@ -762,6 +781,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "requestBody": {
@@ -839,6 +861,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "requestBody": {
@@ -917,6 +942,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "requestBody": {
@@ -997,6 +1025,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "requestBody": {
@@ -1073,6 +1104,9 @@
               "pattern": "^[0-9a-f]{40}$"
             },
             "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "requestBody": {
@@ -1320,6 +1354,11 @@
         "tags": [
           "Moderation"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1462,6 +1501,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -1616,6 +1658,11 @@
         "tags": [
           "Whitelist"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1698,6 +1745,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -1842,6 +1892,11 @@
         "tags": [
           "Whitelist"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "requestBody": {
           "required": false,
           "content": {
@@ -1919,6 +1974,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -1986,6 +2044,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -2033,6 +2094,11 @@
         "tags": [
           "Admins"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -2064,6 +2130,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -2135,6 +2204,11 @@
         "tags": [
           "Resources"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -2167,6 +2241,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -2212,6 +2289,9 @@
                 "ensure"
               ]
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -2271,6 +2351,11 @@
         "description": "Requires the `announcement` scope.",
         "tags": [
           "Server"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
         ],
         "requestBody": {
           "required": true,
@@ -2334,6 +2419,11 @@
         "tags": [
           "Server"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "requestBody": {
           "required": false,
           "content": {
@@ -2396,6 +2486,11 @@
         "description": "Requires the `console.write` scope.",
         "tags": [
           "Server"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
         ],
         "requestBody": {
           "required": true,
@@ -2475,6 +2570,9 @@
                 "restart"
               ]
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -2657,6 +2755,11 @@
         "tags": [
           "Webhooks"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -2696,6 +2799,9 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
@@ -2712,6 +2818,11 @@
         "description": "At most 10 webhooks. Every delivery is a POST with `X-TxAdmin-Signature: t=<ms>,v1=<hex hmac-sha256(secret, \"<ms>.<body>\")>`.\n\nRequires the `manage.admins` scope.",
         "tags": [
           "Webhooks"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
         ],
         "requestBody": {
           "required": true,
@@ -2790,6 +2901,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "requestBody": {
@@ -2862,6 +2976,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -2926,6 +3043,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -2990,6 +3110,9 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
           }
         ],
         "responses": {
@@ -3049,6 +3172,18 @@
         "type": "http",
         "scheme": "bearer",
         "description": "txk_<id>.<secret>"
+      }
+    },
+    "parameters": {
+      "ActorId": {
+        "name": "X-TxAdmin-Actor-Id",
+        "in": "header",
+        "required": false,
+        "description": "Staff member the key acts for: `discord:<id>` or `fivem:<id>`, prefix case-insensitive (needs the `api.actor` scope). It must match the linked account of a txAdmin admin, otherwise 403 (`details.reason: actor_not_admin`). The request is then limited to the key scopes whose backing txAdmin permission that admin holds (403 `actor_lacks_permission` otherwise) and recorded as `<txAdmin admin name> (via api:<key name>)`.",
+        "schema": {
+          "type": "string",
+          "pattern": "^\\s*([Dd][Ii][Ss][Cc][Oo][Rr][Dd]:\\d{17,20}|[Ff][Ii][Vv][Ee][Mm]:\\d{1,20})\\s*$"
+        }
       }
     },
     "responses": {
