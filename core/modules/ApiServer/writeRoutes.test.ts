@@ -104,7 +104,12 @@ beforeAll(async () => {
             getAdminsIdentifiers: () => [],
             getAdminsList: () => [],
             getAdminPublicName: (name: string) => `public(${name})`,
-            getAdminByIdentifiers: (ids: string[]) => (ids.includes('discord:111111111111111111') ? { name: 'JulianTx' } : false),
+            getAdminByIdentifiers: (ids: string[]) => {
+                if (ids.includes('discord:111111111111111111')) return { name: 'JulianTx', master: false, permissions: ['players.ban', 'players.warn'] };
+                if (ids.includes('discord:333333333333333333')) return { name: 'Helper', master: false, permissions: ['players.warn'] };
+                if (ids.includes('fivem:7')) return { name: 'Owner', master: true, permissions: [] };
+                return false;
+            },
         },
         cacheStore: { get: () => undefined },
         logger: { admin: { write: (author: string, msg: string) => adminLog.push(`${author}: ${msg}`) } },
@@ -345,58 +350,64 @@ describe('actions', () => {
 
 
 describe('acting for a staff member', () => {
-    it('records the actor and the key on bans, warns and revokes', async () => {
+    const JULIAN = { 'X-TxAdmin-Actor-Id': 'DISCORD:111111111111111111' };
+    const HELPER = { 'X-TxAdmin-Actor-Id': 'discord:333333333333333333' };
+
+    it('records the linked txAdmin admin and the key on bans, warns and revokes', async () => {
         const actorToken = (await apiServer.keyStore.create({ name: 'Tickets', permissions: ['api.actor', 'players.ban', 'players.warn'] }, 'test')).token;
-        const asJulian = { 'X-TxAdmin-Actor': ' Julian ' };
 
-        const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'cheating', duration: '1 day' }, actorToken, asJulian);
+        //a display-name header is ignored; the txAdmin admin name is recorded
+        const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'cheating', duration: '1 day' }, actorToken, { ...JULIAN, 'X-TxAdmin-Actor': 'Jules' });
         expect(ban.status).toBe(201);
-        expect(ban.json.data.action.author).toBe('Julian (via api:Tickets)');
-        expect(adminLog.at(-1)).toMatch(/^Julian \(via api:Tickets\): Banned player "Alice": cheating$/);
-        expect(lastEvent('playerBanned')).toMatchObject({ author: 'Julian (via api:Tickets)' });
+        expect(ban.json.data.action.author).toBe('JulianTx (via api:Tickets)');
+        expect(adminLog.at(-1)).toMatch(/^JulianTx \(via api:Tickets\): Banned player "Alice": cheating$/);
+        expect(lastEvent('playerBanned')).toMatchObject({ author: 'JulianTx (via api:Tickets)' });
 
-        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' }, actorToken, { 'X-TxAdmin-Actor': 'Mod_Kate#2' });
-        expect(warn.json.data.action.author).toBe('Mod_Kate#2 (via api:Tickets)');
+        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' }, actorToken, HELPER);
+        expect(warn.json.data.action.author).toBe('Helper (via api:Tickets)');
 
-        const revoke = await call('POST', `/api/v1/actions/${ban.json.data.action.id}/revoke`, undefined, actorToken, asJulian);
-        expect(revoke.json.data.action.revokedBy).toBe('Julian (via api:Tickets)');
+        const revoke = await call('POST', `/api/v1/actions/${ban.json.data.action.id}/revoke`, undefined, actorToken, JULIAN);
+        expect(revoke.json.data.action.revokedBy).toBe('JulianTx (via api:Tickets)');
 
-        //without the header the key name alone is recorded
+        //without the header the key acts as itself
         const plain = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'again' }, actorToken);
         expect(plain.json.data.action.author).toBe('api:Tickets');
     });
 
-    it('resolves a stable actor id to the linked txAdmin admin, or keeps the id', async () => {
-        const actorToken = (await apiServer.keyStore.create({ name: 'Panel', permissions: ['api.actor', 'players.warn'] }, 'test')).token;
-        const warn = (headers: Record<string, string>) => call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' }, actorToken, headers);
+    it('limits the request to what both the key and the admin hold', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Panel', permissions: ['all_permissions'] }, 'test')).token;
 
-        //linked admin: txAdmin name wins over whatever display name the consumer sends
-        const linked = await warn({ 'X-TxAdmin-Actor-Id': 'DISCORD:111111111111111111', 'X-TxAdmin-Actor': 'Jules' });
-        expect(linked.status).toBe(201);
-        expect(linked.json.data.action.author).toBe('JulianTx (via api:Panel)');
+        const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'x', duration: '1 day' }, actorToken, HELPER);
+        expect(ban.status).toBe(403);
+        expect(ban.json.error.details).toMatchObject({ reason: 'actor_lacks_permission', permission: 'players.ban', actor: 'Helper' });
 
-        const unlinked = await warn({ 'X-TxAdmin-Actor-Id': 'discord:222222222222222222', 'X-TxAdmin-Actor': 'Kate' });
-        expect(unlinked.json.data.action.author).toBe('Kate [discord:222222222222222222] (via api:Panel)');
+        //per-route checks (revoke by type) are narrowed too
+        const julianBan = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'x', duration: '1 day' }, actorToken, JULIAN);
+        expect(julianBan.status).toBe(201);
+        expect((await call('POST', `/api/v1/actions/${julianBan.json.data.action.id}/revoke`, undefined, actorToken, HELPER)).status).toBe(403);
 
-        const idOnly = await warn({ 'X-TxAdmin-Actor-Id': 'fivem:42' });
-        expect(idOnly.json.data.action.author).toBe('fivem:42 (via api:Panel)');
-
-        for (const bad of ['discord:123', 'license:abc', 'discord:1;x']) {
-            expect((await warn({ 'X-TxAdmin-Actor-Id': bad })).status, bad).toBe(400);
-        }
-        const denied = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, kickOnlyToken, { 'X-TxAdmin-Actor-Id': 'fivem:42' });
-        expect(denied.status).toBe(403);
+        expect((await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, actorToken, HELPER)).status).toBe(201);
+        //scopes without a backing admin permission are not narrowed
+        expect((await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: 'hi' }, actorToken, HELPER)).status).toBe(200);
+        //master admins keep the key's full scopes
+        expect((await call('POST', '/api/v1/server/announce', { message: 'hi' }, actorToken, { 'X-TxAdmin-Actor-Id': 'fivem:7' })).status).not.toBe(403);
     });
 
-    it('rejects the header without the api.actor scope or with a bad name', async () => {
-        const denied = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, kickOnlyToken, { 'X-TxAdmin-Actor': 'Julian' });
+    it('rejects unlinked staff, bad ids and keys without api.actor', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Bot', permissions: ['api.actor', 'players.warn'] }, 'test')).token;
+        const warn = (headers: Record<string, string>, bearer = actorToken) => call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, bearer, headers);
+
+        const unlinked = await warn({ 'X-TxAdmin-Actor-Id': 'discord:222222222222222222' });
+        expect(unlinked.status).toBe(403);
+        expect(unlinked.json.error.details).toMatchObject({ reason: 'actor_not_admin', actorId: 'discord:222222222222222222' });
+
+        for (const bad of ['', 'discord:123', 'license:abc', 'discord:1;x', 'Julian']) {
+            expect((await warn({ 'X-TxAdmin-Actor-Id': bad })).status, bad).toBe(400);
+        }
+
+        const denied = await warn(JULIAN, kickOnlyToken);
         expect(denied.status).toBe(403);
         expect(denied.json.error.details.permission).toBe('api.actor');
-
-        for (const bad of ['', '   ', 'Julian (via api:root)', 'a'.repeat(49), '<script>', '-lead']) {
-            const r = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, rootToken, { 'X-TxAdmin-Actor': bad });
-            expect(r.status, bad).toBe(400);
-        }
         expect(actions).toHaveLength(0);
     });
 });

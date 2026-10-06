@@ -5,6 +5,7 @@ import { AuthedAdmin } from '@modules/WebServer/authLogic';
 import type { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import { sendError } from './envelope';
 import type { StoredApiKey } from './ApiKeyStore';
+import { API_SCOPES, API_SCOPE_ALL, getApiScope } from '@shared/apiScopes';
 const console = consoleFactory(modulename);
 
 //Scopes whose actions get the stricter rate-limit bucket
@@ -18,20 +19,9 @@ export type ApiKeyCtx = InitializedCtx & {
 };
 
 //Header naming the staff member a consumer is acting for (needs the api.actor scope)
-export const ACTOR_HEADER = 'x-txadmin-actor';
 export const ACTOR_ID_HEADER = 'x-txadmin-actor-id';
 export const ACTOR_SCOPE = 'api.actor';
 const ACTOR_ID_PATTERN = /^(discord:\d{17,20}|fivem:\d{1,20})$/;
-const ACTOR_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} _.'#@-]{0,47}$/u;
-
-/**
- * Validates an X-TxAdmin-Actor value. Returns the trimmed name, or null if it is not acceptable.
- * Kept to letters, digits and a few separators so it can't spoof the "(via api:...)" suffix or break log lines.
- */
-export const parseActor = (raw: string) => {
-    const actor = raw.trim();
-    return ACTOR_PATTERN.test(actor) ? actor : null;
-};
 
 /**
  * Validates an X-TxAdmin-Actor-Id value (`discord:<snowflake>` or `fivem:<id>`), lowercased, or null.
@@ -41,19 +31,35 @@ export const parseActorId = (raw: string) => {
     return ACTOR_ID_PATTERN.test(id) ? id : null;
 };
 
+type ActorAdmin = { name: string; master: boolean; permissions: string[] };
+
 /**
- * Builds the attribution label for a request that names a staff member.
- * A stable id that matches a txAdmin admin's linked Discord/FiveM account resolves to that admin's
- * txAdmin name, so renames on the consumer side don't split the record. An unmatched id is kept
- * next to the display name so the record still points at one person.
+ * Looks up the txAdmin admin whose linked Discord/FiveM account matches the actor id, or null.
  */
-export const resolveActorLabel = (name: string | undefined, id: string | undefined) => {
-    if (id) {
-        const admin = txCore.adminStore.getAdminByIdentifiers([id]);
-        if (admin && typeof admin.name === 'string') return admin.name as string;
-        return name ? `${name} [${id}]` : id;
-    }
-    return name;
+export const findActorAdmin = (id: string): ActorAdmin | null => {
+    const admin = txCore.adminStore.getAdminByIdentifiers([id]);
+    if (!admin || typeof admin.name !== 'string') return null;
+    return {
+        name: admin.name,
+        master: admin.master === true,
+        permissions: Array.isArray(admin.permissions) ? admin.permissions : [],
+    };
+};
+
+/**
+ * The scopes a request may use when acting for a staff member: the key's scopes, minus any whose
+ * backing txAdmin permission the staff member's own admin account lacks. Scopes without a backing
+ * permission (grantRequires null) pass through. txAdmin then acts as a second gate behind the consumer.
+ */
+export const actorEffectiveScopes = (keyScopes: string[], actor: ActorAdmin) => {
+    if (actor.master || actor.permissions.includes(API_SCOPE_ALL)) return keyScopes;
+    const expanded = keyScopes.includes(API_SCOPE_ALL)
+        ? API_SCOPES.map((s) => s.id).filter((id) => id !== API_SCOPE_ALL)
+        : keyScopes;
+    return expanded.filter((id) => {
+        const required = getApiScope(id)?.grantRequires;
+        return !required || actor.permissions.includes(required);
+    });
 };
 
 const REJECT_MESSAGES: Record<string, string> = {
@@ -70,14 +76,14 @@ const REJECT_MESSAGES: Record<string, string> = {
  * Builds the principal used as ctx.admin for API key requests.
  * It is a regular AuthedAdmin named `api:<keyName>`, so every existing permission check
  * and admin log line works unchanged and the action log attributes writes to the key.
- * With an actor (X-TxAdmin-Actor / X-TxAdmin-Actor-Id) the name becomes `<actor> (via api:<keyName>)`,
- * so the record shows the staff member and still names the key.
+ * With an actor (X-TxAdmin-Actor-Id) the name becomes `<txAdmin admin name> (via api:<keyName>)` and the
+ * permissions are narrowed to what both the key and that admin hold.
  */
-export const buildApiKeyPrincipal = (key: StoredApiKey, actor?: string) => {
+export const buildApiKeyPrincipal = (key: StoredApiKey, actor?: ActorAdmin) => {
     return new AuthedAdmin({
-        name: actor ? `${actor} (via api:${key.name})` : `api:${key.name}`,
+        name: actor ? `${actor.name} (via api:${key.name})` : `api:${key.name}`,
         master: false,
-        permissions: key.permissions,
+        permissions: actor ? actorEffectiveScopes(key.permissions, actor) : key.permissions,
     });
 };
 
@@ -120,42 +126,41 @@ export const apiKeyAuthMw = (requiredPermission?: string) => {
             return sendError(ctx, 429, 'RATE_LIMITED', 'Rate limit exceeded.', { retryAfterSec: rl.retryAfterSec });
         }
 
-        //Optional actor: only keys holding api.actor may name a staff member
-        let actor: string | undefined;
-        const actorHeader = ctx.headers[ACTOR_HEADER];
+        //Optional actor: only keys holding api.actor may act for a staff member, and only for one
+        //whose Discord/FiveM account is linked to a txAdmin admin
+        let actor: ActorAdmin | undefined;
         const actorIdHeader = ctx.headers[ACTOR_ID_HEADER];
-        if (actorHeader !== undefined || actorIdHeader !== undefined) {
+        if (actorIdHeader !== undefined) {
             if (!buildApiKeyPrincipal(result.key).hasPermission(ACTOR_SCOPE)) {
-                return sendError(ctx, 403, 'FORBIDDEN', 'This API key cannot set X-TxAdmin-Actor or X-TxAdmin-Actor-Id.', { permission: ACTOR_SCOPE });
+                return sendError(ctx, 403, 'FORBIDDEN', 'This API key cannot set X-TxAdmin-Actor-Id.', { permission: ACTOR_SCOPE });
             }
-            let actorName: string | undefined;
-            if (actorHeader !== undefined) {
-                const parsed = typeof actorHeader === 'string' ? parseActor(actorHeader) : null;
-                if (!parsed) {
-                    return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor header.', {
-                        header: 'X-TxAdmin-Actor',
-                        expected: '1-48 characters: letters, digits, space, _ . \' # @ -',
-                    });
-                }
-                actorName = parsed;
+            const actorId = typeof actorIdHeader === 'string' ? parseActorId(actorIdHeader) : null;
+            if (!actorId) {
+                return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor-Id header.', {
+                    header: 'X-TxAdmin-Actor-Id',
+                    expected: 'discord:<id> or fivem:<id>',
+                });
             }
-            let actorId: string | undefined;
-            if (actorIdHeader !== undefined) {
-                const parsed = typeof actorIdHeader === 'string' ? parseActorId(actorIdHeader) : null;
-                if (!parsed) {
-                    return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor-Id header.', {
-                        header: 'X-TxAdmin-Actor-Id',
-                        expected: 'discord:<id> or fivem:<id>',
-                    });
-                }
-                actorId = parsed;
+            const found = findActorAdmin(actorId);
+            if (!found) {
+                return sendError(ctx, 403, 'FORBIDDEN', 'No txAdmin admin is linked to this staff account.', {
+                    reason: 'actor_not_admin',
+                    actorId,
+                });
             }
-            actor = resolveActorLabel(actorName, actorId);
+            actor = found;
         }
 
         //Principal + permission
         const admin = buildApiKeyPrincipal(result.key, actor);
         if (requiredPermission && !admin.hasPermission(requiredPermission)) {
+            if (actor && buildApiKeyPrincipal(result.key).hasPermission(requiredPermission)) {
+                return sendError(ctx, 403, 'FORBIDDEN', 'The staff member lacks this permission in txAdmin.', {
+                    reason: 'actor_lacks_permission',
+                    permission: requiredPermission,
+                    actor: actor.name,
+                });
+            }
             return sendError(ctx, 403, 'FORBIDDEN', 'This API key lacks the required scope.', { permission: requiredPermission });
         }
 

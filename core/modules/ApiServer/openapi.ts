@@ -74,8 +74,8 @@ const op = (o: OpOptions): Schema => {
         : o.permission
             ? `Requires the \`${o.permission}\` scope.`
             : 'Any valid key (read-only keys included).');
-    //Writes (scoped routes) accept X-TxAdmin-Actor to name the staff member behind the call
-    const params = [...(o.params ?? []), ...(o.permission || o.permissionNote ? [{ $ref: '#/components/parameters/ActorId' }, { $ref: '#/components/parameters/Actor' }] : [])];
+    //Writes (scoped routes) accept X-TxAdmin-Actor-Id to name the staff member behind the call
+    const params = [...(o.params ?? []), ...(o.permission || o.permissionNote ? [{ $ref: '#/components/parameters/ActorId' }] : [])];
     return {
         summary: o.summary,
         description: [o.description, permissionNote].filter(Boolean).join('\n\n'),
@@ -485,15 +485,8 @@ export const buildOpenApiDocument = () => ({
                 name: 'X-TxAdmin-Actor-Id',
                 in: 'header',
                 required: false,
-                description: 'Stable id of the staff member the key acts for: `discord:<id>` or `fivem:<id>` (needs the `api.actor` scope). If it matches a txAdmin admin\'s linked account the action is recorded under that admin\'s txAdmin name, so renames on the consumer side do not split the record; otherwise as `<X-TxAdmin-Actor> [<id>]`. Prefer it over X-TxAdmin-Actor alone.',
+                description: 'Staff member the key acts for: `discord:<id>` or `fivem:<id>` (needs the `api.actor` scope). It must match the linked account of a txAdmin admin, otherwise 403 (`details.reason: actor_not_admin`). The request is then limited to scopes that both the key and that admin hold (403 `actor_lacks_permission` otherwise) and recorded as `<txAdmin admin name> (via api:<key name>)`.',
                 schema: { type: 'string', pattern: '^(discord:\\d{17,20}|fivem:\\d{1,20})$' },
-            },
-            Actor: {
-                name: 'X-TxAdmin-Actor',
-                in: 'header',
-                required: false,
-                description: 'Staff member the key acts for (needs the `api.actor` scope). The action is recorded as `<actor> (via api:<key name>)`. 1-48 characters: letters, digits, space and `_ . \' # @ -`; 400 if invalid, 403 without the scope.',
-                schema: { type: 'string', maxLength: 48 },
             },
         },
         responses,

@@ -32,29 +32,25 @@ Revoking a key takes effect immediately. Revoked keys stay listed for audit.
 
 ### Acting for a staff member
 
-A consumer that lets its own staff press the buttons (ticket system, in-game admin panel) can say who pressed
-them. Give its key the `api.actor` scope and send the staff member's stable id, plus their display name:
+A consumer that lets its own staff press the buttons (ticket system, in-game admin panel) says who pressed
+them. Give its key the `api.actor` scope and send the staff member's Discord (or FiveM) id on each write:
 
 ```
 X-TxAdmin-Actor-Id: discord:272800190639898628
-X-TxAdmin-Actor: Julian
 ```
 
-How the action is recorded (record author, revocations, notes, admin log, in-game `txAdmin:events:*` and
-webhooks), for a key named `Tickets`:
-
-| Headers sent | Recorded as |
-| --- | --- |
-| Id that matches a txAdmin admin's linked Discord or FiveM account | `<txAdmin admin name> (via api:Tickets)`, the same name the admin's panel actions use, and it follows renames in txAdmin |
-| Id with no matching admin, plus a name | `Julian [discord:272800190639898628] (via api:Tickets)` |
-| Id only, no match | `discord:272800190639898628 (via api:Tickets)` |
-| Name only | `Julian (via api:Tickets)` (works, but a rename on the consumer side splits the record, so send the id) |
-| Neither | `api:Tickets` |
-
-The id is `discord:<17-20 digits>` or `fivem:<digits>`; the name is 1-48 characters of letters, digits,
-space and `_ . ' # @ -`. Anything else is a 400, and a key without `api.actor` gets a 403 for either header.
-The key's scopes still decide what it can do; txAdmin does not check the staff member's own permissions, so
-the consumer is responsible for authenticating its staff and checking their permission before calling.
+- The id must belong to a txAdmin admin (the Discord or FiveM account linked on their admin page). Anyone
+  else gets **403** with `details.reason: "actor_not_admin"`, so staff need a txAdmin admin account to act
+  through the API.
+- The request can only use scopes that both the key and that admin hold. A key with `players.ban` acting for
+  an admin without the Ban permission gets **403** with `details.reason: "actor_lacks_permission"`. Scopes
+  with no matching admin permission (`players.note`, `api.actor`) are not narrowed.
+- The action is recorded under the admin's txAdmin name, the same one their panel actions use:
+  `Julian (via api:Tickets)` in the ban or warn record, revocations, notes, the admin log, in-game
+  `txAdmin:events:*` and webhooks. Renaming the staff member elsewhere changes nothing; renaming the txAdmin
+  admin applies to new actions.
+- The id is `discord:<17-20 digits>` or `fivem:<digits>`; anything else is a 400. A key without
+  `api.actor` gets a 403 for the header. Without the header the key acts as itself (`api:Tickets`).
 
 ## Envelope
 
