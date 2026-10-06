@@ -3179,10 +3179,10 @@
         "name": "X-TxAdmin-Actor-Id",
         "in": "header",
         "required": false,
-        "description": "Staff member the key acts for: `discord:<id>` or `fivem:<id>` (needs the `api.actor` scope). It must match the linked account of a txAdmin admin, otherwise 403 (`details.reason: actor_not_admin`). The request is then limited to scopes that both the key and that admin hold (403 `actor_lacks_permission` otherwise) and recorded as `<txAdmin admin name> (via api:<key name>)`.",
+        "description": "Staff member the key acts for: `discord:<id>` or `fivem:<id>`, prefix case-insensitive (needs the `api.actor` scope). It must match the linked account of a txAdmin admin, otherwise 403 (`details.reason: actor_not_admin`). The request is then limited to the key scopes whose backing txAdmin permission that admin holds (403 `actor_lacks_permission` otherwise) and recorded as `<txAdmin admin name> (via api:<key name>)`.",
         "schema": {
           "type": "string",
-          "pattern": "^(discord:\\d{17,20}|fivem:\\d{1,20})$"
+          "pattern": "^\\s*([Dd][Ii][Ss][Cc][Oo][Rr][Dd]:\\d{17,20}|[Ff][Ii][Vv][Ee][Mm]:\\d{1,20})\\s*$"
         }
       }
     },

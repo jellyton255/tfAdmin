@@ -30,6 +30,27 @@ Each key has:
 
 Revoking a key takes effect immediately. Revoked keys stay listed for audit.
 
+### Scopes
+
+| Scope id | Shown as | Unlocks |
+| --- | --- | --- |
+| *(none)* | Read access | Every `GET` route except `/keys`, `/webhooks` and `/admins` |
+| `players.ban` | Ban players | Ban players or identifiers, revoke bans |
+| `players.warn` | Warn players | Warn players, revoke warns |
+| `players.kick` | Kick players | Kick an online player |
+| `players.direct_message` | Message players | Direct message an online player |
+| `players.note` | Edit player notes | Set the admin note on a player |
+| `players.whitelist` | Manage whitelist | Whitelist flag, approvals and requests |
+| `announcement` | Send announcements | Broadcast an announcement |
+| `control.server` | Control the server | Start, stop, restart, kick everyone |
+| `console.write` | Run console commands | Execute console commands |
+| `commands.resources` | Manage resources | Refresh and resource start/stop/restart/ensure |
+| `manage.admins` | Manage API keys and webhooks | Keys, webhooks and the admin roster |
+| `api.actor` | Act for staff members | Lets the key act for a txAdmin admin with `X-TxAdmin-Actor-Id` |
+| `all_permissions` | Full access | Everything, including future scopes |
+
+`GET /api/v1/keys` returns this catalogue as `scopes` so clients and the panel never hard-code it.
+
 ### Acting for a staff member
 
 A consumer that lets its own staff press the buttons (ticket system, in-game admin panel) says who pressed
@@ -49,7 +70,8 @@ X-TxAdmin-Actor-Id: discord:272800190639898628
   `Julian (via api:Tickets)` in the ban or warn record, revocations, notes, the admin log, in-game
   `txAdmin:events:*` and webhooks. Renaming the staff member elsewhere changes nothing; renaming the txAdmin
   admin applies to new actions.
-- The id is `discord:<17-20 digits>` or `fivem:<digits>`; anything else is a 400. A key without
+- The id is `discord:<17-20 digits>` or `fivem:<digits>` (prefix case-insensitive, surrounding spaces
+  ignored); anything else is a 400. A key without
   `api.actor` gets a 403 for the header. Without the header the key acts as itself (`api:Tickets`).
 
 ## Envelope
