@@ -138,20 +138,16 @@ export class TxAdminClient {
 
 
     /**
-     * Returns a client whose writes are attributed to a staff member. Needs a key with the `api.actor` scope.
-     * Pass the staff member's stable `id` (`discord:<id>` or `fivem:<id>`): if it matches a txAdmin admin the
-     * action is recorded under that admin's txAdmin name, otherwise as `<name> [<id>]`. A bare string is sent
-     * as the display name only. Check the staff member's own permissions before calling.
+     * Returns a client that acts for a staff member, given their linked account id (`discord:<id>` or
+     * `fivem:<id>`). Needs a key with the `api.actor` scope, and the id must belong to a txAdmin admin:
+     * writes are then limited to that admin's permissions and recorded under their txAdmin name.
      */
-    asActor(actor: string | { id?: string; name?: string }): TxAdminClient {
-        const { id, name } = typeof actor === 'string' ? { id: undefined, name: actor } : actor;
+    asActor(actorId: string): TxAdminClient {
         const headers: Record<string, string> = {};
         for (const [header, value] of Object.entries(this.options.headers ?? {})) {
-            const lower = header.toLowerCase();
-            if (lower !== 'x-txadmin-actor' && lower !== 'x-txadmin-actor-id') headers[header] = value;
+            if (header.toLowerCase() !== 'x-txadmin-actor-id') headers[header] = value;
         }
-        if (id) headers['x-txadmin-actor-id'] = id;
-        if (name) headers['x-txadmin-actor'] = name;
+        headers['x-txadmin-actor-id'] = actorId;
         return new TxAdminClient({ ...this.options, headers });
     }
 
