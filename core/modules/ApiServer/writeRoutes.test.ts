@@ -104,6 +104,12 @@ beforeAll(async () => {
             getAdminsIdentifiers: () => [],
             getAdminsList: () => [],
             getAdminPublicName: (name: string) => `public(${name})`,
+            getAdminByIdentifiers: (ids: string[]) => {
+                if (ids.includes('discord:111111111111111111')) return { name: 'JulianTx', master: false, permissions: ['players.ban', 'players.warn'] };
+                if (ids.includes('discord:333333333333333333')) return { name: 'Helper', master: false, permissions: ['players.warn'] };
+                if (ids.includes('fivem:7')) return { name: 'Owner', master: true, permissions: [] };
+                return false;
+            },
         },
         cacheStore: { get: () => undefined },
         logger: { admin: { write: (author: string, msg: string) => adminLog.push(`${author}: ${msg}`) } },
@@ -211,10 +217,11 @@ afterAll(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-const call = async (method: string, route: string, body?: unknown, bearer = rootToken) => {
+const call = async (method: string, route: string, body?: unknown, bearer = rootToken, extraHeaders: Record<string, string> = {}) => {
     const resp = await fetch(baseUrl + route, {
         method,
         headers: {
+            ...extraHeaders,
             Authorization: `Bearer ${bearer}`,
             ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         },
@@ -338,6 +345,70 @@ describe('actions', () => {
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' });
         const revokeWarn = await call('POST', `/api/v1/actions/${warn.json.data.action.id}/revoke`, undefined, kickOnlyToken);
         expect(revokeWarn.status).toBe(200);
+    });
+});
+
+
+describe('acting for a staff member', () => {
+    const JULIAN = { 'X-TxAdmin-Actor-Id': 'DISCORD:111111111111111111' };
+    const HELPER = { 'X-TxAdmin-Actor-Id': 'discord:333333333333333333' };
+
+    it('records the linked txAdmin admin and the key on bans, warns and revokes', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Tickets', permissions: ['api.actor', 'players.ban', 'players.warn'] }, 'test')).token;
+
+        //a display-name header is ignored; the txAdmin admin name is recorded
+        const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'cheating', duration: '1 day' }, actorToken, { ...JULIAN, 'X-TxAdmin-Actor': 'Jules' });
+        expect(ban.status).toBe(201);
+        expect(ban.json.data.action.author).toBe('JulianTx (via api:Tickets)');
+        expect(adminLog.at(-1)).toMatch(/^JulianTx \(via api:Tickets\): Banned player "Alice": cheating$/);
+        expect(lastEvent('playerBanned')).toMatchObject({ author: 'JulianTx (via api:Tickets)' });
+
+        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' }, actorToken, HELPER);
+        expect(warn.json.data.action.author).toBe('Helper (via api:Tickets)');
+
+        const revoke = await call('POST', `/api/v1/actions/${ban.json.data.action.id}/revoke`, undefined, actorToken, JULIAN);
+        expect(revoke.json.data.action.revokedBy).toBe('JulianTx (via api:Tickets)');
+
+        //without the header the key acts as itself
+        const plain = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'again' }, actorToken);
+        expect(plain.json.data.action.author).toBe('api:Tickets');
+    });
+
+    it('limits the request to what both the key and the admin hold', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Panel', permissions: ['all_permissions'] }, 'test')).token;
+
+        const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'x', duration: '1 day' }, actorToken, HELPER);
+        expect(ban.status).toBe(403);
+        expect(ban.json.error.details).toMatchObject({ reason: 'actor_lacks_permission', permission: 'players.ban', actor: 'Helper' });
+
+        //per-route checks (revoke by type) are narrowed too
+        const julianBan = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'x', duration: '1 day' }, actorToken, JULIAN);
+        expect(julianBan.status).toBe(201);
+        expect((await call('POST', `/api/v1/actions/${julianBan.json.data.action.id}/revoke`, undefined, actorToken, HELPER)).status).toBe(403);
+
+        expect((await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, actorToken, HELPER)).status).toBe(201);
+        //scopes without a backing admin permission are not narrowed
+        expect((await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: 'hi' }, actorToken, HELPER)).status).toBe(200);
+        //master admins keep the key's full scopes
+        expect((await call('POST', '/api/v1/server/announce', { message: 'hi' }, actorToken, { 'X-TxAdmin-Actor-Id': 'fivem:7' })).status).toBe(200);
+    });
+
+    it('rejects unlinked staff, bad ids and keys without api.actor', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Bot', permissions: ['api.actor', 'players.warn'] }, 'test')).token;
+        const warn = (headers: Record<string, string>, bearer = actorToken) => call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, bearer, headers);
+
+        const unlinked = await warn({ 'X-TxAdmin-Actor-Id': 'discord:222222222222222222' });
+        expect(unlinked.status).toBe(403);
+        expect(unlinked.json.error.details).toMatchObject({ reason: 'actor_not_admin', actorId: 'discord:222222222222222222' });
+
+        for (const bad of ['', 'discord:123', 'license:abc', 'discord:1;x', 'Julian']) {
+            expect((await warn({ 'X-TxAdmin-Actor-Id': bad })).status, bad).toBe(400);
+        }
+
+        const denied = await warn(JULIAN, kickOnlyToken);
+        expect(denied.status).toBe(403);
+        expect(denied.json.error.details.permission).toBe('api.actor');
+        expect(actions).toHaveLength(0);
     });
 });
 

@@ -65,7 +65,7 @@ const op = (o: OpOptions): Schema => {
         responses['429'] = errRef('RateLimited');
     }
     if (o.permission) responses['403'] = errRef('Forbidden');
-    if (o.body || o.params?.length) responses['400'] = errRef('ValidationError');
+    if (o.body || o.params?.length || o.permission || o.permissionNote) responses['400'] = errRef('ValidationError');
     for (const code of o.errors ?? []) {
         responses[String(code)] = errRef(ERROR_RESPONSES[code]);
     }
@@ -74,12 +74,14 @@ const op = (o: OpOptions): Schema => {
         : o.permission
             ? `Requires the \`${o.permission}\` scope.`
             : 'Any valid key (read-only keys included).');
+    //Writes (scoped routes) accept X-TxAdmin-Actor-Id to name the staff member behind the call
+    const params = [...(o.params ?? []), ...(o.permission || o.permissionNote ? [{ $ref: '#/components/parameters/ActorId' }] : [])];
     return {
         summary: o.summary,
         description: [o.description, permissionNote].filter(Boolean).join('\n\n'),
         tags: [o.tag],
         ...(o.permission === null ? { security: [] } : {}),
-        ...(o.params?.length ? { parameters: o.params } : {}),
+        ...(params.length ? { parameters: params } : {}),
         ...(o.body ? { requestBody: jsonBody(o.body, !o.bodyOptional) } : {}),
         responses,
     };
@@ -477,6 +479,15 @@ export const buildOpenApiDocument = () => ({
     components: {
         securitySchemes: {
             bearerAuth: { type: 'http', scheme: 'bearer', description: 'txk_<id>.<secret>' },
+        },
+        parameters: {
+            ActorId: {
+                name: 'X-TxAdmin-Actor-Id',
+                in: 'header',
+                required: false,
+                description: 'Staff member the key acts for: `discord:<id>` or `fivem:<id>`, prefix case-insensitive (needs the `api.actor` scope). It must match the linked account of a txAdmin admin, otherwise 403 (`details.reason: actor_not_admin`). The request is then limited to the key scopes whose backing txAdmin permission that admin holds (403 `actor_lacks_permission` otherwise) and recorded as `<txAdmin admin name> (via api:<key name>)`.',
+                schema: { type: 'string', pattern: '^\\s*([Dd][Ii][Ss][Cc][Oo][Rr][Dd]:\\d{17,20}|[Ff][Ii][Vv][Ee][Mm]:\\d{1,20})\\s*$' },
+            },
         },
         responses,
         schemas,
