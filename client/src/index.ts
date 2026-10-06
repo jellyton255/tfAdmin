@@ -138,14 +138,21 @@ export class TxAdminClient {
 
 
     /**
-     * Returns a client whose writes are recorded as `<actor> (via api:<key name>)`.
-     * Needs a key with the `api.actor` scope; check the staff member's own permissions before calling.
+     * Returns a client whose writes are attributed to a staff member. Needs a key with the `api.actor` scope.
+     * Pass the staff member's stable `id` (`discord:<id>` or `fivem:<id>`): if it matches a txAdmin admin the
+     * action is recorded under that admin's txAdmin name, otherwise as `<name> [<id>]`. A bare string is sent
+     * as the display name only. Check the staff member's own permissions before calling.
      */
-    asActor(actor: string): TxAdminClient {
-        return new TxAdminClient({
-            ...this.options,
-            headers: { ...this.options.headers, 'x-txadmin-actor': actor },
-        });
+    asActor(actor: string | { id?: string; name?: string }): TxAdminClient {
+        const { id, name } = typeof actor === 'string' ? { id: undefined, name: actor } : actor;
+        const headers: Record<string, string> = {};
+        for (const [header, value] of Object.entries(this.options.headers ?? {})) {
+            const lower = header.toLowerCase();
+            if (lower !== 'x-txadmin-actor' && lower !== 'x-txadmin-actor-id') headers[header] = value;
+        }
+        if (id) headers['x-txadmin-actor-id'] = id;
+        if (name) headers['x-txadmin-actor'] = name;
+        return new TxAdminClient({ ...this.options, headers });
     }
 
 

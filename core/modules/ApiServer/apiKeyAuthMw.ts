@@ -19,7 +19,9 @@ export type ApiKeyCtx = InitializedCtx & {
 
 //Header naming the staff member a consumer is acting for (needs the api.actor scope)
 export const ACTOR_HEADER = 'x-txadmin-actor';
+export const ACTOR_ID_HEADER = 'x-txadmin-actor-id';
 export const ACTOR_SCOPE = 'api.actor';
+const ACTOR_ID_PATTERN = /^(discord:\d{17,20}|fivem:\d{1,20})$/;
 const ACTOR_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} _.'#@-]{0,47}$/u;
 
 /**
@@ -29,6 +31,29 @@ const ACTOR_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} _.'#@-]{0,47}$/u;
 export const parseActor = (raw: string) => {
     const actor = raw.trim();
     return ACTOR_PATTERN.test(actor) ? actor : null;
+};
+
+/**
+ * Validates an X-TxAdmin-Actor-Id value (`discord:<snowflake>` or `fivem:<id>`), lowercased, or null.
+ */
+export const parseActorId = (raw: string) => {
+    const id = raw.trim().toLowerCase();
+    return ACTOR_ID_PATTERN.test(id) ? id : null;
+};
+
+/**
+ * Builds the attribution label for a request that names a staff member.
+ * A stable id that matches a txAdmin admin's linked Discord/FiveM account resolves to that admin's
+ * txAdmin name, so renames on the consumer side don't split the record. An unmatched id is kept
+ * next to the display name so the record still points at one person.
+ */
+export const resolveActorLabel = (name: string | undefined, id: string | undefined) => {
+    if (id) {
+        const admin = txCore.adminStore.getAdminByIdentifiers([id]);
+        if (admin && typeof admin.name === 'string') return admin.name as string;
+        return name ? `${name} [${id}]` : id;
+    }
+    return name;
 };
 
 const REJECT_MESSAGES: Record<string, string> = {
@@ -45,8 +70,8 @@ const REJECT_MESSAGES: Record<string, string> = {
  * Builds the principal used as ctx.admin for API key requests.
  * It is a regular AuthedAdmin named `api:<keyName>`, so every existing permission check
  * and admin log line works unchanged and the action log attributes writes to the key.
- * With an actor (X-TxAdmin-Actor) the name becomes `<actor> (via api:<keyName>)`, so the record
- * shows the staff member and still names the key.
+ * With an actor (X-TxAdmin-Actor / X-TxAdmin-Actor-Id) the name becomes `<actor> (via api:<keyName>)`,
+ * so the record shows the staff member and still names the key.
  */
 export const buildApiKeyPrincipal = (key: StoredApiKey, actor?: string) => {
     return new AuthedAdmin({
@@ -98,18 +123,34 @@ export const apiKeyAuthMw = (requiredPermission?: string) => {
         //Optional actor: only keys holding api.actor may name a staff member
         let actor: string | undefined;
         const actorHeader = ctx.headers[ACTOR_HEADER];
-        if (actorHeader !== undefined) {
+        const actorIdHeader = ctx.headers[ACTOR_ID_HEADER];
+        if (actorHeader !== undefined || actorIdHeader !== undefined) {
             if (!buildApiKeyPrincipal(result.key).hasPermission(ACTOR_SCOPE)) {
-                return sendError(ctx, 403, 'FORBIDDEN', 'This API key cannot set X-TxAdmin-Actor.', { permission: ACTOR_SCOPE });
+                return sendError(ctx, 403, 'FORBIDDEN', 'This API key cannot set X-TxAdmin-Actor or X-TxAdmin-Actor-Id.', { permission: ACTOR_SCOPE });
             }
-            const parsed = typeof actorHeader === 'string' ? parseActor(actorHeader) : null;
-            if (!parsed) {
-                return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor header.', {
-                    header: 'X-TxAdmin-Actor',
-                    expected: '1-48 characters: letters, digits, space, _ . \' # @ -',
-                });
+            let actorName: string | undefined;
+            if (actorHeader !== undefined) {
+                const parsed = typeof actorHeader === 'string' ? parseActor(actorHeader) : null;
+                if (!parsed) {
+                    return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor header.', {
+                        header: 'X-TxAdmin-Actor',
+                        expected: '1-48 characters: letters, digits, space, _ . \' # @ -',
+                    });
+                }
+                actorName = parsed;
             }
-            actor = parsed;
+            let actorId: string | undefined;
+            if (actorIdHeader !== undefined) {
+                const parsed = typeof actorIdHeader === 'string' ? parseActorId(actorIdHeader) : null;
+                if (!parsed) {
+                    return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor-Id header.', {
+                        header: 'X-TxAdmin-Actor-Id',
+                        expected: 'discord:<id> or fivem:<id>',
+                    });
+                }
+                actorId = parsed;
+            }
+            actor = resolveActorLabel(actorName, actorId);
         }
 
         //Principal + permission
