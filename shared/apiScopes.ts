@@ -55,6 +55,12 @@ export const API_SCOPES: readonly ApiScopeInfo[] = [
         grantRequires: 'players.whitelist',
     },
     {
+        id: 'api.actor',
+        label: 'Act for staff members',
+        description: 'Name the staff member behind each write with the X-TxAdmin-Actor header; the action log then reads "<staff> (via api:<key>)".',
+        grantRequires: null,
+    },
+    {
         id: 'announcement',
         label: 'Send announcements',
         description: 'Broadcast an announcement to everyone online.',

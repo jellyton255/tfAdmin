@@ -122,8 +122,10 @@ export class TxAdminClient {
     private readonly fetchImpl: typeof fetch;
     private readonly timeoutMs: number;
     private readonly extraHeaders: Record<string, string>;
+    private readonly options: TxAdminClientOptions;
 
     constructor(options: TxAdminClientOptions) {
+        this.options = options;
         if (!options.baseUrl) throw new Error('baseUrl is required');
         if (!options.apiKey) throw new Error('apiKey is required');
         this.baseUrl = options.baseUrl.replace(/\/+$/, '');
@@ -132,6 +134,18 @@ export class TxAdminClient {
         this.timeoutMs = options.timeoutMs ?? 15_000;
         this.extraHeaders = options.headers ?? {};
         if (typeof this.fetchImpl !== 'function') throw new Error('No fetch implementation available; pass options.fetch');
+    }
+
+
+    /**
+     * Returns a client whose writes are recorded as `<actor> (via api:<key name>)`.
+     * Needs a key with the `api.actor` scope; check the staff member's own permissions before calling.
+     */
+    asActor(actor: string): TxAdminClient {
+        return new TxAdminClient({
+            ...this.options,
+            headers: { ...this.options.headers, 'x-txadmin-actor': actor },
+        });
     }
 
 

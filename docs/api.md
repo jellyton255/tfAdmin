@@ -30,6 +30,21 @@ Each key has:
 
 Revoking a key takes effect immediately. Revoked keys stay listed for audit.
 
+### Acting for a staff member
+
+A consumer that lets its own staff press the buttons (ticket system, in-game admin panel) can say who pressed
+them. Give its key the `api.actor` scope and send the staff member's name on each write:
+
+```
+X-TxAdmin-Actor: Julian
+```
+
+The action log, the ban or warn record, the in-game `txAdmin:events:*` payloads and webhooks then show
+`Julian (via api:Tickets)` instead of `api:Tickets`. The name is 1-48 characters of letters, digits, space and
+`_ . ' # @ -`; anything else is a 400, and a key without `api.actor` gets a 403. txAdmin does not check the
+name against its admin list: the consumer is responsible for authenticating its staff and checking their
+permission before calling.
+
 ### Scopes
 
 | Scope id | Shown as | Unlocks |
@@ -41,6 +56,7 @@ Revoking a key takes effect immediately. Revoked keys stay listed for audit.
 | `players.direct_message` | Message players | Direct message an online player |
 | `players.note` | Edit player notes | Set the admin note on a player |
 | `players.whitelist` | Manage whitelist | Whitelist flag, approvals and requests |
+| `api.actor` | Act for staff members | Lets the key name the staff member behind a write with `X-TxAdmin-Actor` |
 | `announcement` | Send announcements | Broadcast an announcement |
 | `control.server` | Control the server | Start, stop, restart, kick everyone |
 | `console.write` | Run console commands | Execute console commands |

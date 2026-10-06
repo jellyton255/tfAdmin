@@ -14,7 +14,7 @@ const searchQuerySchema = z.object({
     q: z.string().trim().min(1).max(256).optional(),
     type: z.enum(['id', 'reason', 'ids']).default('ids'),
     kind: z.enum(['ban', 'warn']).optional(),
-    author: z.string().trim().min(1).max(64).optional(),
+    author: z.string().trim().min(1).max(128).optional(),
     status: z.enum(['active', 'revoked']).optional(),
     order: z.enum(['asc', 'desc']).default('desc'),
     limit: limitSchema,
