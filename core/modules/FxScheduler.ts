@@ -2,6 +2,7 @@ const modulename = 'FxScheduler';
 import { parseSchedule } from '@lib/misc';
 import consoleFactory from '@lib/console';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
+import { getPendingStagedBuild } from '@lib/stagedBuild';
 import type { UpdateConfigKeySet } from './ConfigStore/utils';
 const console = consoleFactory(modulename);
 
@@ -314,6 +315,17 @@ export default class FxScheduler {
         const logMessage = `Restarting server: ${reasonInternal}`;
         txCore.logger.admin.write('SCHEDULER', logMessage);
         txCore.logger.fxserver.logInformational(logMessage); //just for better visibility
+
+        //A newer tfAdmin build is staged: stop the server and exit, so the host
+        //launcher installs the build and starts everything again
+        const stagedCommit = getPendingStagedBuild(txEnv.txaPath, process.env.TFADMIN_STAGE_DIR);
+        if (stagedCommit) {
+            txCore.logger.admin.write('SCHEDULER', `Exiting to load tfAdmin build ${stagedCommit}`);
+            const killError = await txCore.fxRunner.killServer(reasonTranslated, SYM_SYSTEM_AUTHOR, true);
+            if (killError) return;
+            await txManager.gracefulShutdown(`tfAdmin build ${stagedCommit}`);
+            return;
+        }
         txCore.fxRunner.restartServer(reasonTranslated, SYM_SYSTEM_AUTHOR);
     }
 };

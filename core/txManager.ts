@@ -80,7 +80,7 @@ export default class TxManager {
      * Gracefully shuts down the application by running all exit handlers.  
      * If the process takes more than 5 seconds to exit, it will force exit.
      */
-    public async gracefulShutdown(signal: NodeJS.Signals) {
+    public async gracefulShutdown(signal: string) {
         //Prevent race conditions
         if (this.isShuttingDown) {
             processStdioEnsureEol();
