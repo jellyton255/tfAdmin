@@ -4,3 +4,7 @@ packages:
   - panel
   - shared
   - client
+
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
