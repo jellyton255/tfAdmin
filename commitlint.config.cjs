@@ -23,4 +23,6 @@ module.exports = {
         'type-enum': [2, 'always', types],
         // 'body-max-line-length': [0, 'always', 100],
     },
+    // EF Bot keeps `hidden:` commits out of the dev feed.
+    ignores: [(message) => message.startsWith('hidden: ')],
 };

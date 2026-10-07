@@ -1,4 +1,12 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-npx --no-install commitlint --edit ""
+# EF Bot drops every dev feed post that names the assistant, so one such commit hides the whole push.
+if { git var GIT_AUTHOR_IDENT; git var GIT_COMMITTER_IDENT; } | grep -qiE 'claude|anthropic' \
+  || grep -v '^#' "$1" | grep -qiE 'claude|anthropic'; then
+  echo "COMMIT REJECTED: the author, committer or message names Claude or Anthropic."
+  echo "EF Bot blocks these from the dev feed. Commit as yourself with no co-author trailer."
+  exit 1
+fi
+
+pnpm exec commitlint --edit "$1"
