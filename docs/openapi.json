@@ -1193,10 +1193,11 @@
               "enum": [
                 "id",
                 "reason",
+                "name",
                 "ids"
               ]
             },
-            "description": "What `q` matches (default ids)"
+            "description": "What `q` matches (default ids); `name` is a fuzzy player name search"
           },
           {
             "name": "kind",
@@ -1400,6 +1401,82 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/ActionWrite"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions/import-ban": {
+      "post": {
+        "summary": "Import a system or legacy ban",
+        "description": "Records a ban with its own author label and absolute expiry. Idempotent on `externalRef`: 201 when created, 200 with `created: false` and the existing action when it was already imported. Silent unless `notify` is true.\n\nRequires the `players.ban_import` scope.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportBan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Already imported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ImportBanResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ImportBanResult"
                     }
                   },
                   "required": [
@@ -4030,6 +4107,17 @@
                 "type": "null"
               }
             ]
+          },
+          "externalRef": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Idempotency key of bans recorded via POST /actions/import-ban, else null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -4045,7 +4133,8 @@
           "banStatus",
           "acked",
           "revokedAt",
-          "revokedBy"
+          "revokedBy",
+          "externalRef"
         ],
         "additionalProperties": false
       },
@@ -4105,6 +4194,111 @@
         },
         "required": [
           "action",
+          "eventSent"
+        ],
+        "additionalProperties": false
+      },
+      "ImportBan": {
+        "type": "object",
+        "properties": {
+          "externalRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96,
+            "pattern": "^[A-Za-z0-9_.:-]+$",
+            "description": "Idempotency key, e.g. `qbx-bans:1167`"
+          },
+          "identifiers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Trimmed and lowercased; invalid ones are dropped"
+            },
+            "minItems": 1,
+            "maxItems": 64
+          },
+          "hwids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Hardware token like `2:<64 hex>`; invalid ones are dropped"
+            },
+            "maxItems": 64
+          },
+          "playerName": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Omitted or null = no name"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2048
+          },
+          "author": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Author label; must not match a txAdmin admin name (case-insensitive)"
+          },
+          "expiresAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Absolute expiry in epoch ms; omitted or null = permanent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notify": {
+            "type": "boolean",
+            "default": false,
+            "description": "Send the in-game playerBanned event (kick, webhooks). Default false: silent"
+          }
+        },
+        "required": [
+          "externalRef",
+          "identifiers",
+          "reason",
+          "author"
+        ],
+        "additionalProperties": false
+      },
+      "ImportBanResult": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/Action"
+          },
+          "created": {
+            "type": "boolean",
+            "description": "false when externalRef was already imported (nothing written)"
+          },
+          "dropped": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Identifier or hwid that failed validation and was not stored"
+            }
+          },
+          "eventSent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "action",
+          "created",
+          "dropped",
           "eventSent"
         ],
         "additionalProperties": false

@@ -36,6 +36,7 @@ Revoking a key takes effect immediately. Revoked keys stay listed for audit.
 | --- | --- | --- |
 | *(none)* | Read access | Every `GET` route except `/keys`, `/webhooks` and `/admins` |
 | `players.ban` | Ban players | Ban players or identifiers, revoke bans |
+| `players.ban_import` | Import system bans | Record bans from game systems (anti-cheat) or the legacy game database with their own author label and absolute expiry. Only `all_permissions` admins can grant it |
 | `players.warn` | Warn players | Warn players, revoke warns |
 | `players.kick` | Kick players | Kick an online player |
 | `players.direct_message` | Message players | Direct message an online player |
@@ -139,7 +140,7 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/players/stats` | any valid key | Totals: `total`, `playedLast24h`, `joinedLast24h`, `joinedLast7d`, `onlineNow` |
 | `GET /api/v1/players` | any valid key | Database search, paginated. Query: `q` with `type=name\|ids\|notes`, `filter=isOnline,isAdmin,isWhitelisted,hasNote`, `sort=tsLastConnection\|tsJoined\|playTime`, `order=desc\|asc` |
 | `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history |
-| `GET /api/v1/actions` | any valid key | Bans and warns, paginated. Query: `q` with `type=ids\|id\|reason`, `kind=ban\|warn`, `author`, `status=active\|revoked`, `order` |
+| `GET /api/v1/actions` | any valid key | Bans and warns, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`name` is a fuzzy player name search), `kind=ban\|warn`, `author`, `status=active\|revoked`, `order` |
 | `GET /api/v1/actions/stats` | any valid key | Totals for the last 7 days and all time, plus a per-admin count |
 | `GET /api/v1/actions/{id}` | any valid key | One action |
 | `GET /api/v1/whitelist/approvals` | any valid key | Approved identifiers, paginated, `q` searches identifier, name and approver |
@@ -148,7 +149,8 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/admins` | `manage.admins` | Admin names, master flag, permissions and provider identifiers. Never includes password hashes or tokens |
 
 Action records carry `banStatus` (`active`, `expired`, `permanent`, or `null` for warns), `expiresAt`, `acked` for warns,
-and `revokedAt` / `revokedBy`.
+and `revokedAt` / `revokedBy`. `externalRef` is the idempotency key of bans recorded through
+`POST /api/v1/actions/import-ban`, and `null` for every other action.
 
 ## Endpoints (phase 3, writes)
 
@@ -166,6 +168,7 @@ Writes behave exactly like the matching panel buttons: same database records, sa
 | `PUT /api/v1/players/{license}/whitelist` | `players.whitelist` | `{ whitelisted: true\|false }` |
 | `PUT /api/v1/players/{license}/note` | `players.note` | `{ note }`; an empty string clears it |
 | `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
+| `POST /api/v1/actions/import-ban` | `players.ban_import` | `{ externalRef, identifiers[], hwids?[], playerName?, reason, author, expiresAt?, notify? }`. Records a system or legacy ban. 201 with `{ action, created: true, dropped, eventSent }`; 200 with `created: false` on a replay |
 | `POST /api/v1/actions/{id}/revoke` | `players.ban` for bans, `players.warn` for warns | Revokes the action; 409 if already revoked. Returns `{ action }` |
 | `POST /api/v1/whitelist/approvals` | `players.whitelist` | `{ identifier }`. 201 with `{ approval }`; 409 if already approved |
 | `DELETE /api/v1/whitelist/approvals/{identifier}` | `players.whitelist` | Removes the approval |
@@ -181,6 +184,25 @@ Writes behave exactly like the matching panel buttons: same database records, sa
 
 `eventSent: false` on a ban or warn means the record was saved but the in-game event could not be
 delivered (server offline or stdin error), the same case where the panel shows a warning toast.
+
+### Importing bans
+
+`POST /api/v1/actions/import-ban` records bans that game systems (anti-cheat) issue or that come from the
+legacy game database. The `players.ban_import` scope is separate from `players.ban`.
+
+- **Idempotency.** `externalRef` (1-96 chars of `A-Z a-z 0-9 _ . : -`, e.g. `qbx-bans:1167`) identifies the
+  ban. When a ban with the same `externalRef` exists, the response is 200 with `created: false` and the
+  stored action. Nothing is written, logged or sent.
+- **`dropped`.** Identifiers that are not valid txAdmin identifiers and hwids that are not hardware
+  tokens are dropped and listed in `dropped`. When no valid identifier remains, the response is 400
+  `VALIDATION_ERROR` with `details.invalids`.
+- **`author`.** The label stored as the ban author (1-64 chars). A label that matches a txAdmin admin
+  name, case-insensitive, is rejected with 400 `VALIDATION_ERROR` and `details.field: "author"`.
+  The admin log records the key as the actor.
+- **`expiresAt`.** Absolute expiry in epoch ms. Omitted or `null` means permanent. `playerName` is
+  optional too: omitted or `null` stores the ban without a name.
+- **`notify`.** Default `false`: the import is silent (no in-game event, so no kick, no `player.banned`
+  event or webhook). With `true`, the server gets the same `playerBanned` event as a panel ban.
 
 ## Events and webhooks (phase 4)
 

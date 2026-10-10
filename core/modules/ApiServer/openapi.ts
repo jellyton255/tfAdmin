@@ -163,12 +163,29 @@ const schemas: Record<string, Schema> = {
         reason: str(), author: str(), createdAt: epochMs(), expiresAt: nullable(epochMs('Bans only, null = permanent')),
         banStatus: nullable(enumOf(['active', 'expired', 'permanent'])), acked: nullable(bool()),
         revokedAt: nullable(epochMs()), revokedBy: nullable(str()),
+        externalRef: nullable(str({ description: 'Idempotency key of bans recorded via POST /actions/import-ban, else null' })),
     }),
     ActionsStats: obj({
         totalWarns: int(), warnsLast7d: int(), totalBans: int(), bansLast7d: int(),
         byAdmin: arr(obj({ name: str(), actions: int() })),
     }),
     ActionWrite: obj({ action: ref('Action'), eventSent: bool() }),
+    ImportBan: obj({
+        externalRef: str({ minLength: 1, maxLength: 96, pattern: '^[A-Za-z0-9_.:-]+$', description: 'Idempotency key, e.g. `qbx-bans:1167`' }),
+        identifiers: { ...arr(str({ description: 'Trimmed and lowercased; invalid ones are dropped' })), minItems: 1, maxItems: 64 },
+        hwids: { ...arr(str({ description: 'Hardware token like `2:<64 hex>`; invalid ones are dropped' })), maxItems: 64 },
+        playerName: nullable(str({ minLength: 1, maxLength: 128, description: 'Omitted or null = no name' })),
+        reason: str({ minLength: 3, maxLength: 2048 }),
+        author: str({ minLength: 1, maxLength: 64, description: 'Author label; must not match a txAdmin admin name (case-insensitive)' }),
+        expiresAt: nullable(epochMs('Absolute expiry in epoch ms; omitted or null = permanent')),
+        notify: { ...bool(), default: false, description: 'Send the in-game playerBanned event (kick, webhooks). Default false: silent' },
+    }, ['externalRef', 'identifiers', 'reason', 'author']),
+    ImportBanResult: obj({
+        action: ref('Action'),
+        created: { ...bool(), description: 'false when externalRef was already imported (nothing written)' },
+        dropped: arr(str({ description: 'Identifier or hwid that failed validation and was not stored' })),
+        eventSent: bool(),
+    }),
     BanDuration: str({ description: '`permanent` or `<n> hours|days|weeks|months`', examples: ['permanent', '2 days'] }),
     WhitelistApproval: obj({ identifier: str(), playerName: str(), playerAvatar: nullable(str()), approvedAt: epochMs(), approvedBy: str() }),
     WhitelistRequest: obj({
@@ -217,6 +234,14 @@ const schemas: Record<string, Schema> = {
 
 const licenseParam = paramPath('license', str({ pattern: '^[0-9a-f]{40}$' }), 'Player license (40 hex chars)');
 const reasonBody = (required: boolean) => obj({ reason: str({ maxLength: 2048 }) }, required ? ['reason'] : []);
+
+//Created (201) or replayed (200) by externalRef
+const importBanOp = op({
+    tag: 'Moderation', summary: 'Import a system or legacy ban', permission: 'players.ban_import',
+    description: 'Records a ban with its own author label and absolute expiry. Idempotent on `externalRef`: 201 when created, 200 with `created: false` and the existing action when it was already imported. Silent unless `notify` is true.',
+    body: ref('ImportBan'), response: ref('ImportBanResult'), status: 201,
+});
+importBanOp.responses['200'] = jsonResp('Already imported', dataEnvelope(ref('ImportBanResult')));
 
 const paths: Record<string, Schema> = {
     '/openapi.json': {
@@ -324,7 +349,7 @@ const paths: Record<string, Schema> = {
             tag: 'Actions', summary: 'Search bans and warns',
             params: [
                 paramQ('q', str({ maxLength: 256 })),
-                paramQ('type', enumOf(['id', 'reason', 'ids']), 'What `q` matches (default ids)'),
+                paramQ('type', enumOf(['id', 'reason', 'name', 'ids']), 'What `q` matches (default ids); `name` is a fuzzy player name search'),
                 paramQ('kind', enumOf(['ban', 'warn'])),
                 paramQ('author', str()),
                 paramQ('status', enumOf(['active', 'revoked'])),
@@ -342,6 +367,9 @@ const paths: Record<string, Schema> = {
             body: obj({ identifiers: arr(str()), reason: str({ maxLength: 2048 }), duration: ref('BanDuration') }),
             response: ref('ActionWrite'),
         }),
+    },
+    '/actions/import-ban': {
+        post: importBanOp,
     },
     '/actions/{id}': {
         get: op({ tag: 'Actions', summary: 'Action detail', params: [paramPath('id', str())], response: obj({ action: ref('Action') }), errors: [404] }),

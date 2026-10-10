@@ -18,6 +18,8 @@ import type {
     ApiEventType,
     ApiEventTypesResp,
     ApiEventsResp,
+    ApiImportBanReq,
+    ApiImportBanResp,
     ApiKeyCreateReq,
     ApiKeyCreateResp,
     ApiKeyListResp,
@@ -104,7 +106,7 @@ export type PlayerSearchQuery = {
 };
 export type ActionSearchQuery = {
     q?: string;
-    type?: 'id' | 'reason' | 'ids';
+    type?: 'id' | 'reason' | 'name' | 'ids';
     kind?: 'ban' | 'warn';
     author?: string;
     status?: 'active' | 'revoked';
@@ -248,6 +250,7 @@ export class TxAdminClient {
         stats: () => this.get<ApiActionsStatsResp>('/actions/stats'),
         get: (id: string) => this.get<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}`),
         banIdentifiers: (input: ApiBanIdsReq) => this.post<ApiActionWriteResp>('/actions/ban-identifiers', input),
+        importBan: (input: ApiImportBanReq) => this.post<ApiImportBanResp>('/actions/import-ban', input),
         revoke: (id: string) => this.post<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}/revoke`),
     };
 

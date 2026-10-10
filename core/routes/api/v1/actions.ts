@@ -12,7 +12,7 @@ import type { ApiActionRecord } from '@shared/apiV1Types';
 const idParamSchema = z.object({ id: z.string().trim().min(1).max(32) });
 const searchQuerySchema = z.object({
     q: z.string().trim().min(1).max(256).optional(),
-    type: z.enum(['id', 'reason', 'ids']).default('ids'),
+    type: z.enum(['id', 'reason', 'name', 'ids']).default('ids'),
     kind: z.enum(['ban', 'warn']).optional(),
     author: z.string().trim().min(1).max(128).optional(),
     status: z.enum(['active', 'revoked']).optional(),
@@ -50,12 +50,13 @@ export const toApiAction = (a: DatabaseActionType, currTs = now()): ApiActionRec
         acked: a.type === 'warn' ? a.acked : null,
         revokedAt: secToMs(a.revocation.timestamp),
         revokedBy: a.revocation.author ?? null,
+        externalRef: a.type === 'ban' ? a.externalRef ?? null : null,
     };
 };
 
 
 /**
- * GET /api/v1/actions?q=&type=ids|id|reason&kind=ban|warn&author=&status=active|revoked
+ * GET /api/v1/actions?q=&type=ids|id|reason|name&kind=ban|warn&author=&status=active|revoked
  *     &order=desc|asc&limit=50&cursor=
  * Mirrors the panel's History table search, with cursor pagination.
  */
@@ -88,6 +89,9 @@ export async function search(ctx: ApiKeyCtx) {
             }
         } else if (query.type === 'reason') {
             const fuse = new Fuse(actions, { keys: ['reason'], threshold: 0.3 });
+            actions = fuse.search(query.q).map((x) => x.item);
+        } else if (query.type === 'name') {
+            const fuse = new Fuse(actions, { keys: ['playerName'], threshold: 0.3 });
             actions = fuse.search(query.q).map((x) => x.item);
         } else {
             const { validIds, validHwids, invalids } = parseLaxIdsArrayInput(query.q);

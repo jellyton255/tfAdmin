@@ -200,6 +200,8 @@ export type ApiActionRecord = {
     acked: boolean | null;
     revokedAt: number | null; //epoch ms
     revokedBy: string | null;
+    /** Bans imported via POST /actions/import-ban: their idempotency key. Otherwise null. */
+    externalRef: string | null;
 };
 export type ApiActionsSearchResp = ApiResp<{ actions: ApiActionRecord[] }, ApiPageMeta>;
 export type ApiActionDetailResp = ApiResp<{ action: ApiActionRecord }>;
@@ -278,6 +280,28 @@ export type ApiBanIdsReq = { identifiers: string[]; reason: string; duration: Ap
 export type ApiActionWriteResp = ApiResp<{
     action: ApiActionRecord;
     /** false when the action was saved but the in-game event could not be sent (server offline or stdin error). */
+    eventSent: boolean;
+}>;
+export type ApiImportBanReq = {
+    /** Idempotency key, e.g. `qbx-bans:1167`: 1-96 chars of A-Z a-z 0-9 _ . : - */
+    externalRef: string;
+    identifiers: string[];
+    hwids?: string[];
+    playerName?: string | null;
+    reason: string;
+    /** Label shown as the ban author; must not match a txAdmin admin name. */
+    author: string;
+    /** Epoch ms; omitted or null = permanent. */
+    expiresAt?: number | null;
+    /** Send the in-game `playerBanned` event (kick + webhooks). Default false. */
+    notify?: boolean;
+};
+export type ApiImportBanResp = ApiResp<{
+    action: ApiActionRecord;
+    /** false when externalRef was already imported: the existing action is returned, nothing written. */
+    created: boolean;
+    /** Identifiers and hwids that failed validation and were not stored. */
+    dropped: string[];
     eventSent: boolean;
 }>;
 export type ApiOkResp = ApiResp<{ ok: true }>;

@@ -25,6 +25,12 @@ export const API_SCOPES: readonly ApiScopeInfo[] = [
         grantRequires: 'players.ban',
     },
     {
+        id: 'players.ban_import',
+        label: 'Import system bans',
+        description: 'Record bans issued by game systems (anti-cheat) or imported from the legacy game database, with their own author label and absolute expiry. Never announces imports unless asked.',
+        grantRequires: API_SCOPE_ALL,
+    },
+    {
         id: 'players.warn',
         label: 'Warn players',
         description: 'Warn players and revoke warnings.',

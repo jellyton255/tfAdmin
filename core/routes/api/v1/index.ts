@@ -7,7 +7,7 @@ export { approvals as whitelist_approvals, requests as whitelist_requests } from
 export { default as admins } from './admins';
 export { default as resources } from './resources';
 export { ban as players_ban, warn as players_warn, kick as players_kick, message as players_message, whitelist as players_whitelist, note as players_note } from './playerWrites';
-export { banIds as actions_banIds, revoke as actions_revoke } from './actionWrites';
+export { banIds as actions_banIds, importBan as actions_importBan, revoke as actions_revoke } from './actionWrites';
 export { addApproval as whitelist_addApproval, removeApproval as whitelist_removeApproval, approveRequest as whitelist_approveRequest, denyRequest as whitelist_denyRequest, denyAllRequests as whitelist_denyAllRequests } from './whitelistWrites';
 export { control as server_control, announce as server_announce, kickAll as server_kickAll, command as server_command, resourceCommand as resources_command, refreshResources as resources_refresh } from './server';
 export { list as events_list, types as events_types } from './events';

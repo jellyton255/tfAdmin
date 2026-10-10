@@ -133,6 +133,72 @@ export default class ActionsDao {
 
 
     /**
+     * Searches for an imported ban by its external reference, returns the ban or null if not found
+     */
+    findByExternalRef(ref: string): DatabaseActionBanType | null {
+        if (typeof ref !== 'string' || !ref.length) throw new Error('Invalid externalRef.');
+        const a = this.chain.get('actions')
+            .find((action) => action.type === 'ban' && action.externalRef === ref)
+            .cloneDeep()
+            .value();
+        return (a && a.type === 'ban') ? a : null;
+    }
+
+
+    /**
+     * Registers a ban imported from another system (author label, absolute expiration) and returns its id
+     */
+    importBan({ ids, hwids, playerName, reason, author, expiration, externalRef }: {
+        ids: string[];
+        hwids?: string[];
+        playerName: string | false;
+        reason: string;
+        author: string;
+        expiration: number | false;
+        externalRef: string;
+    }): string {
+        //Sanity check
+        if (!Array.isArray(ids) || !ids.length) throw new Error('Invalid ids array.');
+        if (typeof author !== 'string' || !author.length) throw new Error('Invalid author.');
+        if (typeof reason !== 'string' || !reason.length) throw new Error('Invalid reason.');
+        if (expiration !== false && (typeof expiration !== 'number')) throw new Error('Invalid expiration.');
+        if (playerName !== false && (typeof playerName !== 'string' || !playerName.length)) throw new Error('Invalid playerName.');
+        if (hwids && !Array.isArray(hwids)) throw new Error('Invalid hwids array.');
+        if (typeof externalRef !== 'string' || !externalRef.length) throw new Error('Invalid externalRef.');
+
+        //Saves it to the database
+        try {
+            const actionID = genActionID(this.dbo, 'ban');
+            const toDB: DatabaseActionBanType = {
+                id: actionID,
+                type: 'ban',
+                ids,
+                hwids,
+                playerName,
+                reason,
+                author,
+                timestamp: now(),
+                expiration,
+                externalRef,
+                revocation: {
+                    timestamp: null,
+                    author: null,
+                },
+            };
+            this.chain.get('actions')
+                .push(toDB)
+                .value();
+            this.db.writeFlag(SavePriority.HIGH);
+            return actionID;
+        } catch (error) {
+            console.error(`Failed to import ban to database with message: ${(error as Error).message}`);
+            console.verbose.dir(error);
+            throw error;
+        }
+    }
+
+
+    /**
      * Registers a warn action and returns its id
      */
     registerWarn(

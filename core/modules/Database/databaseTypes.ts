@@ -33,6 +33,7 @@ export type DatabaseActionBanType = {
     type: 'ban';
     hwids?: string[];
     expiration: number | false;
+    externalRef?: string; //idempotency key of bans imported via the API (players.ban_import)
 } & DatabaseActionBaseType;
 export type DatabaseActionWarnType = {
     type: 'warn';

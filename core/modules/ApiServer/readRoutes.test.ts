@@ -296,6 +296,7 @@ describe('actions', () => {
         const expired = r.json.data.actions[2];
         expect(expired).toMatchObject({ banStatus: 'expired', revokedBy: 'mecauz', expiresAt: (nowSec - 100) * 1000 });
         expect(r.json.data.actions[1]).toMatchObject({ type: 'warn', acked: true, banStatus: null });
+        expect(r.json.data.actions[0].externalRef).toBeNull();
     });
 
     it('filters by kind, author, status and search', async () => {
@@ -304,6 +305,7 @@ describe('actions', () => {
         expect((await get('/api/v1/actions?status=revoked')).json.data.actions[0].id).toBe('BAN2-CCCC');
         expect((await get('/api/v1/actions?q=cheat&type=reason')).json.data.actions[0].id).toBe('BAN1-AAAA');
         expect((await get('/api/v1/actions?q=ban2&type=id')).json.data.actions[0].id).toBe('BAN2-CCCC');
+        expect((await get('/api/v1/actions?q=carl&type=name')).json.data.actions.map((a: any) => a.id)).toEqual(['BAN2-CCCC']);
         expect((await get(`/api/v1/actions?q=license:${LIC_B}`)).json.data.actions[0].id).toBe('WARN-BBBB');
     });
 

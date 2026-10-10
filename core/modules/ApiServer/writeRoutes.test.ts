@@ -104,6 +104,7 @@ beforeAll(async () => {
             getAdminsIdentifiers: () => [],
             getAdminsList: () => [],
             getAdminPublicName: (name: string) => `public(${name})`,
+            getAdminByName: (name: string) => (name.trim().toLowerCase() === 'juliantx' ? { name: 'JulianTx' } : false),
             getAdminByIdentifiers: (ids: string[]) => {
                 if (ids.includes('discord:111111111111111111')) return { name: 'JulianTx', master: false, permissions: ['players.ban', 'players.warn'] };
                 if (ids.includes('discord:333333333333333333')) return { name: 'Helper', master: false, permissions: ['players.warn'] };
@@ -161,6 +162,12 @@ beforeAll(async () => {
                     actions.push({ id, type: 'ban', ids, hwids, author, reason, expiration, playerName, timestamp: nowSec(), revocation: { timestamp: null, author: null } });
                     return id;
                 },
+                findByExternalRef: (ref: string) => actions.find((a) => a.type === 'ban' && a.externalRef === ref) ?? null,
+                importBan: vi.fn((input: { ids: string[]; hwids?: string[]; playerName: string | false; reason: string; author: string; expiration: number | false; externalRef: string }) => {
+                    const id = `BAN${++actionSeq}`;
+                    actions.push({ id, type: 'ban', ...input, timestamp: nowSec(), revocation: { timestamp: null, author: null } });
+                    return id;
+                }),
                 registerWarn: (ids: string[], author: string, reason: string, playerName: string | false) => {
                     const id = `WARN${++actionSeq}`;
                     actions.push({ id, type: 'warn', ids, author, reason, expiration: false, acked: false, playerName, timestamp: nowSec(), revocation: { timestamp: null, author: null } });
@@ -345,6 +352,109 @@ describe('actions', () => {
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' });
         const revokeWarn = await call('POST', `/api/v1/actions/${warn.json.data.action.id}/revoke`, undefined, kickOnlyToken);
         expect(revokeWarn.status).toBe(200);
+    });
+});
+
+
+describe('import-ban', () => {
+    const HWID = `2:${'ab'.repeat(32)}`;
+    const body = (extra: object = {}) => ({
+        externalRef: 'qbx-bans:1167',
+        identifiers: ['License:' + 'c'.repeat(40), 'discord:12345678901234567'],
+        reason: 'exploit: money spawn',
+        author: 'Anticheat',
+        ...extra,
+    });
+    const importMock = () => (globalThis as any).txCore.database.actions.importBan as ReturnType<typeof vi.fn>;
+    beforeEach(() => importMock().mockClear());
+
+    it('needs players.ban_import, players.ban alone is not enough', async () => {
+        const banOnly = (await apiServer.keyStore.create({ name: `banner${++keySeq}`, permissions: ['players.ban'] }, 'test')).token;
+        const r = await call('POST', '/api/v1/actions/import-ban', body(), banOnly);
+        expect(r.status).toBe(403);
+        expect(r.json.error.details.permission).toBe('players.ban_import');
+        expect((await call('POST', '/api/v1/actions/import-ban', body(), kickOnlyToken)).status).toBe(403);
+        expect(actions).toHaveLength(0);
+
+        const importer = (await apiServer.keyStore.create({ name: `importer${++keySeq}`, permissions: ['players.ban_import'] }, 'test')).token;
+        expect((await call('POST', '/api/v1/actions/import-ban', body(), importer)).status).toBe(201);
+    });
+
+    it('creates once, then replays the same action with no second write', async () => {
+        const r = await call('POST', '/api/v1/actions/import-ban', body({ hwids: [HWID], playerName: 'Dave' }));
+        expect(r.status).toBe(201);
+        expect(r.json.data).toMatchObject({ created: true, dropped: [], eventSent: false });
+        expect(r.json.data.action).toMatchObject({
+            type: 'ban', author: 'Anticheat', playerName: 'Dave', externalRef: 'qbx-bans:1167',
+            ids: ['license:' + 'c'.repeat(40), 'discord:12345678901234567'], hwids: [HWID],
+            banStatus: 'permanent', expiresAt: null,
+        });
+        expect(adminLog.at(-1)).toMatch(/^api:root\d+: Imported ban qbx-bans:1167 as BAN\d+ \(author Anticheat\): exploit: money spawn$/);
+
+        const logCount = adminLog.length;
+        const replay = await call('POST', '/api/v1/actions/import-ban', body({ reason: 'something else' }));
+        expect(replay.status).toBe(200);
+        expect(replay.json.data).toMatchObject({ created: false, eventSent: false });
+        expect(replay.json.data.action.id).toBe(r.json.data.action.id);
+        expect(importMock()).toHaveBeenCalledTimes(1);
+        expect(actions).toHaveLength(1);
+        expect(adminLog).toHaveLength(logCount);
+        expect(events).toHaveLength(0);
+    });
+
+    it('drops invalid identifiers and hwids, 400 when none is valid', async () => {
+        const r = await call('POST', '/api/v1/actions/import-ban', body({
+            identifiers: ['nope:1', 'fivem:42', 'FIVEM:42'], hwids: ['bad', HWID],
+        }));
+        expect(r.status).toBe(201);
+        expect(r.json.data.action.ids).toEqual(['fivem:42']);
+        expect(r.json.data.action.hwids).toEqual([HWID]);
+        expect(r.json.data.dropped).toEqual(['nope:1', 'bad']);
+
+        const bad = await call('POST', '/api/v1/actions/import-ban', body({ externalRef: 'qbx-bans:2', identifiers: ['nope:1'] }));
+        expect(bad.status).toBe(400);
+        expect(bad.json.error.details.invalids).toEqual(['nope:1']);
+
+        const badRef = await call('POST', '/api/v1/actions/import-ban', body({ externalRef: 'has space' }));
+        expect(badRef.status).toBe(400);
+        const extraKey = await call('POST', '/api/v1/actions/import-ban', body({ externalRef: 'qbx-bans:3', duration: '1 day' }));
+        expect(extraKey.status).toBe(400);
+    });
+
+    it('rejects an author that matches a txAdmin admin name', async () => {
+        const r = await call('POST', '/api/v1/actions/import-ban', body({ author: ' juliantx ' }));
+        expect(r.status).toBe(400);
+        expect(r.json.error.code).toBe('VALIDATION_ERROR');
+        expect(r.json.error.details.field).toBe('author');
+        expect(actions).toHaveLength(0);
+    });
+
+    it('stays silent unless notify is true', async () => {
+        const quiet = await call('POST', '/api/v1/actions/import-ban', body({ notify: false }));
+        expect(quiet.json.data.eventSent).toBe(false);
+        expect(events).toHaveLength(0);
+
+        const expiresAt = Date.now() + 72 * 3600 * 1000 - 30_000; //rounded up to whole hours
+        const loud = await call('POST', '/api/v1/actions/import-ban', body({ externalRef: 'ac:9', notify: true, expiresAt, playerName: 'Eve' }));
+        expect(loud.status).toBe(201);
+        expect(loud.json.data.eventSent).toBe(true);
+        expect(lastEvent('playerBanned')).toMatchObject({
+            author: 'Anticheat', actionId: loud.json.data.action.id, targetName: 'Eve', targetNetId: null,
+            expiration: Math.floor(expiresAt / 1000), durationInput: '72 hours',
+        });
+    });
+
+    it('stores expiresAt in seconds, null or omitted = permanent', async () => {
+        const expiresAt = Date.now() + 3600 * 1000 + 999;
+        const timed = await call('POST', '/api/v1/actions/import-ban', body({ externalRef: 'x:1', expiresAt }));
+        expect(timed.json.data.action).toMatchObject({ banStatus: 'active', expiresAt: Math.floor(expiresAt / 1000) * 1000 });
+        expect(actions.at(-1)!.expiration).toBe(Math.floor(expiresAt / 1000));
+
+        const nullExp = await call('POST', '/api/v1/actions/import-ban', body({ externalRef: 'x:2', expiresAt: null, playerName: null }));
+        expect(nullExp.json.data.action).toMatchObject({ banStatus: 'permanent', expiresAt: null, playerName: null });
+        expect(actions.at(-1)!.expiration).toBe(false);
+
+        expect((await call('POST', '/api/v1/actions/import-ban', body({ externalRef: 'x:3', expiresAt: 0 }))).status).toBe(400);
     });
 });
 

@@ -61,6 +61,7 @@ export default () => {
 
     //Actions (bans/warns) writes
     router.post('/actions/ban-identifiers', apiKeyAuthMw('players.ban'), v1.actions_banIds as any);
+    router.post('/actions/import-ban', apiKeyAuthMw('players.ban_import'), v1.actions_importBan as any);
     router.post('/actions/:id/revoke', apiKeyAuthMw(), v1.actions_revoke as any); //per-type permission inside
 
     //Whitelist writes
