@@ -1,6 +1,6 @@
 export { default as diagnostics_getDiagnostics } from './diagnostics/getDiagnostics';
 export { default as intercom } from './intercom.js';
-export { default as resources } from './resources.js';
+export { default as resources } from './resources';
 export { default as perfChart } from './perfChart';
 export { default as playerDrops } from './playerDrops';
 export { default as systemLogs } from './systemLogs';
@@ -33,7 +33,6 @@ export { default as settings_getBanTemplates } from './banTemplates/getBanTempla
 export { default as settings_saveBanTemplates } from './banTemplates/saveBanTemplates';
 export { default as settings_resetServerDataPath } from './settings/resetServerDataPath';
 
-export { default as masterActions_page } from './masterActions/page';
 export { default as masterActions_getBackup } from './masterActions/getBackup';
 export { default as masterActions_actions } from './masterActions/actions';
 
@@ -62,8 +61,7 @@ export { default as whitelist_actions } from './whitelist/actions';
 export { default as advanced_runCommand } from './advanced/runCommand';
 
 //FIXME: reorganizar TODAS rotas de logs, incluindo listagem e download
-export { default as serverLog } from './serverLog.js';
-export { default as serverLogPartial } from './serverLogPartial.js';
+export { default as serverLogPartial } from './serverLogPartial';
 
 export { default as host_status } from './hostStatus';
 

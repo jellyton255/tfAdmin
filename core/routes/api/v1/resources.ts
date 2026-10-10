@@ -1,41 +1,10 @@
 import path from 'node:path';
 import slash from 'slash';
-import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
+import { requestResourceReport } from '@lib/fxserver/resourceReport';
 import { ApiError, sendData } from '@modules/ApiServer/envelope';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { ApiResourceRecord } from '@shared/apiV1Types';
 
-const REPORT_TIMEOUT_MS = 1500;
-const REPORT_MAX_AGE_MS = 1000;
-
-
-/**
- * Asks FXServer for a fresh resource report (txaReportResources) and waits for it to land in
- * FxResources.resourceReport, the same way the legacy resources page does.
- */
-const requestResourceReport = () => {
-    const sent = txCore.fxRunner.sendCommand('txaReportResources', [], SYM_SYSTEM_AUTHOR);
-    if (!sent) return Promise.resolve(null);
-    const requestedAt = Date.now();
-    return new Promise<any[] | null>((resolve) => {
-        const poll = setInterval(() => {
-            const report = txCore.fxResources.resourceReport;
-            if (
-                report
-                && report.ts.getTime() >= requestedAt - REPORT_MAX_AGE_MS
-                && Array.isArray(report.resources)
-            ) {
-                clearInterval(poll);
-                clearTimeout(timeout);
-                resolve(report.resources);
-            }
-        }, 50);
-        const timeout = setTimeout(() => {
-            clearInterval(poll);
-            resolve(null);
-        }, REPORT_TIMEOUT_MS);
-    });
-};
 
 const toRelativePath = (resPath: string) => {
     const normalized = slash(path.normalize(resPath));

@@ -1,12 +1,18 @@
-/* eslint-disable no-unused-vars */
 const modulename = 'WebServer:MasterActions:Action';
-import { DatabaseActionBanType, DatabaseActionType, DatabaseActionWarnType, DatabasePlayerType } from '@modules/Database/databaseTypes';
+import { z } from 'zod';
+import { DatabaseActionType, DatabasePlayerType } from '@modules/Database/databaseTypes';
 import { now } from '@lib/misc';
-import { GenericApiErrorResp } from '@shared/genericApiTypes';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
-import { SYM_RESET_CONFIG } from '@lib/symbols';
+import type {
+    MasterActionsCleanDatabaseReq,
+    MasterActionsCleanDatabaseResp,
+    MasterActionsRevokeWhitelistsReq,
+    MasterActionsRevokeWhitelistsResp,
+} from '@shared/masterActionsApiTypes';
 const console = consoleFactory(modulename);
+
+const DAY_SECS = 86400;
 
 
 /**
@@ -41,94 +47,43 @@ export default async function MasterActionsAction(ctx: AuthedCtx) {
 /**
  * Handle clean database request
  */
-async function handleCleanDatabase(ctx: AuthedCtx) {
-    //Typescript stuff
-    type successResp = {
-        msElapsed: number;
-        playersRemoved: number;
-        actionsRemoved: number;
-        hwidsRemoved: number;
-    }
-    const sendTypedResp = (data: successResp | GenericApiErrorResp) => ctx.send(data);
+const cleanDatabaseSchema = z.object({
+    players: z.enum(['none', '60d', '30d', '15d']),
+    bans: z.enum(['none', 'revoked', 'revokedExpired', 'all']),
+    warns: z.enum(['none', 'revoked', '30d', '15d', '7d', 'all']),
+    hwids: z.enum(['none', 'players', 'bans', 'all']),
+}) satisfies z.ZodType<MasterActionsCleanDatabaseReq>;
 
-    //Sanity check
-    if (
-        typeof ctx.request.body.players !== 'string'
-        || typeof ctx.request.body.bans !== 'string'
-        || typeof ctx.request.body.warns !== 'string'
-        || typeof ctx.request.body.hwids !== 'string'
-    ) {
+async function handleCleanDatabase(ctx: AuthedCtx) {
+    const sendTypedResp = (data: MasterActionsCleanDatabaseResp) => ctx.send(data);
+    const parsed = cleanDatabaseSchema.safeParse(ctx.request.body);
+    if (!parsed.success) {
         return sendTypedResp({ error: 'Invalid Request' });
     }
-    const { players, bans, warns, hwids } = ctx.request.body;
-    const daySecs = 86400;
+    const { players, bans, warns, hwids } = parsed.data;
     const currTs = now();
+    const olderThan = (ts: number, days: number) => ts < (currTs - days * DAY_SECS);
 
     //Prepare filters
-    let playersFilter: Function;
-    if (players === 'none') {
-        playersFilter = (x: DatabasePlayerType) => false;
-    } else if (players === '60d') {
-        playersFilter = (x: DatabasePlayerType) => x.tsLastConnection < (currTs - 60 * daySecs) && !x.notes;
-    } else if (players === '30d') {
-        playersFilter = (x: DatabasePlayerType) => x.tsLastConnection < (currTs - 30 * daySecs) && !x.notes;
-    } else if (players === '15d') {
-        playersFilter = (x: DatabasePlayerType) => x.tsLastConnection < (currTs - 15 * daySecs) && !x.notes;
-    } else {
-        return sendTypedResp({ error: 'Invalid players filter type.' });
-    }
-
-    let bansFilter: Function;
-    if (bans === 'none') {
-        bansFilter = (x: DatabaseActionBanType) => false;
-    } else if (bans === 'revoked') {
-        bansFilter = (x: DatabaseActionBanType) => x.type === 'ban' && x.revocation.timestamp;
-    } else if (bans === 'revokedExpired') {
-        bansFilter = (x: DatabaseActionBanType) => x.type === 'ban' && (x.revocation.timestamp || (x.expiration && x.expiration < currTs));
-    } else if (bans === 'all') {
-        bansFilter = (x: DatabaseActionBanType) => x.type === 'ban';
-    } else {
-        return sendTypedResp({ error: 'Invalid bans filter type.' });
-    }
-
-    let warnsFilter: Function;
-    if (warns === 'none') {
-        warnsFilter = (x: DatabaseActionWarnType) => false;
-    } else if (warns === 'revoked') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && x.revocation.timestamp;
-    } else if (warns === '30d') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && x.timestamp < (currTs - 30 * daySecs);
-    } else if (warns === '15d') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && x.timestamp < (currTs - 15 * daySecs);
-    } else if (warns === '7d') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && x.timestamp < (currTs - 7 * daySecs);
-    } else if (warns === 'all') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn';
-    } else {
-        return sendTypedResp({ error: 'Invalid warns filter type.' });
-    }
-
-    const actionsFilter = (x: DatabaseActionType) => {
-        return bansFilter(x) || warnsFilter(x);
+    const playersFilter = (x: DatabasePlayerType) => {
+        if (players === 'none') return false;
+        return olderThan(x.tsLastConnection, parseInt(players)) && !x.notes;
     };
-
-    let hwidsWipePlayers: boolean;
-    let hwidsWipeBans: boolean;
-    if (hwids === 'none') {
-        hwidsWipePlayers = false;
-        hwidsWipeBans = false;
-    } else if (hwids === 'players') {
-        hwidsWipePlayers = true;
-        hwidsWipeBans = false;
-    } else if (hwids === 'bans') {
-        hwidsWipePlayers = false;
-        hwidsWipeBans = true;
-    } else if (hwids === 'all') {
-        hwidsWipePlayers = true;
-        hwidsWipeBans = true;
-    } else {
-        return sendTypedResp({ error: 'Invalid HWIDs filter type.' });
-    }
+    const bansFilter = (x: DatabaseActionType) => {
+        if (x.type !== 'ban' || bans === 'none') return false;
+        if (bans === 'all') return true;
+        if (bans === 'revoked') return !!x.revocation.timestamp;
+        return !!x.revocation.timestamp || !!(x.expiration && x.expiration < currTs);
+    };
+    const warnsFilter = (x: DatabaseActionType) => {
+        if (x.type !== 'warn' || warns === 'none') return false;
+        if (warns === 'all') return true;
+        if (warns === 'revoked') return !!x.revocation.timestamp;
+        return olderThan(x.timestamp, parseInt(warns));
+    };
+    const actionsFilter = (x: DatabaseActionType) => bansFilter(x) || warnsFilter(x);
+    const hwidsWipePlayers = hwids === 'players' || hwids === 'all';
+    const hwidsWipeBans = hwids === 'bans' || hwids === 'all';
 
     //Run db cleaner
     const tsStart = Date.now();
@@ -136,21 +91,21 @@ async function handleCleanDatabase(ctx: AuthedCtx) {
     try {
         playersRemoved = txCore.database.cleanup.bulkRemove('players', playersFilter);
     } catch (error) {
-        return sendTypedResp({ error: `<b>Failed to clean players with error:</b><br>${(error as Error).message}` });
+        return sendTypedResp({ error: `Failed to clean players with error: ${(error as Error).message}` });
     }
 
     let actionsRemoved = 0;
     try {
         actionsRemoved = txCore.database.cleanup.bulkRemove('actions', actionsFilter);
     } catch (error) {
-        return sendTypedResp({ error: `<b>Failed to clean actions with error:</b><br>${(error as Error).message}` });
+        return sendTypedResp({ error: `Failed to clean actions with error: ${(error as Error).message}` });
     }
 
     let hwidsRemoved = 0;
     try {
         hwidsRemoved = txCore.database.cleanup.wipeHwids(hwidsWipePlayers, hwidsWipeBans);
     } catch (error) {
-        return sendTypedResp({ error: `<b>Failed to clean HWIDs with error:</b><br>${(error as Error).message}` });
+        return sendTypedResp({ error: `Failed to clean HWIDs with error: ${(error as Error).message}` });
     }
 
     //Return results
@@ -160,36 +115,24 @@ async function handleCleanDatabase(ctx: AuthedCtx) {
 
 
 /**
- * Handle clean database request
+ * Handle revoke whitelists request
  */
-async function handleRevokeWhitelists(ctx: AuthedCtx) {
-    //Typescript stuff
-    type successResp = {
-        msElapsed: number;
-        cntRemoved: number;
-    }
-    const sendTypedResp = (data: successResp | GenericApiErrorResp) => ctx.send(data);
+const revokeWhitelistsSchema = z.object({
+    filter: z.enum(['all', '30d', '15d', '7d']),
+}) satisfies z.ZodType<MasterActionsRevokeWhitelistsReq>;
 
-    //Sanity check
-    if (typeof ctx.request.body.filter !== 'string') {
+async function handleRevokeWhitelists(ctx: AuthedCtx) {
+    const sendTypedResp = (data: MasterActionsRevokeWhitelistsResp) => ctx.send(data);
+    const parsed = revokeWhitelistsSchema.safeParse(ctx.request.body);
+    if (!parsed.success) {
         return sendTypedResp({ error: 'Invalid Request' });
     }
-    const filterInput = ctx.request.body.filter;
-    const daySecs = 86400;
+    const { filter } = parsed.data;
     const currTs = now();
-
-    let filterFunc: Function;
-    if (filterInput === 'all') {
-        filterFunc = (p: DatabasePlayerType) => true;
-    } else if (filterInput === '30d') {
-        filterFunc = (p: DatabasePlayerType) => p.tsLastConnection < (currTs - 30 * daySecs);
-    } else if (filterInput === '15d') {
-        filterFunc = (p: DatabasePlayerType) => p.tsLastConnection < (currTs - 15 * daySecs);
-    } else if (filterInput === '7d') {
-        filterFunc = (p: DatabasePlayerType) => p.tsLastConnection < (currTs - 7 * daySecs);
-    } else {
-        return sendTypedResp({ error: 'Invalid whitelists filter type.' });
-    }
+    const filterFunc = (p: DatabasePlayerType) => {
+        if (filter === 'all') return true;
+        return p.tsLastConnection < (currTs - parseInt(filter) * DAY_SECS);
+    };
 
     try {
         const tsStart = Date.now();
@@ -197,6 +140,6 @@ async function handleRevokeWhitelists(ctx: AuthedCtx) {
         const msElapsed = Date.now() - tsStart;
         return sendTypedResp({ msElapsed, cntRemoved });
     } catch (error) {
-        return sendTypedResp({ error: `<b>Failed to clean players with error:</b><br>${(error as Error).message}` });
+        return sendTypedResp({ error: `Failed to revoke allowlists with error: ${(error as Error).message}` });
     }
 }

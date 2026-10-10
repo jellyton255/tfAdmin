@@ -29,9 +29,6 @@ export default () => {
 
     //Rendered Pages
     router.get('/legacy/adminManager', webAuthMw, routes.adminManager_page);
-    router.get('/legacy/masterActions', webAuthMw, routes.masterActions_page);
-    router.get('/legacy/resources', webAuthMw, routes.resources);
-    router.get('/legacy/serverLog', webAuthMw, routes.serverLog);
     router.get('/legacy/setup', webAuthMw, routes.setup_get);
     router.get('/legacy/deployer', webAuthMw, routes.deployer_stepper);
 
@@ -81,6 +78,7 @@ export default () => {
 
     //Data routes
     router.get('/serverLog/partial', apiAuthMw, routes.serverLogPartial);
+    router.get('/resources/list', apiAuthMw, routes.resources);
     router.get('/systemLog/:scope', apiAuthMw, routes.systemLogs);
     router.get('/perfChartData/:thread', apiAuthMw, routes.perfChart);
     router.get('/playerDropsData', apiAuthMw, routes.playerDrops);

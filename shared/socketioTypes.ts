@@ -3,6 +3,7 @@ import { SvRtNodeMemoryType, SvRtPerfBoundariesType } from "@core/modules/Metric
 import type { ReactAuthDataType } from "./authApiTypes";
 import type { UpdateDataType } from "./otherTypes";
 import { DiscordBotStatus, TxConfigState, type FxMonitorHealth } from "./enums";
+import type { ServerLogEventType } from "./serverLogApiTypes";
 
 /**
  * Status channel
@@ -112,6 +113,7 @@ export type ListenEventsMap = {
     updateAuthData: (authData: ReactAuthDataType) => void;
     consoleData: (data: string) => void;
     dashboard: (data: DashboardDataEventType) => void;
+    logData: (events: ServerLogEventType[]) => void;
 
     //Standalone events
     updateAvailable: (event: UpdateAvailableEventType) => void

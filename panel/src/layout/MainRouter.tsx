@@ -25,6 +25,9 @@ import AdvancedPage from "@/pages/AdvancedPage";
 import ApiKeysPage from "@/pages/ApiKeys/ApiKeysPage"; // everfall:api
 import AllowlistPage from "@/pages/Allowlist/AllowlistPage";
 import AdminsPage from "@/pages/Admins/AdminsPage";
+import MasterActionsPage from "@/pages/MasterActions/MasterActionsPage";
+import ResourcesPage from "@/pages/Resources/ResourcesPage";
+import ServerLogPage from "@/pages/ServerLog/ServerLogPage";
 
 
 type RouteType = {
@@ -72,7 +75,7 @@ const allRoutes: RouteType[] = [
         path: '/system/master-actions',
         title: 'Master Actions',
         //NOTE: content is readonly for unauthorized accounts
-        Page: <Iframe legacyUrl="masterActions" />
+        Page: <MasterActionsPage />
     },
     {
         path: '/system/diagnostics',
@@ -114,13 +117,13 @@ const allRoutes: RouteType[] = [
     {
         path: '/server/resources',
         title: 'Resources',
-        Page: <Iframe legacyUrl="resources" />
+        Page: <ResourcesPage />
     },
     {
         path: '/server/server-log',
         title: 'Server Log',
         permission: 'server.log.view',
-        Page: <Iframe legacyUrl="serverLog" />
+        Page: <ServerLogPage />
     },
     {
         path: '/server/setup',

@@ -40,6 +40,8 @@ export enum LocalStorageKey {
     LiveConsoleBookmarks = 'txa:liveConsole:bookmarks',
     LiveConsoleHistory = 'txa:liveConsole:history',
     LiveConsoleOptions = 'txa:liveConsole:options',
+    ResourcesPageOptions = 'txa:resourcesPage:options',
+    ServerLogFilters = 'txa:serverLog:filters',
 }
 
 
