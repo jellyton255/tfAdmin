@@ -15,7 +15,10 @@ import { StrictMode, useEffect } from 'react';
 import { isMobile } from 'is-mobile';
 import { useAtomValue } from 'jotai';
 import { pageTitleWatcher } from './hooks/pages.ts';
+import { capturePanelError, startPanelSentry } from './lib/sentry.ts';
 
+
+startPanelSentry();
 
 //If inside NUI, silence console.* calls to prevent confusion.
 if (!window.txConsts.isWebInterface) {
@@ -109,7 +112,7 @@ export function AuthContextSwitch() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <ErrorBoundary FallbackComponent={AppErrorFallback}>
+        <ErrorBoundary FallbackComponent={AppErrorFallback} onError={capturePanelError}>
             <ThemeProvider>
                 <AuthContextSwitch />
             </ThemeProvider>

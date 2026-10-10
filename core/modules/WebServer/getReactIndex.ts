@@ -6,6 +6,7 @@ import { txEnv, txDevEnv, txHostConfig } from "@core/globalData";
 import { AuthedCtx, CtxWithVars } from "./ctxTypes";
 import consts from "@shared/consts";
 import consoleFactory from '@lib/console';
+import { sentryConfig } from '@lib/sentry';
 import { AuthedAdminType, checkRequestAuth } from "./authLogic";
 import { isString } from "@modules/CacheStore";
 import {
@@ -131,6 +132,7 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         providerLogo: txHostConfig.providerLogo,
         providerName: txHostConfig.providerName,
         hostConfigSource: txHostConfig.sourceName,
+        sentry: sentryConfig,
 
         //Login page info
         server: {

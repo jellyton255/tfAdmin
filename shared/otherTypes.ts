@@ -49,6 +49,11 @@ export type InjectedTxConsts = {
     providerLogo: string | undefined;
     providerName: string | undefined;
     hostConfigSource: string;
+    sentry: {
+        dsn: string;
+        environment: string;
+        release: string | undefined;
+    } | undefined;
     server: {
         name: string;
         game: string | undefined;
