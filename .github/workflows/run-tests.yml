@@ -45,3 +45,11 @@ jobs:
         env:
           CI: true
         run: pnpm -r test
+
+      - name: Build
+        env:
+          CI: true
+        run: GITHUB_REF=refs/tags/v8.1.1 pnpm run build
+
+      - name: Smoke test the core bundle
+        run: node scripts/everfall/smoke-core-bundle.mjs
