@@ -8,6 +8,7 @@ import chalk, { ChalkInstance } from 'chalk';
 import slash from 'slash';
 import ErrorStackParser from 'error-stack-parser';
 import sourceMapSupport from 'source-map-support';
+import { captureException } from '@sentry/node';
 
 
 //Buffer handler
@@ -205,6 +206,15 @@ const getPrettyError = (error: Error, multilineError?: boolean) => {
 
 
 /**
+ * Reports errors printed to the main console to Sentry (a no-op until it's initialized).
+ * Verbose output is left out, as it is mostly expected noise.
+ */
+const reportError = (error: Error, context: string) => {
+    captureException(error, { tags: { logger: context } });
+}
+
+
+/**
  * Drop-in replacement for console.dir
  */
 const dirHandler = (data: any, options?: TxInspectOptions, consoleInstance?: Console) => {
@@ -289,13 +299,21 @@ interface TxBaseLogTypes {
  */
 const consoleFactory = (ctx?: string, subCtx?: string): CombinedConsole => {
     const currContext = [header, ctx, subCtx].filter(x => x).join(':');
+    const errorLog = getLogFunc(currContext, chalk.bgRed);
     const baseLogs: TxBaseLogTypes = {
         debug: getLogFunc(currContext, DEBUG_COLOR),
         log: getLogFunc(currContext, chalk.bgBlue),
         ok: getLogFunc(currContext, chalk.bgGreen),
         warn: getLogFunc(currContext, chalk.bgYellow),
-        error: getLogFunc(currContext, chalk.bgRed),
-        dir: (data: any, options?: TxInspectOptions & {}) => dirHandler.call(null, data, options),
+        error: (message?: any, ...optParams: any) => {
+            const error = [message, ...optParams].find((x) => x instanceof Error);
+            if (error) reportError(error, currContext);
+            return errorLog(message, ...optParams);
+        },
+        dir: (data: any, options?: TxInspectOptions & {}) => {
+            if (data instanceof Error && data.name !== 'ExperimentalWarning') reportError(data, currContext);
+            return dirHandler.call(null, data, options);
+        },
     };
 
     return {

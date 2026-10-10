@@ -5,7 +5,7 @@ import path from 'node:path';
 /**
  * Reads the commit from a tfAdmin build stamp (`.tfadmin-build`).
  */
-const readBuildCommit = (dir: string) => {
+export const readBuildCommit = (dir: string) => {
     try {
         const stamp = fs.readFileSync(path.join(dir, '.tfadmin-build'), 'utf8');
         return stamp.match(/^commit=(\S+)$/m)?.[1];

@@ -1,6 +1,7 @@
 //NOTE: must be imported first to setup the environment
 import { txEnv, txHostConfig } from './globalData';
 import consoleFactory from '@lib/console';
+import { initSentry } from '@lib/sentry';
 
 //Can be imported after
 import fs from 'node:fs';
@@ -15,6 +16,7 @@ const console = consoleFactory();
 //Early process stuff
 try {
     process.title = 'txAdmin'; //doesn't work for now
+    initSentry();
     setupProcessHandlers();
     checkPreRelease();
 } catch (error) {

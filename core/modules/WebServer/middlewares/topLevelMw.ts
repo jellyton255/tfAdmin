@@ -4,6 +4,7 @@ import consoleFactory from '@lib/console';
 const console = consoleFactory(modulename);
 import { Next } from "koa";
 import { RawKoaCtx } from '../ctxTypes';
+import { captureException } from '@sentry/node';
 
 //Token Bucket (Rate Limiter)
 const maxTokens = 20;
@@ -93,6 +94,7 @@ const topLevelMw = async (ctx: RawKoaCtx, next: Next) => {
             ].join('\n');
             ctx.status = 500;
             ctx.body = desc;
+            captureException(error, { tags: { route: reqPath } });
             if (consumePrintToken()) {
                 console.error(desc, methodName);
                 console.verbose.dir(error);

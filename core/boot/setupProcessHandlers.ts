@@ -1,5 +1,6 @@
 import { txDevEnv } from "@core/globalData";
 import consoleFactory from "@lib/console";
+import { captureException } from "@sentry/node";
 const console = consoleFactory('ProcessHandlers');
 
 
@@ -26,10 +27,12 @@ export default function setupProcessHandlers() {
         //We are handling this inside the DiscordBot component
         if (err.message === 'Used disallowed intents') return;
 
+        captureException(err, { mechanism: { type: 'onunhandledrejection', handled: false } });
         console.error('Ohh nooooo - unhandledRejection');
         console.dir(err);
     });
     process.on('uncaughtException', function (err: Error) {
+        captureException(err, { mechanism: { type: 'onuncaughtexception', handled: false } });
         console.error('Ohh nooooo - uncaughtException');
         console.error(err.message);
         console.dir(err.stack);
