@@ -3,7 +3,8 @@ import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import MemCache from '@lib/MemCache';
 import * as diagnosticsFuncs from '@lib/diagnostics';
 import consoleFactory from '@lib/console';
-import type { DiagnosticsPageData } from '@shared/diagnosticsTypes';
+import { getTfadminStatus } from '@lib/tfadminStatus';
+import type { DiagnosticsPageData, InfoTree } from '@shared/diagnosticsTypes';
 import type { GenericApiErrorResp } from '@shared/genericApiTypes';
 import type { QuantileArray } from '@modules/Metrics/statsUtils';
 const console = consoleFactory(modulename);
@@ -24,6 +25,31 @@ const perfQuantiles = (perfData: QuantileArray) => {
     }
 }
 
+//tfAdmin build + upstream status, only for admins with all permissions (not cached)
+const withTfadminTree = (ctx: AuthedCtx, data: DiagnosticsPageData): DiagnosticsPageData => {
+    if (!ctx.admin.hasPermission('all_permissions')) return data;
+    const { runningCommit, pendingCommit, nightly, upstream } = getTfadminStatus();
+    const tree: InfoTree = {
+        'Running': runningCommit ?? '--',
+        'Staged': pendingCommit ?? '--',
+        'Nightly': nightly
+            ? { result: nightly.result, commit: nightly.commit ?? '--', at: nightly.checkedAt }
+            : '--',
+        'Upstream': upstream
+            ? {
+                state: upstream.state,
+                behind: upstream.behind ?? '--',
+                releases: upstream.releases?.join(', ') || '--',
+                at: upstream.checkedAt,
+            }
+            : '--',
+    };
+    if (upstream?.conflicts?.length) {
+        tree['Conflicts'] = upstream.conflicts.join(', ');
+    }
+    return { ...data, runtime: { ...data.runtime, 'tfAdmin': tree } };
+}
+
 
 /**
  * Returns the diagnostics data
@@ -32,7 +58,7 @@ export default async function GetDiagnosticsData(ctx: AuthedCtx) {
     const sendTypedResp = (data: DiagnosticsPageData | GenericApiErrorResp) => ctx.send(data);
 
     const cachedData = cache.get();
-    if (cachedData) return sendTypedResp(cachedData);
+    if (cachedData) return sendTypedResp(withTfadminTree(ctx, cachedData));
 
     //Prepare data
     const timeStart = Date.now();
@@ -148,5 +174,5 @@ export default async function GetDiagnosticsData(ctx: AuthedCtx) {
 
     //Cache and send
     cache.set(data);
-    return sendTypedResp(data);
+    return sendTypedResp(withTfadminTree(ctx, data));
 };

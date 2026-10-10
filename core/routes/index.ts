@@ -1,4 +1,5 @@
 export { default as diagnostics_getDiagnostics } from './diagnostics/getDiagnostics';
+export { default as tfadmin_status } from './tfadminStatus';
 export { default as intercom } from './intercom.js';
 export { default as resources } from './resources';
 export { default as perfChart } from './perfChart';

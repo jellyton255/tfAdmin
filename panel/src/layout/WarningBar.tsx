@@ -2,8 +2,12 @@ import { Button } from "@/components/ui/button";
 import useWarningBar from "@/hooks/useWarningBar";
 import { LocalStorageKey } from "@/lib/localStorage";
 import { cn } from "@/lib/utils";
-import { BellOffIcon, CloudOffIcon, DownloadCloudIcon } from "lucide-react";
+import { useAdminPerms } from "@/hooks/auth";
+import { useAuthedFetcher } from "@/hooks/fetch";
+import type { TfadminStatusResp } from "@shared/tfadminStatusTypes";
+import { BellOffIcon, CircleAlertIcon, CloudOffIcon, DownloadCloudIcon, GitMergeIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import useSWR from "swr";
 
 const MAJOR_DISMISSAL_TIME = 12 * 60 * 60 * 1000;
 const MINOR_DISMISSAL_TIME = 48 * 60 * 60 * 1000;
@@ -86,8 +90,44 @@ export function InnerWarningBar({ titleIcon, title, description, isImportant, ca
 }
 
 
+/**
+ * tfAdmin build and upstream notices, only for admins with all permissions.
+ * Unmerged upstream commits without a release stay on the Diagnostics page.
+ */
+function useTfadminNotice() {
+    const { hasPerm } = useAdminPerms();
+    const authedFetcher = useAuthedFetcher();
+    const { data } = useSWR(
+        hasPerm('all_permissions') ? '/tfadmin/status' : null,
+        () => authedFetcher<TfadminStatusResp>('/tfadmin/status'),
+        { revalidateOnFocus: false, refreshInterval: 30 * 60_000 },
+    );
+    if (!data || 'error' in data) return;
+
+    const { nightly, upstream } = data;
+    if (nightly?.result === 'smoke_failed' || nightly?.result === 'failed') {
+        return {
+            icon: <CircleAlertIcon className="inline h-[1.2rem] -mt-1 mr-1" />,
+            title: 'Nightly tfAdmin Build Not Staged',
+            description: `Build ${nightly.commit ?? 'unknown'} failed its ${nightly.result === 'smoke_failed' ? 'smoke test' : 'build'}. Main keeps ${nightly.stagedCommit || 'its current build'}.`,
+        };
+    }
+    const latestRelease = upstream?.releases?.[0];
+    if (upstream && latestRelease) {
+        return {
+            icon: <GitMergeIcon className="inline h-[1.2rem] -mt-1 mr-1" />,
+            title: `Upstream txAdmin ${latestRelease} Not Merged`,
+            description: upstream.state === 'conflicts'
+                ? `${upstream.behind} upstream commits; ${upstream.conflicts?.length ?? 0} files conflict.`
+                : `${upstream.behind} upstream commits; merges cleanly.`,
+        };
+    }
+}
+
+
 export default function WarningBar() {
-    const { offlineWarning, txUpdateData, fxUpdateData } = useWarningBar();
+    const { offlineWarning, fxUpdateData } = useWarningBar();
+    const tfadminNotice = useTfadminNotice();
 
     if (offlineWarning) {
         return <InnerWarningBar
@@ -100,16 +140,12 @@ export default function WarningBar() {
             isImportant={true}
             canPostpone={false}
         />
-    } else if (txUpdateData) {
+    } else if (tfadminNotice) {
         return <InnerWarningBar
-            titleIcon={<DownloadCloudIcon className="inline h-[1.2rem] -mt-1 mr-1" />}
-            title={txUpdateData.isImportant
-                ? 'This version of txAdmin is outdated.'
-                : 'A patch (bug fix) update is available for txAdmin.'}
-            description={txUpdateData.isImportant
-                ? `Version v${txUpdateData.version} has been released bringing new features, bug fixes and improvements.`
-                : `If you are experiencing any kind of issue, please update to v${txUpdateData.version}.`}
-            isImportant={txUpdateData.isImportant}
+            titleIcon={tfadminNotice.icon}
+            title={tfadminNotice.title}
+            description={tfadminNotice.description}
+            isImportant={false}
             canPostpone={true}
         />
     } else if (fxUpdateData) {

@@ -1,5 +1,4 @@
 const modulename = 'UpdateChecker';
-import semver, { ReleaseType } from 'semver';
 import { z } from "zod";
 import got from '@lib/got';
 import { txEnv } from '@core/globalData';
@@ -10,31 +9,11 @@ const console = consoleFactory(modulename);
 
 
 //Schemas
-const txVersion = z.string().refine(
-    (x) => x !== '0.0.0',
-    { message: 'must not be 0.0.0' }
-);
 const changelogRespSchema = z.object({
     recommended: z.coerce.number().positive(),
-    recommended_download: z.string().url(),
-    recommended_txadmin: txVersion,
     optional: z.coerce.number().positive(),
-    optional_download: z.string().url(),
-    optional_txadmin: txVersion,
-    latest: z.coerce.number().positive(),
-    latest_download: z.string().url(),
-    latest_txadmin: txVersion,
     critical: z.coerce.number().positive(),
-    critical_download: z.string().url(),
-    critical_txadmin: txVersion,
 });
-
-//Types
-type DetailedUpdateDataType = {
-    semverDiff: ReleaseType;
-    version: string;
-    isImportant: boolean;
-};
 
 export const queryChangelogApi = async () => {
     //GET changelog data
@@ -51,26 +30,8 @@ export const queryChangelogApi = async () => {
         if(error instanceof z.ZodError){
             msg = fromError(error, { prefix: null }).message
         }
-        console.verbose.warn(`Failed to retrieve FXServer/txAdmin update data with error: ${msg}`);
+        console.verbose.warn(`Failed to retrieve FXServer update data with error: ${msg}`);
         return;
-    }
-
-    //Checking txAdmin version
-    let txaUpdateData: DetailedUpdateDataType | undefined;
-    try {
-        const isOutdated = semver.lt(txEnv.txaVersion, apiResponse.latest_txadmin);
-        if (isOutdated) {
-            const semverDiff = semver.diff(txEnv.txaVersion, apiResponse.latest_txadmin) ?? 'patch';
-            const isImportant = (semverDiff === 'major' || semverDiff === 'minor');
-            txaUpdateData = {
-                semverDiff,
-                isImportant,
-                version: apiResponse.latest_txadmin,
-            };
-        }
-    } catch (error) {
-        console.verbose.warn('Error checking for txAdmin updates.');
-        console.verbose.dir(error);
     }
 
     //Checking FXServer version
@@ -104,8 +65,5 @@ export const queryChangelogApi = async () => {
         console.verbose.dir(error);
     }
 
-    return {
-        txa: txaUpdateData,
-        fxs: fxsUpdateData,
-    };
+    return fxsUpdateData;
 };
