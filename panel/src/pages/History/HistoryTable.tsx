@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import TxAnchor from '@/components/TxAnchor';
 import { cn } from '@/lib/utils';
 import { convertRowDateTime } from '@/lib/dateTime';
 import { TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
@@ -126,7 +125,7 @@ function LastRow({ playersCount, hasReachedEnd, isFetching, loadError, retryFetc
     } else {
         content = <span>
             You've found the end of the rainbow, but there's no pot of gold here. <br />
-            <i>(this is a bug, please report it in <TxAnchor href="https://discord.gg/txAdmin" target="_blank" rel="noopener noreferrer">discord.gg/txAdmin</TxAnchor>)</i>
+            <i>(this is a bug)</i>
         </span>
     }
 

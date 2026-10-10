@@ -90,7 +90,6 @@ const checkFileWhitelist = (rootPath: string, url: string) => {
         '/favicon_online.svg',
         '/favicon_partial.svg',
         '/index.html',
-        '/img/discord.png',
         '/img/zap_login.png',
         '/img/zap_main.png'
     ];

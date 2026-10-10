@@ -1,22 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowUpRight } from "lucide-react";
 import { ProcessTree } from "@/pages/Diagnostics/process-tree";
 import { numberToLocaleString } from "@/lib/utils";
 import { DiagnosticsInfoTree } from "./info-tree";
 import { DiagnosticsInfoList } from "./info-list";
-import { ReportDialog } from "./report-dialog";
 import type { DiagnosticsDataApiResp } from "@shared/diagnosticsTypes";
 import useSWR from "swr";
 import { useBackendApi } from "@/hooks/fetch";
-import { useState } from "react";
-import TxAnchor from "@/components/TxAnchor";
 import CardContentOverlay from "@/components/CardContentOverlay";
 
 
 export default function DiagnosticsPage() {
-    const [reportDialogOpen, setReportDialogOpen] = useState(false);
-
     const getDataApi = useBackendApi<DiagnosticsDataApiResp>({
         method: 'GET',
         path: '/diagnostics/getDiagnostics',
@@ -43,35 +36,6 @@ export default function DiagnosticsPage() {
     }
     return (
         <div className="w-full space-y-4">
-            {/* Diagnostics Report Card */}
-            {/* FIXME:NEXT:UPDATE: reenable this */}
-            {/* <Card className="bg-info-hint border-info">
-                <CardHeader className="bg-transparent pb-2">
-                    <CardTitle>Diagnostics Report</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <p className="text-sm text-muted-foreground">
-                            To receive support, it is recommended that you send the diagnostics data directly to the
-                            Support Team. <br />
-                            After that, share the report ID with the support team in <TxAnchor
-                                href="https://discord.gg/uAmsGa2"
-                                className="font-semibold tracking-wide text-primary"
-                            >
-                                discord.gg/txAdmin
-                            </TxAnchor>.
-                        </p>
-                        <Button
-                            className="whitespace-nowrap"
-                            onClick={() => setReportDialogOpen(true)}
-                        >
-                            Review Details & Send Data
-                            <ArrowUpRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card> */}
-
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <div className="space-y-4">
                     {/* Runtime Card */}
@@ -123,11 +87,6 @@ export default function DiagnosticsPage() {
                     </div>
                 </div>
             </div>
-
-            <ReportDialog
-                open={reportDialogOpen}
-                onOpenChange={setReportDialogOpen}
-            />
         </div>
     )
 }

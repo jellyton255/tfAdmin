@@ -106,15 +106,6 @@ export function GenericErrorBoundaryCard(props: GenericErrorBoundaryCardProps) {
             </CardContent>
             <CardFooter className="flex flex-row justify-between">
                 {props.resetButton}
-                <Button
-                    asChild
-                    variant="outline"
-                    className="bg-discord hover:bg-discord-active animate-pulse hover:animate-none"
-                >
-                    <a href="http://discord.gg/txAdmin" target="_blank" rel="noopener noreferrer">
-                        Support Discord
-                    </a>
-                </Button>
             </CardFooter>
         </Card>
     );

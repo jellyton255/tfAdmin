@@ -4,7 +4,6 @@ import ServerMenu from './ServerMenu';
 import ServerControls from './ServerControls';
 import ServerStatus from './ServerStatus';
 import ServerSchedule from './ServerSchedule';
-import DynamicAdvert from '@/components/DynamicAdvert';
 
 
 type ServerSidebarProps = {
@@ -36,8 +35,6 @@ export function ServerSidebar({ isSheet }: ServerSidebarProps) {
                 <ServerSchedule />
             </div>
             <hr className={isSheet ? 'block' : 'hidden'} />
-
-            <DynamicAdvert placement='sidebar' />
 
             {window.txConsts.isWebInterface ? (
                 <div className='flex flex-col items-center justify-center gap-1 text-sm font-light opacity-85 hover:opacity-100'>

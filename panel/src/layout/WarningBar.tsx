@@ -4,7 +4,6 @@ import { LocalStorageKey } from "@/lib/localStorage";
 import { cn } from "@/lib/utils";
 import { BellOffIcon, CloudOffIcon, DownloadCloudIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { FaDiscord } from "react-icons/fa";
 
 const MAJOR_DISMISSAL_TIME = 12 * 60 * 60 * 1000;
 const MINOR_DISMISSAL_TIME = 48 * 60 * 60 * 1000;
@@ -79,17 +78,6 @@ export function InnerWarningBar({ titleIcon, title, description, isImportant, ca
                         >
                             <BellOffIcon className="h-[0.9rem] mr-1" /> Postpone
                         </Button>}
-
-                        <Button
-                            size="xs"
-                            variant="outline"
-                            asChild
-                            className={isImportant ? "text-foreground border-foreground" : 'dark:border-primary-foreground dark:hover:border-primary'}
-                        >
-                            <a href="https://discord.gg/uAmsGa2" target="_blank">
-                                <FaDiscord size="14" className="mr-1" /> Support
-                            </a>
-                        </Button>
                     </div>
                 </span>
             </div>

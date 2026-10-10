@@ -79,7 +79,6 @@ export default () => {
 
     //Diagnostic routes
     router.get('/diagnostics/getDiagnostics', apiAuthMw, routes.diagnostics_getDiagnostics);
-    router.post('/diagnostics/sendReport', apiAuthMw, routes.diagnostics_sendReport);
     router.post('/advanced/run', apiAuthMw, routes.advanced_runCommand);
 
     //Data routes

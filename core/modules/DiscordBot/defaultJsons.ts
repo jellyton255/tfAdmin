@@ -49,10 +49,5 @@ export const defaultEmbedConfigJson = JSON.stringify({
             "label": "Connect",
             "url": "{{serverJoinUrl}}"
         },
-        {
-            "emoji": "1062339910654246964",
-            "label": "txAdmin Discord",
-            "url": "https://discord.gg/txAdmin"
-        },
     ].filter(Boolean)
 });

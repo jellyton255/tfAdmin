@@ -39,8 +39,7 @@ setInterval(() => {
             'You might be under a DDoS attack!',
             `txAdmin got ${numberFormatter.format(httpRequestsCounter)} HTTP requests in the last minute.`,
             `The attacker IP addresses have been blocked until ${DDOS_COOLDOWN_MINUTES} mins after the attack stops.`,
-            'Make sure you have a proper firewall setup and/or a reverse proxy with rate limiting.',
-            'You can join https://discord.gg/txAdmin for support.'
+            'Make sure you have a proper firewall setup and/or a reverse proxy with rate limiting.'
         ]);
     } else {
         minutesSinceLastAttack++;

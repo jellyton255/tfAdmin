@@ -4,14 +4,12 @@ import {
     DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { openExternalLink } from '@/lib/navigation';
 import { KeyRoundIcon, LogOutIcon, Menu, Monitor, MoonIcon, PersonStanding, SunIcon } from "lucide-react";
 import DesktopNavbar from "./DesktopNavbar";
 import Avatar from "@/components/Avatar";
 import { useAuth } from "@/hooks/auth";
 import { useGlobalMenuSheet, usePlayerlistSheet, useServerSheet } from "@/hooks/sheets";
 import { useTheme } from "@/hooks/theme";
-import { FaDiscord } from "react-icons/fa";
 import { useAtomValue } from "jotai";
 import { serverNameAtom } from "@/hooks/status";
 import { playerCountAtom } from "@/hooks/playerlist";
@@ -118,9 +116,6 @@ function AuthedHeaderFragment() {
     const openAccountModal = () => {
         setAccountModalOpen(true);
     }
-    const gotoSupportDiscord = () => {
-        openExternalLink('https://discord.gg/uAmsGa2');
-    }
     const doLogout = () => logout();
 
     return (
@@ -150,10 +145,6 @@ function AuthedHeaderFragment() {
                 <DropdownMenuItem className="cursor-pointer" onClick={openAccountModal}>
                     <KeyRoundIcon className="mr-2 h-4 w-4" />
                     Your Account
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={gotoSupportDiscord}>
-                    <FaDiscord size="14" className="mr-2" />
-                    Support
                 </DropdownMenuItem>
 
                 {/* Don't show logout if on NUI */}

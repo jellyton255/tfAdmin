@@ -1,6 +1,5 @@
 import MarkdownProse from "@/components/MarkdownProse";
 import { cn } from "@/lib/utils";
-import { handleExternalLinkClick } from "@/lib/navigation";
 import { cva } from "class-variance-authority";
 import { AlertCircleIcon, AlertOctagonIcon, CheckCircleIcon, ChevronRightCircle, InfoIcon, Loader2Icon, XIcon } from "lucide-react";
 import toast, { Toast, Toaster } from "react-hot-toast";
@@ -107,19 +106,6 @@ export const CustomToast = ({ t, type, data }: CustomToastProps) => {
                         <span className="font-semibold mb-1">{data.title}</span>
                         <span className="block whitespace-pre-line">{data.msg}</span>
                     </>
-                )}
-                {type === 'error' && (
-                    <small className="block text-xs tracking-wide text-muted-foreground">
-                        For support, visit&nbsp;
-                        <a
-                            href="https://discord.gg/uAmsGa2"
-                            target="_blank"
-                            onClick={handleExternalLinkClick}
-                            className="font-semibold no-underline hover:underline m-0"
-                        >
-                            discord.gg/txAdmin
-                        </a>.
-                    </small>
                 )}
             </div>
 
