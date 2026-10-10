@@ -3,6 +3,7 @@ import { parseSchedule } from '@lib/misc';
 import consoleFactory from '@lib/console';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import { getPendingStagedBuild } from '@lib/stagedBuild';
+import { txEnv } from '@core/globalData';
 import type { UpdateConfigKeySet } from './ConfigStore/utils';
 const console = consoleFactory(modulename);
 
