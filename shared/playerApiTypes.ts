@@ -48,6 +48,33 @@ export type PlayerModalResp = PlayerModalSuccess | GenericApiErrorResp;
 
 
 /**
+ * Everfall: QBox characters linked to the player's license(s)
+ */
+export type PlayerCharacter = {
+    citizenId: string;
+    slot: number | null;
+    fullName: string;
+    jobLabel: string | null;
+    jobGrade: string | null;
+    gangName: string | null;
+    gangLabel: string | null;
+    gangGrade: string | null;
+    cash: number | null;
+    bank: number | null;
+    tsLastUpdated: number | null;
+    tsLastLoggedOut: number | null;
+    online: boolean;
+}
+export type PlayerCharactersResp = {
+    status: 'ok';
+    characters: PlayerCharacter[];
+} | {
+    status: 'unavailable';
+    reason: string;
+} | GenericApiErrorResp;
+
+
+/**
  * Used in the players page
  */
 export type PlayersStatsResp = {
