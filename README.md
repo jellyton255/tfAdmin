@@ -55,7 +55,6 @@
 - Real-time playerlist
 - Scheduled restarts with warning announcements and custom events ([docs/events.md](docs/events.md))
 - Translated into over 30 languages ([docs/translation.md](docs/translation.md))
-- FiveM's Server CFG editor & validator
 - Responsive web interface with Dark Mode 😎
 - And much more...
 

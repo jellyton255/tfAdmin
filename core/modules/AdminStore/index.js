@@ -59,7 +59,6 @@ export default class AdminStore {
             'control.server': 'Start/Stop Server + Scheduler', //FIXME: horrible name
             'announcement': 'Send Announcements',
             'commands.resources': 'Start/Stop Resources',
-            'server.cfg.editor': 'Read/Write server.cfg', //FIXME: rename to server.cfg_editor
             'txadmin.log.view': 'View System Logs', //FIXME: rename to system.log.view
             'server.log.view': 'View Server Logs',
             'players.remove_ids': 'Remove Player IDs',

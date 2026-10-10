@@ -13,7 +13,6 @@ The permissions are saved in the `txData/admins.json` file and can be edited thr
 - `control.server`: Start/Stop/Restart Server.
 - `announcement`: Send announcements.
 - `commands.resources`: Start/Stop Resources.
-- `server.cfg.editor`: Read/Write server.cfg.
 - `txadmin.log.view`: View txAdmin Log.
 - `server.log.view`: View server logs.
 - `menu.vehicle`: Spawn/Fix Vehicles.

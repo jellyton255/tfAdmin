@@ -29,7 +29,6 @@ export default () => {
 
     //Rendered Pages
     router.get('/legacy/adminManager', webAuthMw, routes.adminManager_page);
-    router.get('/legacy/cfgEditor', webAuthMw, routes.cfgEditor_page);
     router.get('/legacy/masterActions', webAuthMw, routes.masterActions_page);
     router.get('/legacy/resources', webAuthMw, routes.resources);
     router.get('/legacy/serverLog', webAuthMw, routes.serverLog);
@@ -74,9 +73,6 @@ export default () => {
     router.post('/fxserver/commands', apiAuthMw, routes.fxserver_commands);
     router.get('/fxserver/downloadLog', webAuthMw, routes.fxserver_downloadLog);
     router.post('/fxserver/schedule', apiAuthMw, routes.fxserver_schedule);
-
-    //CFG Editor
-    router.post('/cfgEditor/save', apiAuthMw, routes.cfgEditor_save);
 
     //Control routes
     router.post('/intercom/:scope', intercomAuthMw, routes.intercom);

@@ -17,7 +17,6 @@ export type ResolvablePermission =
   | "console.view"
   | "console.write"
   | "control.server"
-  | "server.cfg.editor"
   | "settings.view"
   | "settings.write"
   | "txadmin.log.view"

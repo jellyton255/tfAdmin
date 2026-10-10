@@ -120,12 +120,6 @@ const allRoutes: RouteType[] = [
         Page: <Iframe legacyUrl="serverLog" />
     },
     {
-        path: '/server/cfg-editor',
-        title: 'CFG Editor',
-        permission: 'server.cfg.editor',
-        Page: <Iframe legacyUrl="cfgEditor" />
-    },
-    {
         path: '/server/setup',
         title: 'Server Setup',
         permission: 'master', //FIXME: eithger change to all_permissions or create a new Setup/Deploy permission
