@@ -21,6 +21,7 @@
         "@mui/icons-material": "^6.1.2",
         "@mui/material": "6.1.2",
         "@mui/system": "^6.5.0",
+        "@sentry/browser": "^11.6.0",
         "notistack": "^3.0.1",
         "react-polyglot": "^0.7.2",
         "recoil": "^0.7.7"

@@ -1,6 +1,7 @@
 import { LocaleType } from "@shared/localeMap";
 import { atom, selector, useRecoilValue, useSetRecoilState } from "recoil";
 import config from "../utils/config.json";
+import type { MenuSentryConfig } from "../utils/sentry";
 
 interface OneSyncCtx {
   type: null | string;
@@ -18,6 +19,7 @@ export interface ServerCtx {
   announceNotiPos: string;
   txAdminVersion: string;
   alignRight: boolean;
+  sentry?: MenuSentryConfig;
 }
 
 const serverCtx = atom<ServerCtx>({

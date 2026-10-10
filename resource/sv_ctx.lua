@@ -109,6 +109,19 @@ local function syncServerCtx()
     ServerCtxObj.announceNotiPos = 'top-center'
   end
 
+  -- Error reporting for the menu, set by txAdmin only when Sentry is configured
+  local sentryDsn = GetConvar('txAdmin-sentryDsn', '')
+  if sentryDsn ~= '' then
+    local sentryRelease = GetConvar('txAdmin-sentryRelease', '')
+    ServerCtxObj.sentry = {
+      dsn = sentryDsn,
+      environment = GetConvar('txAdmin-sentryEnvironment', 'production'),
+      release = sentryRelease ~= '' and sentryRelease or nil,
+    }
+  else
+    ServerCtxObj.sentry = nil
+  end
+
   debugPrint('Updated ServerCtx.')
   GlobalState.txAdminServerCtx = ServerCtxObj
 

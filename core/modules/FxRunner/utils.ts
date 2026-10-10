@@ -3,6 +3,7 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { Readable, Writable } from "node:stream";
 import { txEnv, txHostConfig } from "@core/globalData";
 import { redactStartupSecrets } from "@lib/misc";
+import { sentryConfig } from "@lib/sentry";
 import path from "path";
 
 
@@ -132,6 +133,11 @@ export const getFxSpawnVariables = (): FxSpawnVariables => {
         '+set', 'onesync', txConfig.server.onesync,
         '+sets', 'txAdmin-version', txEnv.txaVersion,
         '+setr', 'txAdmin-menuEnabled', txConfig.gameFeatures.menuEnabled,
+        sentryConfig ? [
+            '+set', 'txAdmin-sentryDsn', sentryConfig.dsn,
+            '+set', 'txAdmin-sentryEnvironment', sentryConfig.environment,
+            '+set', 'txAdmin-sentryRelease', sentryConfig.release ?? '',
+        ] : [],
         '+set', 'txAdmin-luaComHost', txCoreEndpoint,
         '+set', 'txAdmin-luaComToken', txCore.webServer.luaComToken,
         '+set', 'txAdminServerMode', 'true', //Can't change this one due to fxserver code compatibility

@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { fetchNui } from "../../utils/fetchNui";
+import { captureMenuError } from "../../utils/sentry";
 
 interface ErrorCompState {
   hasError: boolean;
@@ -31,6 +32,10 @@ export class TopLevelErrorBoundary extends Component<any, ErrorCompState> {
 
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    captureMenuError(error, "menu");
   }
 
   handleReloadClick() {

@@ -1,5 +1,6 @@
 import React from "react";
 import { PlayerModalHasError } from "./PlayerModalHasError";
+import { captureMenuError } from "../../../utils/sentry";
 
 interface PlayerErrorBoundaryState {
   hasError: boolean;
@@ -21,6 +22,10 @@ export class PlayerModalErrorBoundary extends React.Component<
 
   static getDerivedStateFromError(error) {
     return { hasError: true, errorMessage: error.message };
+  }
+
+  componentDidCatch(error: Error) {
+    captureMenuError(error, "playerModal");
   }
 
   render() {

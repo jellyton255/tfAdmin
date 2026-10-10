@@ -10,6 +10,7 @@ import {
   ServerCtx,
   useSetServerCtx,
 } from "../state/server.state";
+import { startMenuSentry } from "../utils/sentry";
 
 // Passive Message Event Listeners & Handlers for global state
 export const useNuiListenerService = () => {
@@ -23,6 +24,9 @@ export const useNuiListenerService = () => {
   });
   useNuiEvent<boolean>("setVisible", setVisible);
   useNuiEvent<ResolvablePermission[]>("setPermissions", setPermsState);
-  useNuiEvent<ServerCtx>("setServerCtx", setServerCtxState);
+  useNuiEvent<ServerCtx>("setServerCtx", (ctx) => {
+    startMenuSentry(ctx.sentry);
+    setServerCtxState(ctx);
+  });
   useNuiEvent<txAdminMenuPage>("setMenuPage", setMenuPage);
 };
