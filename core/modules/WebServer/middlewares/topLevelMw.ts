@@ -94,8 +94,8 @@ const topLevelMw = async (ctx: RawKoaCtx, next: Next) => {
             ].join('\n');
             ctx.status = 500;
             ctx.body = desc;
-            captureException(error, { tags: { route: reqPath } });
             if (consumePrintToken()) {
+                captureException(error, { tags: { route: reqPath } });
                 console.error(desc, methodName);
                 console.verbose.dir(error);
             }
