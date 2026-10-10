@@ -23,6 +23,8 @@ import UnauthorizedPage from "@/pages/UnauthorizedPage";
 import DiagnosticsPage from "@/pages/Diagnostics/DiagnosticsPage";
 import AdvancedPage from "@/pages/AdvancedPage";
 import ApiKeysPage from "@/pages/ApiKeys/ApiKeysPage"; // everfall:api
+import AllowlistPage from "@/pages/Allowlist/AllowlistPage";
+import AdminsPage from "@/pages/Admins/AdminsPage";
 
 
 type RouteType = {
@@ -52,12 +54,13 @@ const allRoutes: RouteType[] = [
     {
         path: '/allowlist',
         title: 'Allowlist',
-        Page: <Iframe legacyUrl="allowlist" />
+        Page: <AllowlistPage />
     },
     {
         path: '/admins',
         title: 'Admins',
-        Page: <Iframe legacyUrl="adminManager" />
+        permission: 'manage.admins',
+        Page: <AdminsPage />
     },
     {
         path: '/settings',

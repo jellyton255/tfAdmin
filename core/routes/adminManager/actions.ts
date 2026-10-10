@@ -1,85 +1,74 @@
 const modulename = 'WebServer:AdminManagerActions';
 import { customAlphabet } from 'nanoid';
 import dict49 from 'nanoid-dictionary/nolookalikes';
+import { z } from 'zod';
 import got from '@lib/got';
 import consts from '@shared/consts';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
+import type { AdminManagerAddResp, AdminManagerDeleteResp, AdminManagerEditResp } from '@shared/adminManagerApiTypes';
 const console = consoleFactory(modulename);
 
 //Helpers
 const nanoid = customAlphabet(dict49, 20);
 //NOTE: this desc misses that it should start and end with alphanum or _, and cannot have repeated -_.
-const nameRegexDesc = 'up to 20 characters containing only letters, numbers and the characters \`_.-\`';
+const nameRegexDesc = 'up to 20 characters containing only letters, numbers and the characters `_.-`';
 const cfxHttpReqOptions = {
     timeout: { request: 6000 },
 };
 type ProviderDataType = { id: string, identifier: string };
+type ErrorResp = { error: string };
+type ParsedSaveBody = {
+    name: string;
+    permissions: string[];
+    citizenfxData: ProviderDataType | false;
+    discordData: ProviderDataType | false;
+};
+
+const saveBodySchema = z.object({
+    name: z.string().trim(),
+    citizenfxID: z.string().trim(),
+    discordID: z.string().trim(),
+    permissions: z.array(z.string()),
+});
+const deleteBodySchema = z.object({
+    name: z.string().trim(),
+});
+
 
 /**
- * Returns the output page containing the admins.
+ * Handles the add, edit and delete admin actions.
  */
 export default async function AdminManagerActions(ctx: AuthedCtx) {
-    //Sanity check
-    if (typeof ctx.params?.action !== 'string') {
-        return ctx.utils.error(400, 'Invalid Request');
-    }
-    const action = ctx.params.action;
-
-    //Check permissions
+    const action = ctx.params?.action;
     if (!ctx.admin.testPermission('manage.admins', modulename)) {
-        return ctx.send({
-            type: 'danger',
-            message: 'You don\'t have permission to execute this action.',
-        });
+        return ctx.send<ErrorResp>({ error: 'You don\'t have permission to execute this action.' });
     }
 
-    //Delegate to the specific action handler
-    if (action == 'add') {
-        return await handleAdd(ctx);
-    } else if (action == 'edit') {
-        return await handleEdit(ctx);
-    } else if (action == 'delete') {
-        return await handleDelete(ctx);
+    if (action === 'add') {
+        return ctx.send<AdminManagerAddResp>(await handleAdd(ctx));
+    } else if (action === 'edit') {
+        return ctx.send<AdminManagerEditResp>(await handleEdit(ctx));
+    } else if (action === 'delete') {
+        return ctx.send<AdminManagerDeleteResp>(await handleDelete(ctx));
     } else {
-        return ctx.send({
-            type: 'danger',
-            message: 'Unknown action.',
-        });
+        return ctx.send<ErrorResp>({ error: 'Unknown action.' });
     }
 };
 
 
 /**
- * Handle Add
+ * Validates the save body and resolves the provider ids
  */
-async function handleAdd(ctx: AuthedCtx) {
-    //Sanity check
-    if (
-        typeof ctx.request.body.name !== 'string'
-        || typeof ctx.request.body.citizenfxID !== 'string'
-        || typeof ctx.request.body.discordID !== 'string'
-        || ctx.request.body.permissions === undefined
-    ) {
-        return ctx.utils.error(400, 'Invalid Request - missing parameters');
-    }
+async function parseSaveBody(ctx: AuthedCtx): Promise<ParsedSaveBody | ErrorResp> {
+    const parsed = saveBodySchema.safeParse(ctx.request.body);
+    if (!parsed.success) return { error: 'Invalid request: missing or invalid parameters.' };
+    const { name, citizenfxID, discordID } = parsed.data;
 
-    //Prepare and filter variables
-    const name = ctx.request.body.name.trim();
-    const password = nanoid();
-    const citizenfxID = ctx.request.body.citizenfxID.trim();
-    const discordID = ctx.request.body.discordID.trim();
-    let permissions = (Array.isArray(ctx.request.body.permissions)) ? ctx.request.body.permissions : [];
-    permissions = permissions.filter((x: unknown) => typeof x === 'string');
+    let permissions = parsed.data.permissions;
     if (permissions.includes('all_permissions')) permissions = ['all_permissions'];
 
-
-    //Validate name
-    if (!consts.regexValidFivemUsername.test(name)) {
-        return ctx.send({ type: 'danger', markdown: true, message: `**Invalid username, it must follow the rule:**\n${nameRegexDesc}` });
-    }
-
-    //Validate & translate FiveM ID
+    //Validate & translate Cfx.re ID
     let citizenfxData: ProviderDataType | false = false;
     if (citizenfxID.length) {
         try {
@@ -87,7 +76,7 @@ async function handleAdd(ctx: AuthedCtx) {
                 const id = citizenfxID.split(':')[1];
                 const res = await got(`https://policy-live.fivem.net/api/getUserInfo/${id}`, cfxHttpReqOptions).json<any>();
                 if (!res.username || !res.username.length) {
-                    return ctx.send({ type: 'danger', message: 'Invalid CitizenFX ID1' });
+                    return { error: 'Invalid Cfx.re ID: account not found.' };
                 }
                 citizenfxData = {
                     id: res.username,
@@ -96,14 +85,14 @@ async function handleAdd(ctx: AuthedCtx) {
             } else if (consts.regexValidFivemUsername.test(citizenfxID)) {
                 const res = await got(`https://forum.cfx.re/u/${citizenfxID}.json`, cfxHttpReqOptions).json<any>();
                 if (!res.user || typeof res.user.id !== 'number') {
-                    return ctx.send({ type: 'danger', message: 'Invalid CitizenFX ID2' });
+                    return { error: 'Invalid Cfx.re ID: forum user not found.' };
                 }
                 citizenfxData = {
                     id: citizenfxID,
                     identifier: `fivem:${res.user.id}`,
                 };
             } else {
-                return ctx.send({ type: 'danger', message: 'Invalid CitizenFX ID3' });
+                return { error: 'Invalid Cfx.re ID: use a forum username or a fivem: identifier.' };
             }
         } catch (error) {
             console.error(`Failed to resolve CitizenFX ID to game identifier with error: ${(error as Error).message}`);
@@ -114,7 +103,7 @@ async function handleAdd(ctx: AuthedCtx) {
     let discordData: ProviderDataType | false = false;
     if (discordID.length) {
         if (!consts.validIdentifierParts.discord.test(discordID)) {
-            return ctx.send({ type: 'danger', message: 'Invalid Discord ID' });
+            return { error: 'Invalid Discord ID.' };
         }
         discordData = {
             id: discordID,
@@ -124,29 +113,41 @@ async function handleAdd(ctx: AuthedCtx) {
 
     //Check for privilege escalation
     if (!ctx.admin.isMaster && !ctx.admin.permissions.includes('all_permissions')) {
-        const deniedPerms = permissions.filter((x: string) => !ctx.admin.permissions.includes(x));
+        const deniedPerms = permissions.filter((x) => !ctx.admin.permissions.includes(x));
         if (deniedPerms.length) {
-            return ctx.send({
-                type: 'danger',
-                message: `You cannot give permissions you do not have:<br>${deniedPerms.join(', ')}`,
-            });
+            return { error: `You cannot give permissions you do not have: ${deniedPerms.join(', ')}` };
         }
     }
 
-    //List changes
+    return { name, permissions, citizenfxData, discordData };
+}
+
+
+/**
+ * Handle Add
+ */
+async function handleAdd(ctx: AuthedCtx): Promise<AdminManagerAddResp> {
+    const body = await parseSaveBody(ctx);
+    if ('error' in body) return body;
+    const { name, permissions, citizenfxData, discordData } = body;
+
+    if (!consts.regexValidFivemUsername.test(name)) {
+        return { error: `Invalid username, it must be ${nameRegexDesc}.` };
+    }
+
     const changes = {
         cfxId: citizenfxData ? citizenfxData.identifier : undefined,
         discordId: discordData ? discordData.identifier : undefined,
-        permissions: permissions,
+        permissions,
     };
 
-    //Add admin and give output
+    const password = nanoid();
     try {
         await txCore.adminStore.addAdmin(name, citizenfxData, discordData, password, permissions);
         ctx.admin.logAction(`Adding user '${name}' with ${JSON.stringify(changes)}`);
-        return ctx.send({ type: 'showPassword', password });
+        return { success: true, password };
     } catch (error) {
-        return ctx.send({ type: 'danger', message: (error as Error).message });
+        return { error: (error as Error).message };
     }
 }
 
@@ -154,102 +155,23 @@ async function handleAdd(ctx: AuthedCtx) {
 /**
  * Handle Edit
  */
-async function handleEdit(ctx: AuthedCtx) {
-    //Sanity check
-    if (
-        typeof ctx.request.body.name !== 'string'
-        || typeof ctx.request.body.citizenfxID !== 'string'
-        || typeof ctx.request.body.discordID !== 'string'
-        || ctx.request.body.permissions === undefined
-    ) {
-        return ctx.utils.error(400, 'Invalid Request - missing parameters');
-    }
+async function handleEdit(ctx: AuthedCtx): Promise<AdminManagerEditResp> {
+    const body = await parseSaveBody(ctx);
+    if ('error' in body) return body;
+    const { name, permissions, citizenfxData, discordData } = body;
 
-    //Prepare and filter variables
-    const name = ctx.request.body.name.trim();
-    const citizenfxID = ctx.request.body.citizenfxID.trim();
-    const discordID = ctx.request.body.discordID.trim();
-
-    //Check if editing himself
     if (ctx.admin.name.toLowerCase() === name.toLowerCase()) {
-        return ctx.send({ type: 'danger', message: '(ERR0) You cannot edit yourself.' });
+        return { error: 'You cannot edit yourself.' };
     }
 
-    //Validate & translate permissions
-    let permissions: string[] = [];
-    if (Array.isArray(ctx.request.body.permissions)) {
-        permissions = ctx.request.body.permissions.filter((x: unknown) => typeof x === 'string');
-        if (permissions.includes('all_permissions')) {
-            permissions = ['all_permissions'];
-        }
-    }
-
-    //Validate & translate FiveM ID
-    let citizenfxData: ProviderDataType | false = false;
-    if (citizenfxID.length) {
-        try {
-            if (consts.validIdentifiers.fivem.test(citizenfxID)) {
-                const id = citizenfxID.split(':')[1];
-                const res = await got(`https://policy-live.fivem.net/api/getUserInfo/${id}`, cfxHttpReqOptions).json<any>();
-                if (!res.username || !res.username.length) {
-                    return ctx.send({ type: 'danger', message: '(ERR1) Invalid CitizenFX ID' });
-                }
-                citizenfxData = {
-                    id: res.username,
-                    identifier: citizenfxID,
-                };
-            } else if (consts.regexValidFivemUsername.test(citizenfxID)) {
-                const res = await got(`https://forum.cfx.re/u/${citizenfxID}.json`, cfxHttpReqOptions).json<any>();
-                if (!res.user || typeof res.user.id !== 'number') {
-                    return ctx.send({ type: 'danger', message: '(ERR2) Invalid CitizenFX ID' });
-                }
-                citizenfxData = {
-                    id: citizenfxID,
-                    identifier: `fivem:${res.user.id}`,
-                };
-            } else {
-                return ctx.send({ type: 'danger', message: '(ERR3) Invalid CitizenFX ID' });
-            }
-        } catch (error) {
-            console.error(`Failed to resolve CitizenFX ID to game identifier with error: ${(error as Error).message}`);
-        }
-    }
-
-    //Validate Discord ID
-    //FIXME: you cannot remove a discord id by erasing from the field
-    let discordData: ProviderDataType | false = false;
-    if (discordID.length) {
-        if (!consts.validIdentifierParts.discord.test(discordID)) {
-            return ctx.send({ type: 'danger', message: 'Invalid Discord ID' });
-        }
-        discordData = {
-            id: discordID,
-            identifier: `discord:${discordID}`,
-        };
-    }
-
-    //Check if admin exists
     const admin = txCore.adminStore.getAdminByName(name);
-    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
-
-    //Check if editing an master admin
+    if (!admin) return { error: 'Admin not found.' };
     if (!ctx.admin.isMaster && admin.master) {
-        return ctx.send({ type: 'danger', message: 'You cannot edit an admin master.' });
-    }
-
-    //Check for privilege escalation
-    if (permissions && !ctx.admin.isMaster && !ctx.admin.permissions.includes('all_permissions')) {
-        const deniedPerms = permissions.filter((x: string) => !ctx.admin.permissions.includes(x));
-        if (deniedPerms.length) {
-            return ctx.send({
-                type: 'danger',
-                message: `You cannot give permissions you do not have:<br>${deniedPerms.join(', ')}`,
-            });
-        }
+        return { error: 'You cannot edit an admin master.' };
     }
 
     //List changes
-    const permsAdded = permissions.filter((x: string) => !admin.permissions.includes(x));
+    const permsAdded = permissions.filter((x) => !admin.permissions.includes(x));
     const permsRemoved = admin.permissions.filter((x: string) => !permissions.includes(x));
     const changes: string[] = [];
     if (permsAdded.includes('all_permissions')) {
@@ -279,19 +201,15 @@ async function handleEdit(ctx: AuthedCtx) {
         changes.push(`Changed Discord ID from ${prevDiscordId} to ${discordData.identifier}.`);
     }
 
-    //Add admin and give output
     try {
-        let logMessage = `Editing user '${name}'`;
-        if (changes.length) {
-            logMessage += `: ${changes.join(' ')}`;
-        } else {
-            logMessage += '. No changes were made.';
-        }
         await txCore.adminStore.editAdmin(name, null, citizenfxData, discordData, permissions);
+        const logMessage = changes.length
+            ? `Editing user '${name}': ${changes.join(' ')}`
+            : `Editing user '${name}'. No changes were made.`;
         ctx.admin.logAction(logMessage);
-        return ctx.send({ type: 'success', refresh: true });
+        return { success: true };
     } catch (error) {
-        return ctx.send({ type: 'danger', message: (error as Error).message });
+        return { error: (error as Error).message };
     }
 }
 
@@ -299,33 +217,26 @@ async function handleEdit(ctx: AuthedCtx) {
 /**
  * Handle Delete
  */
-async function handleDelete(ctx: AuthedCtx) {
-    //Sanity check
-    if (typeof ctx.request.body.name !== 'string') {
-        return ctx.utils.error(400, 'Invalid Request - missing parameters');
-    }
-    const name = ctx.request.body.name.trim();
+async function handleDelete(ctx: AuthedCtx): Promise<AdminManagerDeleteResp> {
+    const parsed = deleteBodySchema.safeParse(ctx.request.body);
+    if (!parsed.success) return { error: 'Invalid request: missing admin name.' };
+    const { name } = parsed.data;
 
-    //Check if deleting himself
     if (ctx.admin.name.toLowerCase() === name.toLowerCase()) {
-        return ctx.send({ type: 'danger', message: "You can't delete yourself." });
+        return { error: 'You cannot delete yourself.' };
     }
 
-    //Check if admin exists
     const admin = txCore.adminStore.getAdminByName(name);
-    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
-
-    //Check if editing an master admin
+    if (!admin) return { error: 'Admin not found.' };
     if (admin.master) {
-        return ctx.send({ type: 'danger', message: 'You cannot delete an admin master.' });
+        return { error: 'You cannot delete an admin master.' };
     }
 
-    //Delete admin and give output
     try {
         await txCore.adminStore.deleteAdmin(name);
         ctx.admin.logAction(`Deleting user '${name}'.`);
-        return ctx.send({ type: 'success', refresh: true });
+        return { success: true };
     } catch (error) {
-        return ctx.send({ type: 'danger', message: (error as Error).message });
+        return { error: (error as Error).message };
     }
 }

@@ -18,7 +18,7 @@ export { default as auth_getIdentifiers } from './authentication/getIdentifiers'
 export { default as auth_changeIdentifiers } from './authentication/changeIdentifiers';
 
 export { default as adminManager_page } from './adminManager/page.js';
-export { default as adminManager_getModal } from './adminManager/getModal';
+export { default as adminManager_list } from './adminManager/list';
 export { default as adminManager_actions } from './adminManager/actions';
 
 
@@ -56,7 +56,6 @@ export { default as player_modal } from './player/modal';
 export { default as player_actions } from './player/actions';
 export { default as player_checkJoin } from './player/checkJoin';
 
-export { default as whitelist_page } from './whitelist/page';
 export { default as whitelist_list } from './whitelist/list';
 export { default as whitelist_actions } from './whitelist/actions';
 

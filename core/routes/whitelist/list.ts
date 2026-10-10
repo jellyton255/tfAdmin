@@ -1,8 +1,7 @@
 const modulename = 'WebServer:WhitelistList';
 import Fuse from "fuse.js";
-import { DatabaseWhitelistApprovalsType, DatabaseWhitelistRequestsType } from '@modules/Database/databaseTypes';
 import cleanPlayerName from "@shared/cleanPlayerName";
-import { GenericApiErrorResp } from "@shared/genericApiTypes";
+import type { WhitelistApprovalsResp, WhitelistRequestsResp } from "@shared/whitelistApiTypes";
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from "@modules/WebServer/ctxTypes";
 const console = consoleFactory(modulename);
@@ -29,15 +28,7 @@ export default async function WhitelistList(ctx: AuthedCtx) {
  * Handles the search functionality.
  */
 async function handleRequests(ctx: AuthedCtx) {
-    type resp = {
-        cntTotal: number;
-        cntFiltered: number;
-        newest: number; //for the ignore all button not remove any that hasn't been seeing by the admin
-        totalPages: number;
-        currPage: number;
-        requests: DatabaseWhitelistRequestsType[];
-    } | GenericApiErrorResp;
-    const sendTypedResp = (data: resp) => ctx.send(data);
+    const sendTypedResp = (data: WhitelistRequestsResp) => ctx.send(data);
 
     const requests = txCore.database.whitelist.findManyRequests().reverse();
 
@@ -86,7 +77,7 @@ async function handleRequests(ctx: AuthedCtx) {
  * Handles the search functionality.
  */
 async function handleApprovals(ctx: AuthedCtx) {
-    const sendTypedResp = (data: DatabaseWhitelistApprovalsType[]) => ctx.send(data);
+    const sendTypedResp = (data: WhitelistApprovalsResp) => ctx.send(data);
 
     const approvals = txCore.database.whitelist.findManyApprovals().reverse();
     return sendTypedResp(approvals);
