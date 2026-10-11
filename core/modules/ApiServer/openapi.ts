@@ -274,6 +274,12 @@ const paths: Record<string, Schema> = {
         }),
     },
     '/keys/{id}': {
+        patch: op({
+            tag: 'Keys', summary: 'Change an API key\'s scopes', permission: 'manage.admins', params: [paramPath('id', str())],
+            body: obj({ permissions: arr(str({ description: 'Scope id, see GET /keys. Empty = read-only key' })) }),
+            response: obj({ key: ref('ApiKey') }), errors: [404, 409],
+            description: 'Replaces the scopes; the token stays the same. The caller must hold the admin permission behind every scope it adds or removes. Revoked keys return 409.',
+        }),
         delete: op({
             tag: 'Keys', summary: 'Revoke an API key', permission: 'manage.admins', params: [paramPath('id', str())],
             response: obj({ key: ref('ApiKey') }), errors: [404],

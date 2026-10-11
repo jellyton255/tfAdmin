@@ -114,6 +114,7 @@ export default () => {
     //API Keys management (panel) - everfall:api
     router.get('/apiKeys', apiAuthMw, routes.apiKeys_list);
     router.post('/apiKeys/create', apiAuthMw, routes.apiKeys_create);
+    router.post('/apiKeys/updateScopes', apiAuthMw, routes.apiKeys_updateScopes);
     router.post('/apiKeys/revoke', apiAuthMw, routes.apiKeys_revoke);
     router.get('/webhooks', apiAuthMw, routes.webhooks_list);
     router.get('/webhooks/deliveries', apiAuthMw, routes.webhooks_deliveries);

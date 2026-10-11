@@ -151,6 +151,37 @@ describe('/api/v1', () => {
         expect(me.status).toBe(200);
     });
 
+    it('changes a key\'s scopes without changing its token', async () => {
+        const created = await apiServer.keyStore.create({ name: 'tickets', permissions: ['players.ban'] }, 'test');
+        const r = await call('PATCH', `/api/v1/keys/${created.key.id}`, adminToken, { permissions: ['players.ban', 'players.kick', 'players.kick'] });
+        expect(r.status).toBe(200);
+        expect(r.json.data.key.permissions).toEqual(['players.ban', 'players.kick']);
+        expect(adminLog.some((l) => l.startsWith('api:root: Changed API key \'tickets\''))).toBe(true);
+        const me = await call('GET', '/api/v1/me', created.token);
+        expect(me.json.data.key.permissions).toEqual(['players.ban', 'players.kick']);
+
+        const missing = await call('PATCH', '/api/v1/keys/doesnotexist', adminToken, { permissions: [] });
+        expect(missing.status).toBe(404);
+        await apiServer.keyStore.revoke(created.key.id, 'test');
+        const revoked = await call('PATCH', `/api/v1/keys/${created.key.id}`, adminToken, { permissions: [] });
+        expect(revoked.status).toBe(409);
+    });
+
+    it('refuses to add or remove scopes the editor does not hold', async () => {
+        const limited = await apiServer.keyStore.create({ name: 'mgr2', permissions: ['manage.admins', 'players.kick'] }, 'test');
+        const target = await apiServer.keyStore.create({ name: 'target', permissions: ['players.ban'] }, 'test');
+        const add = await call('PATCH', `/api/v1/keys/${target.key.id}`, limited.token, { permissions: ['players.ban', 'control.server'] });
+        expect(add.status).toBe(403);
+        expect(add.json.error.details.permissions).toEqual(['control.server']);
+        const remove = await call('PATCH', `/api/v1/keys/${target.key.id}`, limited.token, { permissions: [] });
+        expect(remove.status).toBe(403);
+        expect(remove.json.error.details.permissions).toEqual(['players.ban']);
+        //scopes it can grant are fine, and untouched scopes it lacks stay
+        const ok = await call('PATCH', `/api/v1/keys/${target.key.id}`, limited.token, { permissions: ['players.ban', 'players.kick'] });
+        expect(ok.status).toBe(200);
+        expect(ok.json.data.key.permissions).toEqual(['players.ban', 'players.kick']);
+    });
+
     it('validates bodies and content types', async () => {
         const bad = await call('POST', '/api/v1/keys', adminToken, { name: 'x', permissions: ['nope.perm'] });
         expect(bad.status).toBe(400);

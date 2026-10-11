@@ -73,6 +73,14 @@ export type ApiKeyListResp = ApiResp<{
     scopes: ApiScopeInfo[];
 }>;
 
+export type ApiKeyUpdateScopesReq = {
+    id: string;
+    /** Scope ids that replace the key's current ones. Empty = read-only key. */
+    permissions: string[];
+};
+
+export type ApiKeyUpdateScopesResp = ApiResp<{ key: ApiKeyPublicRecord }>;
+
 export type ApiKeyRevokeResp = ApiResp<{ key: ApiKeyPublicRecord }>;
 
 export type ApiMeResp = ApiResp<{

@@ -71,6 +71,7 @@ export { default as host_status } from './hostStatus';
 export {
     list as apiKeys_list,
     create as apiKeys_create,
+    updateScopes as apiKeys_updateScopes,
     revoke as apiKeys_revoke,
 } from './apiKeys';
 export {

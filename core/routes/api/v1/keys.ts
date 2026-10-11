@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { sendData } from '@modules/ApiServer/envelope';
-import { apiKeyCreateSchema } from '@modules/ApiServer/ApiKeyStore';
+import { apiKeyCreateSchema, apiKeyScopesUpdateSchema } from '@modules/ApiServer/ApiKeyStore';
 import { API_SCOPES } from '@shared/apiScopes';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 
@@ -27,6 +27,18 @@ export async function create(ctx: ApiKeyCtx) {
     const input = apiKeyCreateSchema.parse(ctx.request.body);
     const result = await txCore.apiServer.createKey(ctx.admin, input);
     return sendData(ctx, result, 201);
+};
+
+
+/**
+ * PATCH /api/v1/keys/:id
+ * Body: { permissions[] } - replaces the key's scopes, the token stays the same
+ */
+export async function updateScopes(ctx: ApiKeyCtx) {
+    const { id } = idParamSchema.parse(ctx.params);
+    const { permissions } = apiKeyScopesUpdateSchema.parse(ctx.request.body);
+    const key = await txCore.apiServer.updateKeyScopes(ctx.admin, id, permissions);
+    return sendData(ctx, { key });
 };
 
 

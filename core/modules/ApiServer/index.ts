@@ -182,6 +182,38 @@ export default class ApiServer {
 
 
     /**
+     * Replaces a key's scopes on behalf of an admin, with the action log.
+     * The admin must be able to grant every scope added or removed, so nobody can strip or hand out a
+     * scope they could not have granted themselves.
+     */
+    public async updateKeyScopes(admin: AuthedAdminType, id: string, permissions: string[]) {
+        const existing = this.keyStore.get(id);
+        if (!existing) {
+            throw new ApiError(404, 'NOT_FOUND', 'API key not found.');
+        }
+        if (existing.revokedAt) {
+            throw new ApiError(409, 'CONFLICT', 'Revoked keys cannot be edited.');
+        }
+        const changed = [
+            ...permissions.filter((p) => !existing.permissions.includes(p)),
+            ...existing.permissions.filter((p) => !permissions.includes(p)),
+        ];
+        this.assertCanGrant(admin, { name: existing.name, permissions: changed });
+
+        let key;
+        try {
+            key = await this.keyStore.updatePermissions(id, permissions);
+        } catch (error) {
+            if (error instanceof ApiKeyStoreError) throw new ApiError(409, 'CONFLICT', error.message);
+            throw error;
+        }
+        if (!key) throw new ApiError(404, 'NOT_FOUND', 'API key not found.');
+        admin.logAction(`Changed API key '${existing.name}' (${existing.id}) scopes to: ${key.permissions.join(', ') || 'read-only'}`);
+        return key;
+    }
+
+
+    /**
      * Revokes a key on behalf of an admin, with the action log.
      */
     public async revokeKey(admin: AuthedAdminType, id: string) {

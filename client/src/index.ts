@@ -24,6 +24,7 @@ import type {
     ApiKeyCreateResp,
     ApiKeyListResp,
     ApiKeyRevokeResp,
+    ApiKeyUpdateScopesResp,
     ApiKickAllReq,
     ApiKickPlayerReq,
     ApiMeResp,
@@ -227,6 +228,7 @@ export class TxAdminClient {
     keys = {
         list: () => this.get<ApiKeyListResp>('/keys'),
         create: (input: ApiKeyCreateReq) => this.post<ApiKeyCreateResp>('/keys', input),
+        updateScopes: (id: string, permissions: string[]) => this.patch<ApiKeyUpdateScopesResp>(`/keys/${encodeURIComponent(id)}`, { permissions }),
         revoke: (id: string) => this.delete<ApiKeyRevokeResp>(`/keys/${encodeURIComponent(id)}`),
     };
 

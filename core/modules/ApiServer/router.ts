@@ -23,6 +23,7 @@ export default () => {
     //Key management (needs manage.admins)
     router.get('/keys', apiKeyAuthMw('manage.admins'), v1.keys_list as any);
     router.post('/keys', apiKeyAuthMw('manage.admins'), v1.keys_create as any);
+    router.patch('/keys/:id', apiKeyAuthMw('manage.admins'), v1.keys_updateScopes as any);
     router.delete('/keys/:id', apiKeyAuthMw('manage.admins'), v1.keys_revoke as any);
 
     //Read endpoints (any valid key, including read-only keys with no scopes)

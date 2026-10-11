@@ -28,7 +28,7 @@ Each key has:
   creator does not hold;
 - an optional **expiry** and an optional **IP allowlist** (plain IPs or CIDRs).
 
-Revoking a key takes effect immediately. Revoked keys stay listed for audit.
+Changing a key's scopes or revoking it takes effect immediately. Revoked keys stay listed for audit.
 
 ### Scopes
 
@@ -127,6 +127,7 @@ commands and resource commands). The existing per-IP limiter still applies on to
 | `GET /api/v1/me` | any valid key | The calling key's record, txAdmin version, server time |
 | `GET /api/v1/keys` | `manage.admins` | All keys (no hashes) and the scope catalogue |
 | `POST /api/v1/keys` | `manage.admins` | Creates a key. Body: `{ name, permissions[] (scope ids, empty = read-only), expiresAt?, allowedIps? }`. Returns `{ key, token }` with status 201 |
+| `PATCH /api/v1/keys/{id}` | `manage.admins` | Replaces a key's scopes; the token stays the same. Body: `{ permissions[] }`. The caller must hold the admin permission behind every scope it adds or removes. Revoked keys return 409 |
 | `DELETE /api/v1/keys/{id}` | `manage.admins` | Revokes a key |
 
 ## Endpoints (phase 2, reads)

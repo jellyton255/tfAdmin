@@ -55,13 +55,17 @@ export const apiKeyCreateSchema = z.object({
 });
 export type ApiKeyCreateInput = z.infer<typeof apiKeyCreateSchema>;
 
+export const apiKeyScopesUpdateSchema = z.object({
+    permissions: z.array(z.string().min(1)), //scope ids, empty = read-only
+});
+
 
 /**
  * Typed error for expected store failures, so callers can map them to HTTP statuses.
  */
 export class ApiKeyStoreError extends Error {
     constructor(
-        public readonly code: 'duplicate_name' | 'invalid_expiry',
+        public readonly code: 'duplicate_name' | 'invalid_expiry' | 'revoked',
         message: string,
     ) {
         super(message);
@@ -250,6 +254,25 @@ export default class ApiKeyStore {
             key: toPublicRecord(record),
             token: formatToken(record.id, secret),
         };
+    }
+
+
+    /**
+     * Replaces the scopes of an active key; the token stays the same. The caller is responsible for
+     * checking that the scopes are known and that the editor may grant them.
+     */
+    async updatePermissions(id: string, permissions: string[]): Promise<ApiKeyPublicRecord | null> {
+        let next = [...new Set(permissions)];
+        if (next.includes(API_SCOPE_ALL)) next = [API_SCOPE_ALL];
+
+        let updated: StoredApiKey | null = null;
+        await this.transact((current) => current.map((k) => {
+            if (k.id !== id) return k;
+            if (k.revokedAt) throw new ApiKeyStoreError('revoked', 'Revoked keys cannot be edited.');
+            updated = { ...k, permissions: next };
+            return updated;
+        }));
+        return updated ? toPublicRecord(updated) : null;
     }
 
 

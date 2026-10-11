@@ -4,9 +4,9 @@ import { ZodError } from 'zod';
 import consoleFactory from '@lib/console';
 import type { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { ApiError } from '@modules/ApiServer/envelope';
-import { apiKeyCreateSchema } from '@modules/ApiServer/ApiKeyStore';
+import { apiKeyCreateSchema, apiKeyScopesUpdateSchema } from '@modules/ApiServer/ApiKeyStore';
 import { API_SCOPES } from '@shared/apiScopes';
-import type { ApiKeyCreateResp, ApiKeyListResp, ApiKeyRevokeResp } from '@shared/apiV1Types';
+import type { ApiKeyCreateResp, ApiKeyListResp, ApiKeyRevokeResp, ApiKeyUpdateScopesResp } from '@shared/apiV1Types';
 const console = consoleFactory(modulename);
 
 /**
@@ -14,6 +14,7 @@ const console = consoleFactory(modulename);
  * They return the same envelope as /api/v1/keys so the panel can share types with API clients.
  */
 const revokeBodySchema = z.object({ id: z.string().min(8).max(32) });
+const updateScopesBodySchema = apiKeyScopesUpdateSchema.extend({ id: z.string().min(8).max(32) });
 
 export const sendApiError = (ctx: AuthedCtx, error: unknown) => {
     if (error instanceof ApiError) {
@@ -65,6 +66,19 @@ export async function revoke(ctx: AuthedCtx) {
         const { id } = revokeBodySchema.parse(ctx.request.body);
         const key = await txCore.apiServer.revokeKey(ctx.admin, id);
         return ctx.send<ApiKeyRevokeResp>({ data: { key } });
+    } catch (error) {
+        return sendApiError(ctx, error);
+    }
+};
+
+export async function updateScopes(ctx: AuthedCtx) {
+    if (!ctx.admin.testPermission('manage.admins', modulename)) {
+        return ctx.send<ApiKeyUpdateScopesResp>({ error: { code: 'FORBIDDEN', message: 'You don\'t have permission to manage API keys.' } });
+    }
+    try {
+        const { id, permissions } = updateScopesBodySchema.parse(ctx.request.body);
+        const key = await txCore.apiServer.updateKeyScopes(ctx.admin, id, permissions);
+        return ctx.send<ApiKeyUpdateScopesResp>({ data: { key } });
     } catch (error) {
         return sendApiError(ctx, error);
     }
