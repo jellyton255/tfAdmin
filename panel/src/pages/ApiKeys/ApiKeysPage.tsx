@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { KeyRoundIcon, Loader2Icon, PlusIcon, Trash2Icon } from "lucide-react";
+import { KeyRoundIcon, Loader2Icon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import type { ApiKeyListResp, ApiKeyPublicRecord, ApiKeyRevokeResp } from "@shared/apiV1Types";
 import type { ApiScopeInfo } from "@shared/apiScopes";
 import ApiKeyCreateDialog from "./ApiKeyCreateDialog";
+import ApiKeyScopesDialog from "./ApiKeyScopesDialog";
 import ApiKeyTokenDialog from "./ApiKeyTokenDialog";
 import WebhooksSection from "./WebhooksSection";
 
@@ -32,8 +33,9 @@ const statusBadgeClass: Record<KeyStatus, string> = {
 };
 
 
-function ApiKeyRow({ apiKey, onRevoke, canManage, scopes }: {
+function ApiKeyRow({ apiKey, onEditScopes, onRevoke, canManage, scopes }: {
     apiKey: ApiKeyPublicRecord;
+    onEditScopes: (key: ApiKeyPublicRecord) => void;
     onRevoke: (key: ApiKeyPublicRecord) => void;
     canManage: boolean;
     scopes: ApiScopeInfo[];
@@ -73,7 +75,18 @@ function ApiKeyRow({ apiKey, onRevoke, canManage, scopes }: {
                     <div title={apiKey.allowedIps.join(', ')}>{apiKey.allowedIps.length} IP rule(s)</div>
                 ) : null}
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right whitespace-nowrap">
+                {status !== 'revoked' && (
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={!canManage}
+                        onClick={() => onEditScopes(apiKey)}
+                        title="Edit Scopes"
+                    >
+                        <PencilIcon className="size-4" />
+                    </Button>
+                )}
                 {status !== 'revoked' && (
                     <Button
                         size="sm"
@@ -98,6 +111,7 @@ export default function ApiKeysPage() {
     const openConfirmDialog = useOpenConfirmDialog();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [newToken, setNewToken] = useState<{ name: string; token: string } | null>(null);
+    const [editingKey, setEditingKey] = useState<ApiKeyPublicRecord | null>(null);
 
     const listApi = useBackendApi<ApiKeyListResp>({
         method: 'GET',
@@ -146,6 +160,12 @@ export default function ApiKeysPage() {
                 }
             },
         });
+    };
+
+    const handleScopesSaved = () => {
+        setEditingKey(null);
+        txToast.success('API key scopes updated.');
+        swr.mutate();
     };
 
     const handleCreated = (name: string, token: string) => {
@@ -197,7 +217,7 @@ export default function ApiKeysPage() {
                         </TableHeader>
                         <TableBody>
                             {sortedKeys.map((key) => (
-                                <ApiKeyRow key={key.id} apiKey={key} onRevoke={handleRevoke} canManage={canManage} scopes={swr.data.scopes} />
+                                <ApiKeyRow key={key.id} apiKey={key} onEditScopes={setEditingKey} onRevoke={handleRevoke} canManage={canManage} scopes={swr.data.scopes} />
                             ))}
                         </TableBody>
                     </Table>
@@ -210,6 +230,15 @@ export default function ApiKeysPage() {
                     onClose={() => setIsCreateOpen(false)}
                     onCreated={handleCreated}
                     scopes={swr.data.scopes}
+                />
+            )}
+            {swr.data && editingKey && (
+                <ApiKeyScopesDialog
+                    key={editingKey.id}
+                    apiKey={editingKey}
+                    scopes={swr.data.scopes}
+                    onClose={() => setEditingKey(null)}
+                    onSaved={handleScopesSaved}
                 />
             )}
             <ApiKeyTokenDialog
