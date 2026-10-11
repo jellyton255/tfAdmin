@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ServerSidebar } from "./ServerSidebar/ServerSidebar";
 import { useGlobalMenuSheet, usePlayerlistSheet, useServerSheet } from "@/hooks/sheets";
 import { MenuNavLink, NavLink } from "@/components/MainPageLink";
-import { ClipboardCheckIcon, DoorOpenIcon, ListIcon, PieChartIcon, ScrollIcon, SettingsIcon, UserSquare2Icon, UsersIcon, ZapIcon } from 'lucide-react';
+import { ClipboardCheckIcon, DoorOpenIcon, ListIcon, PieChartIcon, ScrollIcon, ScrollTextIcon, SettingsIcon, UserSquare2Icon, UsersIcon, ZapIcon } from 'lucide-react';
 import { PlayerlistSidebar } from "./PlayerlistSidebar/PlayerlistSidebar";
 import { useAdminPerms } from "@/hooks/auth";
 import { LogoFullSquareGreen } from "@/components/Logos";
@@ -73,6 +73,9 @@ export function GlobalMenuSheet() {
                             </MenuNavLink>
                             <MenuNavLink href="/system/api-keys" disabled={!hasPerm('manage.admins')}>
                                 API Keys
+                            </MenuNavLink>
+                            <MenuNavLink href="/system/release-notes">
+                                <ScrollTextIcon className="mr-2 h-4 w-4" />Release Notes
                             </MenuNavLink>
                         </div>
                     </div>

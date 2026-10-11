@@ -160,6 +160,12 @@ export default function DesktopNavbar() {
                             >
                                 API Keys
                             </HeaderMenuLink>
+                            <HeaderMenuLink
+                                className="w-36 justify-start"
+                                href="/system/release-notes"
+                            >
+                                Release Notes
+                            </HeaderMenuLink>
                         </NavigationMenuContent>
                     </NavigationMenuItem>
                 </NavigationMenuList>

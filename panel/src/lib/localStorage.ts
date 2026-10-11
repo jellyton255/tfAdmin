@@ -35,6 +35,7 @@ export enum LocalStorageKey {
     UpdateWarningPostponedTs = 'txa:updateWarning:postponedTs',
     PlayersPageSearchType = 'txa:playersPage:searchType',
     AuthCredsAutofill = 'txa:authCreds:autofill',
+    ReleaseNotesSeenCommit = 'tfa:releaseNotes:seenCommit',
 
     // atomWithStorage
     LiveConsoleBookmarks = 'txa:liveConsole:bookmarks',

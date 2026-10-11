@@ -28,6 +28,7 @@ import AdminsPage from "@/pages/Admins/AdminsPage";
 import MasterActionsPage from "@/pages/MasterActions/MasterActionsPage";
 import ResourcesPage from "@/pages/Resources/ResourcesPage";
 import ServerLogPage from "@/pages/ServerLog/ServerLogPage";
+import ReleaseNotesPage from "@/pages/ReleaseNotes/ReleaseNotesPage";
 
 
 type RouteType = {
@@ -100,6 +101,11 @@ const allRoutes: RouteType[] = [
         title: 'API Keys',
         permission: 'manage.admins',
         Page: <ApiKeysPage />
+    },
+    {
+        path: '/system/release-notes',
+        title: 'Release Notes',
+        Page: <ReleaseNotesPage />
     },
 
     //Server Routes
