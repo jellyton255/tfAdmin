@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react-swc';
 // import tsconfigPaths from 'vite-tsconfig-paths';
 import { licenseBanner } from '../scripts/build/utils';
 import { parseTxDevEnv } from '../shared/txDevEnv';
+import { releaseNotesPlugin } from './releaseNotes';
 process.loadEnvFile('../.env');
 
 //Check if TXDEV_VITE_URL is set
@@ -44,6 +45,7 @@ const baseConfig = {
     clearScreen: false,
     plugins: [
         react(),
+        releaseNotesPlugin(path.resolve(__dirname, '..')),
         visualizer({
             // template: 'flamegraph',
             // template: 'sunburst',

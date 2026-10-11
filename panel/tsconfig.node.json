@@ -8,6 +8,8 @@
   },
   "include": [
     "vite.config.ts",
+    "releaseNotes.ts",
+    "../shared/releaseNotesTypes.ts",
     "../scripts/build/config.ts",
     "../scripts/build/utils.ts",
     "../shared/txDevEnv.ts",
