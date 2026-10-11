@@ -280,6 +280,28 @@ function verify(secret, header, rawBody) {
 
 Or use `parseWebhookRequest()` from the client package below.
 
+## MCP for agents
+
+`POST /api/v1/mcp` is a Model Context Protocol endpoint, so AI agents can use the API as tools. It is
+stateless Streamable HTTP with JSON responses; `GET` returns 405 because there is no event stream.
+Authenticate with the same `Authorization: Bearer txk_…` key, and optionally `X-TxAdmin-Actor-Id`.
+
+- Each tool calls one `/api/v1` route on the same server with the caller's key and actor header. The
+  route keeps its own scope check, validation, rate limit and action log, so a key can do nothing
+  over MCP that it could not do directly.
+- `tools/list` shows only the tools the key's scopes allow. Read tools need any valid key.
+- Tools are named after their route, such as `tfadmin_players_search`, `tfadmin_whitelist_approve`
+  and `tfadmin_resources_command`. Reads carry `readOnlyHint`; bans, kicks, warnings, revokes,
+  whitelist removals and server or resource control carry `destructiveHint`.
+- Key management, webhook writes and `import-ban` have no tools.
+- Each MCP request uses one request from the key's rate limit, and a tool call uses a second one for
+  its route.
+- The server's `instructions` name the server, the key, and the name that writes are logged under.
+
+Client setup: register an `http` MCP server with this URL. Keep the token in a root-only file and
+send it through the client's header helper (Claude Code `headersHelper`) instead of writing it into
+the client config.
+
 ## OpenAPI and client
 
 - `GET /api/v1/docs` is a Swagger UI page over the document below, handy for trying calls with a key.
