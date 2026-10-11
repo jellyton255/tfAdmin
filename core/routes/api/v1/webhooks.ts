@@ -5,7 +5,7 @@ import { webhookCreateSchema, webhookUpdateSchema } from '@modules/ApiServer/Web
 import { ApiError } from '@modules/ApiServer/envelope';
 import { API_EVENT_TYPES } from '@shared/apiV1Types';
 
-const idParamSchema = z.object({ id: z.string().min(8).max(32) });
+export const idParamSchema = z.object({ id: z.string().min(8).max(32) });
 
 /** GET /api/v1/webhooks  (manage.admins) */
 export async function list(ctx: ApiKeyCtx) {

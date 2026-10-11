@@ -6,7 +6,7 @@ import { decodeCursor, limitSchema, paginate, secToMs } from '@modules/ApiServer
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { ApiWhitelistApproval, ApiWhitelistRequest } from '@shared/apiV1Types';
 
-const listQuerySchema = z.object({
+export const listQuerySchema = z.object({
     q: z.string().trim().min(1).max(256).optional(),
     order: z.enum(['asc', 'desc']).default('desc'),
     limit: limitSchema,

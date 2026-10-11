@@ -6,10 +6,10 @@ import type { DatabaseWhitelistApprovalsType } from '@modules/Database/databaseT
 import * as svc from '@modules/ApiServer/services/whitelistWrites';
 import type { ApiWhitelistApproval } from '@shared/apiV1Types';
 
-const identifierBodySchema = z.object({ identifier: z.string().trim().min(3).max(128) });
+export const identifierBodySchema = z.object({ identifier: z.string().trim().min(3).max(128) });
 const identifierParamSchema = z.object({ identifier: z.string().trim().min(3).max(128) });
-const reqIdParamSchema = z.object({ id: z.string().trim().min(1).max(16) });
-const denyAllBodySchema = z.object({ before: z.number().int().positive().optional() }).default({});
+export const reqIdParamSchema = z.object({ id: z.string().trim().min(1).max(16) });
+export const denyAllBodySchema = z.object({ before: z.number().int().positive().optional() });
 
 const toApiApproval = (a: DatabaseWhitelistApprovalsType): ApiWhitelistApproval => ({
     identifier: a.identifier,

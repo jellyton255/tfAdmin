@@ -3,11 +3,11 @@ import { sendData } from '@modules/ApiServer/envelope';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import * as svc from '@modules/ApiServer/services/serverControl';
 
-const controlParamSchema = z.object({ action: z.enum(['start', 'stop', 'restart']) });
-const announceBodySchema = z.object({ message: z.string().trim().min(1).max(1024) });
-const kickAllBodySchema = z.object({ reason: z.string().trim().max(2048).optional() }).default({});
-const commandBodySchema = z.object({ command: z.string().trim().min(1).max(4096) });
-const resourceParamSchema = z.object({
+export const controlParamSchema = z.object({ action: z.enum(['start', 'stop', 'restart']) });
+export const announceBodySchema = z.object({ message: z.string().trim().min(1).max(1024) });
+export const kickAllBodySchema = z.object({ reason: z.string().trim().max(2048).optional() });
+export const commandBodySchema = z.object({ command: z.string().trim().min(1).max(4096) });
+export const resourceParamSchema = z.object({
     name: z.string().trim().min(1).max(128),
     command: z.enum(['start', 'stop', 'restart', 'ensure']),
 });

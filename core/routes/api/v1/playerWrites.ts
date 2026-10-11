@@ -5,12 +5,12 @@ import * as svc from '@modules/ApiServer/services/playerActions';
 
 const licenseParamSchema = z.object({ license: z.string().regex(/^[0-9a-f]{40}$/i, 'license must be 40 hex characters') });
 const reasonSchema = z.string().trim().max(2048);
-const banBodySchema = z.object({ reason: reasonSchema.min(1), duration: z.string().trim().min(1).max(32) });
-const warnBodySchema = z.object({ reason: reasonSchema.min(1) });
-const kickBodySchema = z.object({ reason: reasonSchema.optional() }).default({});
-const messageBodySchema = z.object({ message: z.string().trim().min(1).max(1024) });
-const whitelistBodySchema = z.object({ whitelisted: z.boolean() });
-const noteBodySchema = z.object({ note: z.string().max(4096) });
+export const banBodySchema = z.object({ reason: reasonSchema.min(1), duration: z.string().trim().min(1).max(32) });
+export const warnBodySchema = z.object({ reason: reasonSchema.min(1) });
+export const kickBodySchema = z.object({ reason: reasonSchema.optional() });
+export const messageBodySchema = z.object({ message: z.string().trim().min(1).max(1024) });
+export const whitelistBodySchema = z.object({ whitelisted: z.boolean() });
+export const noteBodySchema = z.object({ note: z.string().max(4096) });
 
 const target = (ctx: ApiKeyCtx) => svc.resolvePlayer(licenseParamSchema.parse(ctx.params).license);
 

@@ -3,8 +3,8 @@ import { sendData } from '@modules/ApiServer/envelope';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import { banIdentifiers, importBan as importBanService, revokeAction } from '@modules/ApiServer/services/actionWrites';
 
-const idParamSchema = z.object({ id: z.string().trim().min(1).max(32) });
-const banIdsBodySchema = z.object({
+export const idParamSchema = z.object({ id: z.string().trim().min(1).max(32) });
+export const banIdsBodySchema = z.object({
     identifiers: z.array(z.string().trim().min(4)).min(1).max(64),
     reason: z.string().trim().min(3).max(2048),
     duration: z.string().trim().min(1).max(32),

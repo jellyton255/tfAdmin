@@ -13,11 +13,11 @@ import type { ApiPlayerDetail, ApiPlayerSummary } from '@shared/apiV1Types';
 import { toApiAction } from './actions';
 
 const licenseSchema = z.string().regex(/^[0-9a-f]{40}$/i, 'license must be 40 hex characters');
-const licenseParamSchema = z.object({ license: licenseSchema });
+export const licenseParamSchema = z.object({ license: licenseSchema });
 
 const SORT_KEYS = ['playTime', 'tsJoined', 'tsLastConnection'] as const;
 const FILTERS = ['isAdmin', 'isOnline', 'isWhitelisted', 'hasNote'] as const;
-const searchQuerySchema = z.object({
+export const searchQuerySchema = z.object({
     q: z.string().trim().min(1).max(256).optional(),
     type: z.enum(['name', 'ids', 'notes']).default('name'),
     filter: z.string().max(128).optional(),

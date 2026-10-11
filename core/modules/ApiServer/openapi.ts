@@ -262,6 +262,21 @@ const paths: Record<string, Schema> = {
             response: obj({ key: ref('ApiKey'), txAdminVersion: str(), serverTime: epochMs() }),
         }),
     },
+    '/mcp': {
+        post: {
+            summary: 'MCP endpoint for agents',
+            description: 'Model Context Protocol over stateless Streamable HTTP (JSON-RPC in, JSON out; send `Accept: application/json, text/event-stream`). Each tool replays one route of this API with the same key, so it needs that route\'s scope; `tools/list` only shows the tools the key can use. Any valid key.',
+            tags: ['Meta'],
+            parameters: [{ $ref: '#/components/parameters/ActorId' }],
+            requestBody: jsonBody({ type: 'object', description: 'JSON-RPC 2.0 message' }),
+            responses: {
+                '200': jsonResp('JSON-RPC response', { type: 'object' }),
+                '202': { description: 'Notification accepted' },
+                '401': errRef('Unauthorized'),
+                '429': errRef('RateLimited'),
+            },
+        },
+    },
     '/keys': {
         get: op({
             tag: 'Keys', summary: 'List API keys', permission: 'manage.admins',

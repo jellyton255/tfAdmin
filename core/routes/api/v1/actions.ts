@@ -9,8 +9,8 @@ import { decodeCursor, limitSchema, paginate, secToMs } from '@modules/ApiServer
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { ApiActionRecord } from '@shared/apiV1Types';
 
-const idParamSchema = z.object({ id: z.string().trim().min(1).max(32) });
-const searchQuerySchema = z.object({
+export const idParamSchema = z.object({ id: z.string().trim().min(1).max(32) });
+export const searchQuerySchema = z.object({
     q: z.string().trim().min(1).max(256).optional(),
     type: z.enum(['id', 'reason', 'name', 'ids']).default('ids'),
     kind: z.enum(['ban', 'warn']).optional(),

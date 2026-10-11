@@ -158,6 +158,52 @@
         }
       }
     },
+    "/mcp": {
+      "post": {
+        "summary": "MCP endpoint for agents",
+        "description": "Model Context Protocol over stateless Streamable HTTP (JSON-RPC in, JSON out; send `Accept: application/json, text/event-stream`). Each tool replays one route of this API with the same key, so it needs that route's scope; `tools/list` only shows the tools the key can use. Any valid key.",
+        "tags": [
+          "Meta"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "JSON-RPC 2.0 message"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Notification accepted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
     "/keys": {
       "get": {
         "summary": "List API keys",

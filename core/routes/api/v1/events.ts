@@ -3,7 +3,7 @@ import { sendData } from '@modules/ApiServer/envelope';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import { API_EVENTS_PAGE_MAX, API_EVENT_TYPES, type ApiEventType } from '@shared/apiV1Types';
 
-const querySchema = z.object({
+export const querySchema = z.object({
     since: z.string().regex(/^\d{1,20}$/, 'since must be an event id').optional(),
     types: z.string().trim().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(API_EVENTS_PAGE_MAX).default(100),
