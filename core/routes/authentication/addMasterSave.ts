@@ -1,6 +1,7 @@
 const modulename = 'WebServer:AuthAddMasterSave';
 import { AuthedAdmin, CfxreSessAuthType } from '@modules/WebServer/authLogic';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
+import { SESSION_MAX_AGE_MS } from '@modules/WebServer/middlewares/sessionMws';
 import consoleFactory from '@lib/console';
 import { getIdFromOauthNameid } from '@lib/player/idUtils';
 import { ApiAddMasterSaveResp } from '@shared/authApiTypes';
@@ -78,7 +79,7 @@ export default async function AuthAddMasterSave(ctx: InitializedCtx) {
             type: 'cfxre',
             username: userInfo.name,
             csrfToken: txCore.adminStore.genCsrfToken(),
-            expiresAt: Date.now() + 86_400_000, //24h,
+            expiresAt: Date.now() + SESSION_MAX_AGE_MS,
             identifier: fivemIdentifier,
         } satisfies CfxreSessAuthType;
         ctx.sessTools.set({ auth: sessData });

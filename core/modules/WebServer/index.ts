@@ -124,7 +124,7 @@ export default class WebServer {
         }));
 
         //Custom stuff
-        this.sessionStore = new SessionMemoryStorage();
+        this.sessionStore = new SessionMemoryStorage(undefined, txHostConfig.dataSubPath('panelSessions.json'));
         this.app.use(cacheControlMw);
         this.app.use(koaSessMw(this.sessionCookieName, this.sessionStore));
         this.app.use(ctxVarsMw);
@@ -260,6 +260,7 @@ export default class WebServer {
      * handler for the shutdown event
      */
     public handleShutdown() {
+        this.sessionStore.flush();
         return this.webSocket.handleShutdown();
     }
 

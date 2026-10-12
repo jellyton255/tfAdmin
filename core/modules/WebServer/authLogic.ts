@@ -132,7 +132,7 @@ const validCfxreSessAuthSchema = z.object({
 });
 export type CfxreSessAuthType = z.infer<typeof validCfxreSessAuthSchema>;
 
-const validSessAuthSchema = z.discriminatedUnion('type', [
+export const validSessAuthSchema = z.discriminatedUnion('type', [
     validPassSessAuthSchema,
     validCfxreSessAuthSchema
 ]);

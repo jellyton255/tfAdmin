@@ -1,13 +1,17 @@
 import { UserInfoType } from "@modules/AdminStore/providers/CitizenFX";
-import type { CfxreSessAuthType, PassSessAuthType } from "../authLogic";
+import { validSessAuthSchema, type CfxreSessAuthType, type PassSessAuthType } from "../authLogic";
 import { LRUCacheWithDelete } from "mnemonist";
 import { RawKoaCtx } from "../ctxTypes";
 import { Next } from "koa";
-import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import { createHash, randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import consoleFactory from '@lib/console';
 import { Socket } from "socket.io";
 import { parse as cookieParse } from 'cookie';
 import { SetOption as KoaCookieSetOption } from "cookies";
 import type { DeepReadonly } from 'utility-types';
+const console = consoleFactory('WebServer:Sessions');
 
 //Types
 export type ValidSessionType = {
@@ -27,16 +31,39 @@ type StoredSessionType = {
 }
 
 /**
- * Storage for the sessions
+ * How long an admin stays signed in without using the panel.
+ * Every authenticated request slides the expiry forward.
+ */
+export const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const PERSIST_DEBOUNCE_MS = 30_000;
+
+const storedSessionSchema = z.object({
+    expires: z.number(),
+    data: z.object({ auth: validSessAuthSchema }),
+});
+const sessionsFileSchema = z.object({
+    version: z.literal(1),
+    sessions: z.record(z.string(), storedSessionSchema),
+});
+
+/**
+ * Hashes the cookie value so the session file never holds usable session ids.
+ */
+const hashSessId = (sessId: string) => createHash('sha256').update(sessId).digest('hex');
+
+/**
+ * Storage for the sessions.
+ * Signed-in sessions are mirrored to a file so a tfAdmin restart doesn't sign every admin out.
  */
 export class SessionMemoryStorage {
     private readonly sessions = new LRUCacheWithDelete<string, StoredSessionType>(5000);
-    public readonly maxAgeMs = 24 * 60 * 60 * 1000;
+    private persistTimer: NodeJS.Timeout | null = null;
 
-    constructor(maxAgeMs?: number) {
-        if (maxAgeMs) {
-            this.maxAgeMs = maxAgeMs;
-        }
+    constructor(
+        public readonly maxAgeMs = SESSION_MAX_AGE_MS,
+        private readonly filePath?: string,
+    ) {
+        this.load();
 
         //Cleanup every 5 mins
         setInterval(() => {
@@ -46,41 +73,121 @@ export class SessionMemoryStorage {
                     this.sessions.delete(key);
                 }
             }
-        }, 5 * 60_000);
+        }, 5 * 60_000).unref();
     }
 
     get(key: string) {
-        const stored = this.sessions.get(key);
+        const hash = hashSessId(key);
+        const stored = this.sessions.get(hash);
         if (!stored) return;
         if (stored.expires < Date.now()) {
-            this.sessions.delete(key);
+            this.sessions.delete(hash);
             return;
         }
         return stored.data as DeepReadonly<ValidSessionType>;
     }
 
     set(key: string, sess: ValidSessionType) {
-        this.sessions.set(key, {
+        this.sessions.set(hashSessId(key), {
             expires: Date.now() + this.maxAgeMs,
             data: sess,
         });
+        this.persistSoon(0);
     }
 
     refresh(key: string) {
-        const stored = this.sessions.get(key);
+        const hash = hashSessId(key);
+        const stored = this.sessions.get(hash);
         if (!stored) return;
-        this.sessions.set(key, {
+        this.sessions.set(hash, {
             expires: Date.now() + this.maxAgeMs,
             data: stored.data,
         });
+        this.persistSoon(PERSIST_DEBOUNCE_MS);
     }
 
     destroy(key: string) {
-        return this.sessions.delete(key);
+        const deleted = this.sessions.delete(hashSessId(key));
+        this.persistSoon(0);
+        return deleted;
     }
 
     get size() {
         return this.sessions.size;
+    }
+
+    /**
+     * Writes pending changes synchronously, for shutdown.
+     */
+    flush() {
+        if (!this.persistTimer) return;
+        clearTimeout(this.persistTimer);
+        this.persistTimer = null;
+        this.persist();
+    }
+
+    /**
+     * Loads the signed-in sessions saved by the previous run, dropping expired ones.
+     * A missing or unreadable file only means everyone signs in again.
+     */
+    private load() {
+        if (!this.filePath) return;
+        let raw: string;
+        try {
+            raw = fs.readFileSync(this.filePath, 'utf8');
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+                console.warn(`Failed to read the sessions file: ${(error as Error).message}`);
+            }
+            return;
+        }
+        let parsed: z.infer<typeof sessionsFileSchema>;
+        try {
+            parsed = sessionsFileSchema.parse(JSON.parse(raw));
+        } catch (error) {
+            console.warn(`Ignoring an invalid sessions file: ${(error as Error).message}`);
+            return;
+        }
+        const now = Date.now();
+        for (const [hash, stored] of Object.entries(parsed.sessions)) {
+            if (stored.expires < now) continue;
+            this.sessions.set(hash, stored);
+        }
+        console.verbose.ok(`Restored ${this.sessions.size} admin session(s).`);
+    }
+
+    private persistSoon(delayMs: number) {
+        if (!this.filePath) return;
+        if (this.persistTimer) {
+            if (delayMs > 0) return;
+            clearTimeout(this.persistTimer);
+        }
+        this.persistTimer = setTimeout(() => {
+            this.persistTimer = null;
+            this.persist();
+        }, delayMs);
+    }
+
+    /**
+     * Atomically writes the signed-in sessions (temp file + rename).
+     * Sessions without auth only hold short-lived OAuth state, so they aren't kept.
+     */
+    private persist() {
+        if (!this.filePath) return;
+        const now = Date.now();
+        const sessions: Record<string, StoredSessionType> = {};
+        for (const [hash, stored] of this.sessions) {
+            if (!stored.data.auth || stored.expires < now) continue;
+            sessions[hash] = stored;
+        }
+        const tmpPath = `${this.filePath}.${process.pid}.tmp`;
+        try {
+            fs.writeFileSync(tmpPath, JSON.stringify({ version: 1, sessions }), { encoding: 'utf8', mode: 0o600 });
+            fs.renameSync(tmpPath, this.filePath);
+        } catch (error) {
+            fs.rmSync(tmpPath, { force: true });
+            console.warn(`Failed to save the sessions file: ${(error as Error).message}`);
+        }
     }
 }
 
@@ -111,7 +218,7 @@ export const koaSessMw = (cookieName: string, store: SessionMemoryStorage) => {
     } as KoaCookieSetOption;
 
     //Middleware
-    return (ctx: RawKoaCtx, next: Next) => {
+    return async (ctx: RawKoaCtx, next: Next) => {
         const sessGet = () => {
             const sessId = ctx.cookies.get(cookieName);
             if (!sessId || !isValidSessId(sessId)) return;
@@ -146,9 +253,7 @@ export const koaSessMw = (cookieName: string, store: SessionMemoryStorage) => {
         } satisfies SessToolsType;
 
         try {
-            return next();
-        } catch (error) {
-            throw error;
+            return await next();
         } finally {
             if (typeof ctx._refreshSessionCookieId === 'string') {
                 ctx.cookies.set(cookieName, ctx._refreshSessionCookieId, cookieOptions);

@@ -1,6 +1,7 @@
 const modulename = 'WebServer:AuthProviderCallback';
 import consoleFactory from '@lib/console';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
+import { SESSION_MAX_AGE_MS } from '@modules/WebServer/middlewares/sessionMws';
 import { AuthedAdmin, CfxreSessAuthType } from '@modules/WebServer/authLogic';
 import { z } from 'zod';
 import { ApiOauthCallbackErrorResp, ApiOauthCallbackResp, ReactAuthDataType } from '@shared/authApiTypes';
@@ -63,7 +64,7 @@ export default async function AuthProviderCallback(ctx: InitializedCtx) {
             type: 'cfxre',
             username: vaultAdmin.name,
             csrfToken: txCore.adminStore.genCsrfToken(),
-            expiresAt: Date.now() + 86_400_000, //24h,
+            expiresAt: Date.now() + SESSION_MAX_AGE_MS,
             identifier: fivemIdentifier,
         } satisfies CfxreSessAuthType;
         ctx.sessTools.set({ auth: sessData });
