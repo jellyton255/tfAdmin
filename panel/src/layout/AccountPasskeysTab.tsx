@@ -23,10 +23,31 @@ import type {
     ApiPasskeyRemoveReq,
     ApiPasskeyRenameReq,
     PasskeyInfo,
+    PasskeyProvider,
 } from "@shared/authApiTypes";
 import type { GenericApiOkResp } from "@shared/genericApiTypes";
 
 type PasskeyListData = Exclude<ApiPasskeyListResp, { error: string }>;
+
+
+/**
+ * The passkey manager's logo, with a light and a dark variant that follow the panel theme.
+ */
+function ProviderLogo({ provider }: { provider: PasskeyProvider | null }) {
+    if (!provider?.iconLight || !provider.iconDark) {
+        return (
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                <KeyRoundIcon className="size-4 text-muted-foreground" />
+            </div>
+        );
+    }
+    return (
+        <>
+            <img src={provider.iconLight} alt={provider.name} title={provider.name} className="size-8 shrink-0 dark:hidden" />
+            <img src={provider.iconDark} alt={provider.name} title={provider.name} className="hidden size-8 shrink-0 dark:block" />
+        </>
+    );
+}
 
 
 function PasskeyRow({ passkey, isCurrent, onRename, onRemove }: {
@@ -54,7 +75,7 @@ function PasskeyRow({ passkey, isCurrent, onRename, onRemove }: {
 
     return (
         <li className="flex items-center gap-3 rounded-md border bg-secondary/20 px-3 py-2">
-            <KeyRoundIcon className="size-4 shrink-0 text-muted-foreground" />
+            <ProviderLogo provider={passkey.provider} />
             <div className="min-w-0 grow">
                 {draftName === null ? (
                     <div className="flex items-center gap-2">
@@ -92,11 +113,17 @@ function PasskeyRow({ passkey, isCurrent, onRename, onRemove }: {
                         </Button>
                     </form>
                 )}
-                <div className="truncate text-xs text-muted-foreground">
-                    {passkey.synced ? 'Synced' : 'This Device Only'}
-                    {' · '}Added {tsToLocaleDateString(passkey.createdAt, 'medium')}
-                    {' · '}{passkey.lastUsedAt ? `Last Used ${tsToLocaleDateString(passkey.lastUsedAt, 'medium')}` : 'Never Used'}
-                    {otherSite && <>{' · '}{passkey.rpId}</>}
+                <div className="flex flex-wrap gap-x-1 text-xs leading-snug text-muted-foreground">
+                    {[
+                        passkey.provider && passkey.provider.name !== passkey.name ? passkey.provider.name : null,
+                        passkey.synced ? 'Synced' : 'This Device Only',
+                        passkey.lastUsedAt
+                            ? `Last Used ${tsToLocaleDateString(passkey.lastUsedAt, 'medium')}`
+                            : `Added ${tsToLocaleDateString(passkey.createdAt, 'medium')}`,
+                        otherSite ? passkey.rpId : null,
+                    ].filter((part) => part !== null).map((part, index, parts) => (
+                        <span key={part} className="whitespace-nowrap">{part}{index < parts.length - 1 && ' ·'}</span>
+                    ))}
                 </div>
             </div>
             {draftName === null && (

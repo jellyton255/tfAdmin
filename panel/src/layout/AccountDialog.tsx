@@ -354,6 +354,7 @@ export default function AccountDialog() {
                     </DialogTitle>
                 </DialogHeader>
                 <Tabs
+                    className="min-w-0"
                     defaultValue="password"
                     value={accountModalTab}
                     onValueChange={setAccountModalTab}
