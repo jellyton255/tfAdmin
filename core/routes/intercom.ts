@@ -3,6 +3,7 @@ import { cloneDeep }  from 'lodash-es';
 import { txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
+import { handleGameModeration } from './intercomModeration';
 const console = consoleFactory(modulename);
 
 
@@ -35,6 +36,8 @@ export default async function Intercom(ctx: InitializedCtx) {
             return ctx.utils.error(400, 'Invalid Request');
         }
         txCore.fxResources.tmpUpdateResourceList(postData.resources);
+    } else if (scope == 'moderation') {
+        return ctx.send(handleGameModeration(postData)); // everfall: resource/sv_exports.lua
     } else {
         return ctx.send({
             type: 'danger',
