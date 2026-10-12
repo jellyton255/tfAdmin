@@ -2,6 +2,7 @@ import { useGlobalStatus } from '@/hooks/status';
 import { VariantProps, cva } from 'class-variance-authority';
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DiscordBotStatus, FxMonitorHealth } from '@shared/enums';
+import type { ServiceSignal, ServiceSignalState } from '@shared/socketioTypes';
 import { msToShortDuration } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 
@@ -31,20 +32,21 @@ type StatusBadgeProps = {
         description: string;
     };
     type?: StatusBadgeTypesVars;
+    className?: string;
     children: React.ReactNode;
 };
 
-function StatusBadge({ children, tooltip, type }: StatusBadgeProps) {
+function StatusBadge({ children, tooltip, type, className }: StatusBadgeProps) {
     //If no tooltip is provided, just show the text
     if (!tooltip) {
-        return <span className={statusBadgeVariants({ type })}>
+        return <span className={cn(statusBadgeVariants({ type }), className)}>
             {children}
         </span>
     }
 
     return <Tooltip>
         <TooltipTrigger asChild>
-            <span className={statusBadgeVariants({ type })}>
+            <span className={cn(statusBadgeVariants({ type }), className)}>
                 {children}
             </span>
         </TooltipTrigger>
@@ -87,6 +89,33 @@ const discordStatusMap = {
         description: 'Discord bot is in an error state.',
     },
 } as const;
+
+const serviceSignalColors: Record<ServiceSignalState, StatusBadgeTypesVars> = {
+    ok: 'success',
+    degraded: 'warning',
+    failing: 'destructive',
+    unknown: 'default',
+};
+
+const serviceRows = [
+    { key: 'database', label: 'Database' },
+    { key: 'logDelivery', label: 'Log Delivery' },
+    { key: 'playerSaves', label: 'Player Saves' },
+] as const;
+
+//everfall: database, log delivery and save health that the game console no longer prints
+function ServiceRow({ label, signal }: { label: string; signal?: ServiceSignal }) {
+    return (
+        <div className="flex justify-between items-start text-muted-foreground text-sm gap-3">
+            <span className="shrink-0">{label}:</span>
+            <StatusBadge
+                tooltip={signal?.reason}
+                type={signal ? serviceSignalColors[signal.state] : 'default'}
+                className="min-w-0 text-right text-balance tracking-normal normal-case font-medium"
+            >{signal?.text ?? '--'}</StatusBadge>
+        </div>
+    );
+}
 
 export default function ServerStatus() {
     const globalStatus = useGlobalStatus();
@@ -201,6 +230,12 @@ export default function ServerStatus() {
                     type={discordStatusColor}
                 >{discordStatusText}</StatusBadge>
             </div>
+            <h3 className="mt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
+                Services
+            </h3>
+            {serviceRows.map(({ key, label }) => (
+                <ServiceRow key={key} label={label} signal={globalStatus?.services[key]} />
+            ))}
         </div>
     )
 }
