@@ -45,6 +45,9 @@ export default function ReleaseNotesList({ notes }: { notes: ReleaseNote[] }) {
                                         {getScopeLabel(note.scope)}
                                     </span>
                                 )}
+                                <span className="w-12 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                                    r{note.build}
+                                </span>
                             </li>
                         ))}
                     </ul>

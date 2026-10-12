@@ -7,6 +7,7 @@ import { Card } from "../components/ui/card";
 import { LogoFullSquareGreen } from "@/components/Logos";
 import { useThemedImage } from "@/hooks/theme";
 import { AuthError } from "@/pages/auth/errors";
+import VersionLine from "@/components/VersionLine";
 
 function AuthContentWrapper({ children }: { children: React.ReactNode }) {
     return (
@@ -65,10 +66,8 @@ export default function AuthShell() {
                     </Switch>
                 </Card>
 
-                <div className="text-center text-muted-foreground text-sm font-light">
-                    tx: <strong>v{window.txConsts.txaVersion}</strong>
-                    &nbsp;|
-                    fx: <strong>b{window.txConsts.fxsVersion}</strong>
+                <div className="text-center text-sm font-light">
+                    <VersionLine />
                 </div>
             </div>
         </div>

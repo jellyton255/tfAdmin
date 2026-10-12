@@ -1,4 +1,5 @@
 import type { ReactAuthDataType } from "./authApiTypes";
+import type { TfadminBuild } from "./tfadminStatusTypes";
 
 //Config stuff
 export type { TxConfigs, PartialTxConfigs } from "@core/modules/ConfigStore/schema";
@@ -38,6 +39,7 @@ export type InjectedTxConsts = {
     fxsOutdated: UpdateDataType,
     txaVersion: string;
     txaOutdated: UpdateDataType,
+    tfaBuild: TfadminBuild | null;
 
     serverTimezone: string;
     isWindows: boolean;

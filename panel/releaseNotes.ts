@@ -1,11 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import type { Plugin } from 'vite';
 import type { ReleaseNote, ReleaseNoteType } from '../shared/releaseNotesTypes';
+import { FORK_BASE, countBuilds } from '../scripts/build/tfadminBuild';
 
-/**
- * Last upstream txAdmin commit before the tfAdmin fork.
- */
-const FORK_BASE = '8a9a41410000fd92a527fe11bae2b8eeeb8b10e0';
 const NOTE_TYPES: ReleaseNoteType[] = ['feat', 'fix', 'perf'];
 const PR_MERGE = /^(hidden: )?merge pull request #\d+/i;
 const CONVENTIONAL_SUBJECT = /^(\w+)(?:\(([^)]+)\))?!?:\s*(.+)$/;
@@ -55,24 +52,25 @@ function gitLog(repoDir: string, args: string[]): CommitRecord[] {
  * so commits brought in by upstream merges never become notes.
  */
 export function collectReleaseNotes(repoDir: string): ReleaseNote[] {
-    execFileSync('git', ['cat-file', '-e', `${FORK_BASE}^{commit}`], { cwd: repoDir, stdio: 'pipe' });
-
     const notes: ReleaseNote[] = [];
-    const addNote = (commit: CommitRecord, landedAt: string) => {
+    const addNote = (commit: CommitRecord, landedAt: string, build: number) => {
         const parsed = parseReleaseNoteSubject(commit.subject);
         if (!parsed) return;
-        notes.push({ commit: commit.hash.slice(0, 8), landedAt, ...parsed });
+        notes.push({ commit: commit.hash.slice(0, 8), build, landedAt, ...parsed });
     };
 
+    //First-parent commits come newest first, and each one is one build
+    let build = countBuilds(repoDir);
     for (const commit of gitLog(repoDir, ['--first-parent', `${FORK_BASE}..HEAD`])) {
         if (commit.parents.length < 2) {
-            addNote(commit, commit.date);
+            addNote(commit, commit.date, build);
         } else if (PR_MERGE.test(commit.subject)) {
             const [base, branch] = commit.parents;
             for (const inner of gitLog(repoDir, ['--no-merges', `${base}..${branch}`])) {
-                addNote(inner, commit.date);
+                addNote(inner, commit.date, build);
             }
         }
+        build--;
     }
     return notes;
 }

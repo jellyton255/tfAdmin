@@ -4,6 +4,7 @@ import { getUnseenNotes, groupNotesByDay } from './releaseNotes';
 
 const note = (commit: string, landedAt: string): ReleaseNote => ({
     commit,
+    build: 1,
     landedAt,
     type: 'feat',
     scope: null,

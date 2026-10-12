@@ -7,6 +7,7 @@ import { AuthedCtx, CtxWithVars } from "./ctxTypes";
 import consts from "@shared/consts";
 import consoleFactory from '@lib/console';
 import { sentryConfig } from '@lib/sentry';
+import { readBuildStamp } from '@lib/stagedBuild';
 import { AuthedAdminType, checkRequestAuth } from "./authLogic";
 import { isString } from "@modules/CacheStore";
 import {
@@ -24,6 +25,9 @@ const console = consoleFactory(modulename);
 
 //Consts
 const serverTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+//The monitor is only replaced while the process is down
+const runningBuild = readBuildStamp(txEnv.txaPath) ?? null;
 
 //Cache the index.html file unless in dev mode
 let htmlFile: string;
@@ -122,6 +126,7 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         fxsOutdated: txCore.updateChecker.fxsUpdateData,
         txaVersion: txEnv.txaVersion,
         txaOutdated: txCore.updateChecker.txaUpdateData,
+        tfaBuild: runningBuild,
         serverTimezone,
         isWindows: txEnv.isWindows,
         isWebInterface: ctx.txVars.isWebInterface,

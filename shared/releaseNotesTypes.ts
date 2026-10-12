@@ -5,6 +5,7 @@ export type ReleaseNoteType = 'feat' | 'fix' | 'perf';
  */
 export type ReleaseNote = {
     commit: string; //short hash of the change
+    build: number; //first tfAdmin build that contains it
     landedAt: string; //ISO date the change reached master
     type: ReleaseNoteType;
     scope: string | null;

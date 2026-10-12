@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect } from "react";
 import { LocalStorageKey } from "@/lib/localStorage";
+import { getTfBuildLabel } from "@/lib/tfBuild";
 
 //Used for global errors
 export function AppErrorFallback({ error }: FallbackProps) {
@@ -88,7 +89,7 @@ export function GenericErrorBoundaryCard(props: GenericErrorBoundaryCardProps) {
                 <p>
                     Versions:&nbsp;
                     <code className="text-muted-foreground">
-                        txAdmin v{window.txConsts.txaVersion} atop FXServer b{window.txConsts.fxsVersion}
+                        tfAdmin {getTfBuildLabel()} ({window.txConsts.tfaBuild?.commit ?? 'no stamp'}) on txAdmin v{window.txConsts.txaVersion} atop FXServer b{window.txConsts.fxsVersion}
                     </code>
                 </p>
                 <p>

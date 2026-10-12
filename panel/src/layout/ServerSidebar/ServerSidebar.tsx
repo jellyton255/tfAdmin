@@ -4,6 +4,7 @@ import ServerMenu from './ServerMenu';
 import ServerControls from './ServerControls';
 import ServerStatus from './ServerStatus';
 import ServerSchedule from './ServerSchedule';
+import VersionLine from '@/components/VersionLine';
 
 
 type ServerSidebarProps = {
@@ -38,14 +39,7 @@ export function ServerSidebar({ isSheet }: ServerSidebarProps) {
 
             {window.txConsts.isWebInterface ? (
                 <div className='flex flex-col items-center justify-center gap-1 text-sm font-light opacity-85 hover:opacity-100'>
-                    <span className={cn(
-                        'text-muted-foreground',
-                        window.txConsts.txaVersion.includes('-') && 'text-destructive-inline font-semibold',
-                    )}>
-                        tx: <strong>v{window.txConsts.txaVersion}</strong>
-                        &nbsp;|
-                        fx: <strong>b{window.txConsts.fxsVersion}</strong>
-                    </span>
+                    <VersionLine />
                 </div>
             ) : null}
         </aside>
