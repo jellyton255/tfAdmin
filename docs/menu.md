@@ -51,22 +51,6 @@ Convars configured in the settings page should not be set manually.
 - Description: Do not show the admin name on Announcements or DMs. 
 - Default: `false`
 
-**txAdmin-hideDefaultAnnouncement**
-- Description: Suppresses the display of announcements, allowing you to implement your own announcement via the event `txAdmin:events:announcement`.
-- Default: `false`
-
-**txAdmin-hideDefaultDirectMessage**
-- Description: Suppresses the display of direct messages, allowing you to implement your own direct message notification via the event `txAdmin:events:playerDirectMessage`.
-- Default: `false`
-
-**txAdmin-hideDefaultWarning**
-- Description: Suppresses the display of warnings, allowing you to implement your own warning via the event `txAdmin:events:playerWarned`.
-- Default: `false`
-
-**txAdmin-hideDefaultScheduledRestartWarning**
-- Description: Suppresses the display of scheduled restart warnings, allowing you to implement your own warning via the event `txAdmin:events:scheduledRestart`.
-- Default: `false`
-
 ### Convar only (not in settings page)
 **txAdmin-debugMode**
 - Description: Will toggle debug printing on the server and client.
@@ -82,12 +66,6 @@ Convars configured in the settings page should not be set manually.
 - Description: How many seconds the drunk effect (troll action) should last.
 - Default: 30
 - Usage: `setr txAdmin-menuDrunkDuration 120`
-
-**txAdmin-menuAnnounceNotiPos**
-- Description: Determines the location of the txAdmin announcement notification. This **must** use one of the following valid 
-positions, `top-center`, `top-left`, `top-right`, `bottom-center`, `bottom-left`, `bottom-right`.
-- Default: `top-center`
-- Usage: `set txAdmin-menuAnnounceNotiPos top-right`
 
 
 ## Commands

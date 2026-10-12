@@ -41,10 +41,6 @@ export const getMutableConvars = (isCmdLine = false) => {
         ['set', 'playerModePtfx', txConfig.gameFeatures.playerModePtfx],
         ['set', 'hideAdminInPunishments', txConfig.gameFeatures.hideAdminInPunishments],
         ['set', 'hideAdminInMessages', txConfig.gameFeatures.hideAdminInMessages],
-        ['set', 'hideDefaultAnnouncement', txConfig.gameFeatures.hideDefaultAnnouncement],
-        ['set', 'hideDefaultDirectMessage', txConfig.gameFeatures.hideDefaultDirectMessage],
-        ['set', 'hideDefaultWarning', txConfig.gameFeatures.hideDefaultWarning],
-        ['set', 'hideDefaultScheduledRestartWarning', txConfig.gameFeatures.hideDefaultScheduledRestartWarning],
 
         //Server variables
         ['sets', 'sv_appearAllowlisted', txConfig.whitelist.mode !== 'disabled'],

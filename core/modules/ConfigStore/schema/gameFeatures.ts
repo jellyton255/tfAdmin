@@ -45,34 +45,6 @@ const hideAdminInMessages = typeDefinedConfig({
     fixer: SYM_FIXER_DEFAULT,
 });
 
-const hideDefaultAnnouncement = typeDefinedConfig({
-    name: 'Hide Announcement Notifications',
-    default: false,
-    validator: z.boolean(),
-    fixer: SYM_FIXER_DEFAULT,
-});
-
-const hideDefaultDirectMessage = typeDefinedConfig({
-    name: 'Hide Direct Message Notification',
-    default: false,
-    validator: z.boolean(),
-    fixer: SYM_FIXER_DEFAULT,
-});
-
-const hideDefaultWarning = typeDefinedConfig({
-    name: 'Hide Warning Notification',
-    default: false,
-    validator: z.boolean(),
-    fixer: SYM_FIXER_DEFAULT,
-});
-
-const hideDefaultScheduledRestartWarning = typeDefinedConfig({
-    name: 'Hide Scheduled Restart Warnings',
-    default: false,
-    validator: z.boolean(),
-    fixer: SYM_FIXER_DEFAULT,
-});
-
 
 export default {
     menuEnabled,
@@ -81,8 +53,4 @@ export default {
     playerModePtfx,
     hideAdminInPunishments,
     hideAdminInMessages,
-    hideDefaultAnnouncement,
-    hideDefaultDirectMessage,
-    hideDefaultWarning,
-    hideDefaultScheduledRestartWarning,
 } as const;

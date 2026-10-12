@@ -71,10 +71,6 @@ const restructureOldConfig = (old: any) => {
             playerModePtfx: true, //NOTE: new config
             hideAdminInPunishments: old?.global?.hideAdminInPunishments,
             hideAdminInMessages: old?.global?.hideAdminInMessages,
-            hideDefaultAnnouncement: old?.global?.hideDefaultAnnouncement,
-            hideDefaultDirectMessage: old?.global?.hideDefaultDirectMessage,
-            hideDefaultWarning: old?.global?.hideDefaultWarning,
-            hideDefaultScheduledRestartWarning: old?.global?.hideDefaultScheduledRestartWarning,
         },
         logger: {
             admin: old?.logger?.admin,

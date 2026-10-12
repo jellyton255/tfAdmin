@@ -126,6 +126,15 @@ suite('bootstrapConfigProcessor', () => {
         expect(result.unknown.unknownScope.key1).toBe('value1');
     });
 
+    it('should drop retired config items', () => {
+        const parsedInput = [
+            { scope: 'gameFeatures', key: 'hideDefaultAnnouncement', value: true },
+        ];
+        const result = bootstrapConfigProcessor(parsedInput, allConfigScopes, defaultConfigs);
+        expect(result.unknown.gameFeatures).toBeUndefined();
+        expect(result.stored.gameFeatures).toBeUndefined();
+    });
+
     it('should apply default for active but not stored', () => {
         const parsedInput = [
             { scope: 'unknownScope', key: 'key1', value: 'value1' },

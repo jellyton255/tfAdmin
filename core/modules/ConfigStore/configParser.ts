@@ -10,6 +10,15 @@ import { SYM_FIXER_DEFAULT, SYM_RESET_CONFIG } from "@lib/symbols";
 const console = consoleFactory(modulename);
 
 
+// Settings removed from the schema; dropped silently so the next save cleans them out of config.json
+const RETIRED_CONFIGS = new Set([
+    'gameFeatures.hideDefaultAnnouncement',
+    'gameFeatures.hideDefaultDirectMessage',
+    'gameFeatures.hideDefaultWarning',
+    'gameFeatures.hideDefaultScheduledRestartWarning',
+]);
+
+
 // Returns object with all the scopes empty
 // export const getConfigScaffold = (allConfigScopes: ListOf<ConfigScope>) => {
 //     const scaffold: ConfigScaffold = Object.fromEntries(
@@ -114,6 +123,8 @@ export const bootstrapConfigProcessor = (
 
     //Process each item
     for (const { scope, key, value } of parsedInput) {
+        if (RETIRED_CONFIGS.has(`${scope}.${key}`)) continue;
+
         //Check if the scope is known
         const configSchema = allConfigScopes?.[scope]?.[key];
         if (!configSchema) {
