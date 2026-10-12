@@ -4,7 +4,6 @@ import { PlayerData } from "../hooks/usePlayerListListener";
 import { LocaleType } from "@shared/localeMap";
 import { ServerCtx } from "../state/server.state";
 import { SetWarnOpenData } from "../components/WarnPage/WarnPage";
-import { AddAnnounceData } from "../hooks/useHudListenersService";
 import { mockPlayerData } from "./generateMockPlayerData";
 
 let playerUpdateInterval: ReturnType<typeof setTimeout> | null = null;
@@ -74,23 +73,11 @@ const MenuObject = {
       },
     ]);
   },
-  announceMsg: ({ message, author }: AddAnnounceData) => {
-    debugData([
-      {
-        action: "addAnnounceMessage",
-        data: {
-          message,
-          author,
-        },
-      },
-    ]);
-  },
   setCustomLocale: (localeObj: LocaleType) => {
     debugData<ServerCtx>([
       {
         action: "setServerCtx",
         data: {
-          announceNotiPos: "top-right",
           projectName: "",
           locale: "custom",
           localeData: localeObj,

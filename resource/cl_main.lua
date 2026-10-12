@@ -27,27 +27,8 @@ end)
 
 
 -- =============================================
---  Announcement, DirectMessage and Warn handling
+--  Warn handling
 -- =============================================
--- Dispatch Announcements
-RegisterNetEvent('txcl:showAnnouncement', function(message, author)
-    sendMenuMessage(
-        'addAnnounceMessage',
-        {
-            message = message,
-            author = author
-        }
-    )
-end)
-RegisterNetEvent('txcl:showDirectMessage', function(message, author)
-    sendMenuMessage(
-        'addDirectMessage',
-        {
-            message = message,
-            author = author
-        }
-    )
-end)
 
 -- TODO: remove [SPACE] holding requirement?
 local dismissKey, dismissKeyGroup
@@ -161,10 +142,6 @@ CreateThread(function()
         '/txAdmin-checkPlayerJoin',
         '/txAdmin-pipeToken',
         '/txAdmin-debugMode',
-        '/txAdmin-hideDefaultAnnouncement',
-        '/txAdmin-hideDefaultDirectMessage',
-        '/txAdmin-hideDefaultWarning',
-        '/txAdmin-hideDefaultScheduledRestartWarning',
         '/txAdmin-hideAdminInPunishments',
         '/txAdmin-hideAdminInMessages',
         '/txAdmin-serverName',
@@ -211,9 +188,9 @@ function IsNuiRequestOriginValid(headers)
     end
 
     -- warn admin of possible csrf attempt
-    if menuIsAccessible and sendPersistentAlert then
+    if menuIsAccessible and sendSnackbarMessage then
         local msg = ('ATTENTION! txAdmin received a NUI message from the origin "%s" which is not approved. This likely means that that resource is vulnerable to XSS which has been exploited to inject txAdmin commands. It is recommended that you fix the vulnerability or remove that resource completely. For more information: discord.gg/txAdmin.'):format(headers['Origin'])
-        sendPersistentAlert('csrfWarning', 'error', msg, false)
+        sendSnackbarMessage('error', msg, false)
     end
 
     return false

@@ -2,7 +2,7 @@
 if not TX_SERVER_MODE then return end
 
 --NOTE: although quite a lot of this is used on the menu, this must run even if the menu is disabled
---because the locale applies to warns and notifications, as well as notification position
+--because the locale applies to warns
 
 local ServerCtxObj = {
   oneSync = {
@@ -16,7 +16,6 @@ local ServerCtxObj = {
   switchPageKey = '',
   txAdminVersion = '',
   alignRight = false,
-  announceNotiPos = '', -- top-center, top-right, top-left, bottom-center, bottom-right, bottom-left
 }
 
 -- local function getRawCustomLocaleData()
@@ -97,16 +96,6 @@ local function syncServerCtx()
     ServerCtxObj.localeData = getCustomLocaleData()
   else
     ServerCtxObj.localeData = false
-  end
-
-  local announceNotiPos = GetConvar('txAdmin-menuAnnounceNotiPos', 'top-center')
-  -- verify we have a valid position type
-  if announceNotiPos == 'top-center' or announceNotiPos == 'top-right' or announceNotiPos == 'top-left' or announceNotiPos == 'bottom-center' or announceNotiPos == 'bottom-right' or announceNotiPos == 'bottom-left' then
-    ServerCtxObj.announceNotiPos = announceNotiPos
-  else
-    local errorMsg = ('^1Invalid notification position: %s, this must match one of the following "top-center, top-left, top-right, bottom-left, bottom-right, bottom-center" defaulting to "top-center"'):format(announceNotiPos)
-    txPrint(errorMsg)
-    ServerCtxObj.announceNotiPos = 'top-center'
   end
 
   -- Error reporting for the menu, set by txAdmin only when Sentry is configured

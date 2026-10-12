@@ -12,7 +12,6 @@ local moveRateOverride = IS_FIVEM and 1.75 or 1.15
 local function toggleSuperJump(enabled)
     superJumpEnabled = enabled
     if enabled then
-        sendPersistentAlert('superJumpEnabled', 'info', 'nui_menu.page_main.player_mode.superjump.success', true)
         CreateThread(function()
             local Wait = Wait
             local pid = PlayerId()
@@ -31,18 +30,11 @@ local function toggleSuperJump(enabled)
                 Wait(0)
             end
         end)
-    else
-        clearPersistentAlert('superJumpEnabled')
     end
 end
 
 
 local function toggleGodMode(enabled)
-    if enabled then
-        sendPersistentAlert('godModeEnabled', 'info', 'nui_menu.page_main.player_mode.godmode.success', true)
-    else
-        clearPersistentAlert('godModeEnabled')
-    end
     SetEntityInvincible(PlayerPedId(), enabled)
 end
 
@@ -215,12 +207,10 @@ local function toggleFreecam(enabled)
     end
 
     if not IsFreecamActive() and enabled then
-        sendPersistentAlert('noClipEnabled', 'info', 'nui_menu.page_main.player_mode.noclip.success', true)
         enableNoClip()
     end
 
     if IsFreecamActive() and not enabled then
-        clearPersistentAlert('noClipEnabled')
         disableNoClip()
     end
 end

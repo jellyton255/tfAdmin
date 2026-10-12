@@ -168,10 +168,6 @@ end
 local txServerName = GetConvar("txAdmin-serverName", "txAdmin")
 local cvHideAdminInPunishments = GetConvarBool('txAdmin-hideAdminInPunishments')
 local cvHideAdminInMessages = GetConvarBool('txAdmin-hideAdminInMessages')
-local cvHideAnnouncement = GetConvarBool('txAdmin-hideDefaultAnnouncement')
-local cvHideDirectMessage = GetConvarBool('txAdmin-hideDefaultDirectMessage')
-local cvHideWarning = GetConvarBool('txAdmin-hideDefaultWarning')
-local cvHideScheduledRestartWarning = GetConvarBool('txAdmin-hideDefaultScheduledRestartWarning')
 -- Adding all known events to the list so txaEvent can do whitelist checking
 TX_EVENT_HANDLERS = {
     -- Handled by another file
@@ -192,34 +188,21 @@ TX_EVENT_HANDLERS = {
     whitelistRequest = false,
 }
 
---- Handler for announcement events
---- Broadcast admin message to all players
+--- Announcements, direct messages and scheduled restart warnings are drawn by
+--- ef_hud from the txAdmin:events:* broadcast; these handlers only log them.
 TX_EVENT_HANDLERS.announcement = function(eventData)
     local authorName = cvHideAdminInMessages and txServerName or eventData.author or 'anonym'
-    if not cvHideAnnouncement then
-        TriggerClientEvent('txcl:showAnnouncement', -1, eventData.message, authorName)
-    end
     TriggerEvent('txsv:logger:addChatMessage', 'tx', '(Broadcast) '..authorName, eventData.message)
 end
 
 
---- Handler for scheduled restarts event
---- Broadcast through an announcement that the server will restart in XX minutes
 TX_EVENT_HANDLERS.scheduledRestart = function(eventData)
-    if not cvHideScheduledRestartWarning then
-        TriggerClientEvent('txcl:showAnnouncement', -1, eventData.translatedMessage, 'txAdmin')
-    end
     TriggerEvent('txsv:logger:addChatMessage', 'tx', '(Broadcast) txAdmin', eventData.translatedMessage)
 end
 
 
---- Handler for player DM event
---- Sends a direct message from an admin to a player
 TX_EVENT_HANDLERS.playerDirectMessage = function(eventData)
     local authorName = cvHideAdminInMessages and txServerName or eventData.author or 'anonym'
-    if not cvHideDirectMessage then
-        TriggerClientEvent('txcl:showDirectMessage', eventData.target, eventData.message, authorName)
-    end
     TriggerEvent('txsv:logger:addChatMessage', 'tx', '(DM) '..authorName, eventData.message)
 end
 
@@ -255,7 +238,6 @@ end
 local pendingWarnings = {}
 TX_EVENT_HANDLERS.playerWarned = function(eventData, isWarningNew)
     if isWarningNew == nil then isWarningNew = true end
-    if cvHideWarning then return end
     if eventData.targetNetId == nil then return end
 
     if not DoesPlayerExist(eventData.targetNetId) then

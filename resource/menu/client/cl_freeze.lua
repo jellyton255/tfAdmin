@@ -5,14 +5,6 @@ if not TX_MENU_ENABLED then return end
 --  This file contains all player freeze logic
 -- =============================================
 
-local function sendFreezeAlert(isFrozen)
-  if isFrozen then
-    sendPersistentAlert('freeze-status', 'warning', 'nui_menu.frozen.was_frozen', true)
-  else
-    clearPersistentAlert('freeze-status')
-  end
-end
-
 RegisterSecureNuiCallback('togglePlayerFreeze', function(data, cb)
   local targetPlayerId = tonumber(data.id)
   if targetPlayerId == GetPlayerServerId(PlayerId()) then
@@ -35,5 +27,4 @@ RegisterNetEvent('txcl:setFrozen', function(isFrozen)
   local playerPed = PlayerPedId()
   TaskLeaveAnyVehicle(playerPed, 0, 16)
   FreezeEntityPosition(playerPed, isFrozen)
-  sendFreezeAlert(isFrozen)
 end)

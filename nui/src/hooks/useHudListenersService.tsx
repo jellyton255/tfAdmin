@@ -1,11 +1,9 @@
 import React from "react";
-import { SnackbarKey, useSnackbar } from "notistack";
+import { useSnackbar } from "notistack";
 import { useNuiEvent } from "./useNuiEvent";
-import { Box, Typography } from "@mui/material";
 import { useTranslate } from "react-polyglot";
 import { shouldHelpAlertShow } from "../utils/shouldHelpAlertShow";
 import { debugData } from "../utils/debugData";
-import { getNotiDuration } from "../utils/getNotiDuration";
 import {
   usePlayersState,
   useSetPlayerFilter,
@@ -13,7 +11,6 @@ import {
 } from "../state/players.state";
 import { useSetAssociatedPlayer } from "../state/playerDetails.state";
 import { txAdminMenuPage, useSetPage } from "../state/page.state";
-import { useAnnounceNotiPosValue } from "../state/server.state";
 import { useSetPlayerModalVisibility } from "@nui/src/state/playerModal.state";
 import cleanPlayerName from "@shared/cleanPlayerName";
 import { usePlayerModalContext } from "../provider/PlayerModalProvider";
@@ -28,33 +25,6 @@ interface SnackbarAlert {
   tOptions?: object;
 }
 
-interface SnackbarPersistentAlert extends SnackbarAlert {
-  key: string;
-}
-
-interface AnnounceMessageProps {
-  title: string;
-  message: string;
-}
-
-export interface AddAnnounceData {
-  message: string;
-  author: string;
-  isDirectMessage: boolean;
-}
-
-const AnnounceMessage: React.FC<AnnounceMessageProps> = ({
-  title,
-  message,
-}) => (
-  <Box maxWidth={400} style={{ fontSize: "large" }}>
-    <Typography style={{ fontWeight: "bold" }}>{title}</Typography>
-    {message}
-  </Box>
-);
-
-const alertMap = new Map<string, SnackbarKey>();
-
 debugData(
   [
     {
@@ -65,11 +35,8 @@ debugData(
   5000
 );
 
-const announcementSound = new Audio("sounds/announcement.mp3");
-const messageSound = new Audio("sounds/message.mp3");
-
 export const useHudListenersService = () => {
-  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  const { enqueueSnackbar } = useSnackbar();
   const t = useTranslate();
   const onlinePlayers = usePlayersState();
   const setAssocPlayer = useSetAssociatedPlayer();
@@ -77,7 +44,6 @@ export const useHudListenersService = () => {
   const setPlayerFilter = useSetPlayerFilter();
   const setPlayersFilterIsTemp = useSetPlayersFilterIsTemp();
   const setPage = useSetPage();
-  const notiPos = useAnnounceNotiPosValue();
   const { closeMenu } = usePlayerModalContext();
 
   const snackFormat = (m: string) => (
@@ -109,32 +75,6 @@ export const useHudListenersService = () => {
         autoHideDuration: 10000,
       });
     }
-  });
-
-  useNuiEvent<SnackbarPersistentAlert>(
-    "setPersistentAlert",
-    ({ level, message, key, isTranslationKey }) => {
-      if (alertMap.has(key)) return;
-      const snackbarItem = enqueueSnackbar(
-        isTranslationKey ? t(message) : message,
-        {
-          variant: level,
-          persist: true,
-          anchorOrigin: {
-            horizontal: "center",
-            vertical: "top",
-          },
-        }
-      );
-      alertMap.set(key, snackbarItem);
-    }
-  );
-
-  useNuiEvent("clearPersistentAlert", ({ key }) => {
-    const snackbarItem = alertMap.get(key);
-    if (!snackbarItem) return;
-    closeSnackbar(snackbarItem);
-    alertMap.delete(key);
   });
 
   // Handler for dynamically opening the player page & player modal with target
@@ -178,41 +118,5 @@ export const useHudListenersService = () => {
         { variant: "error" }
       );
     }
-  });
-
-  useNuiEvent<AddAnnounceData>("addAnnounceMessage", ({ message, author }) => {
-    announcementSound.play();
-    enqueueSnackbar(
-      <AnnounceMessage
-        message={message}
-        title={t("nui_menu.misc.announcement_title", { author })}
-      />,
-      {
-        variant: "warning",
-        autoHideDuration: getNotiDuration(message) * 1000,
-        anchorOrigin: {
-          horizontal: notiPos.horizontal,
-          vertical: notiPos.vertical,
-        },
-      }
-    );
-  });
-
-  useNuiEvent<AddAnnounceData>("addDirectMessage", ({ message, author }) => {
-    messageSound.play();
-    enqueueSnackbar(
-      <AnnounceMessage
-        message={message}
-        title={t("nui_menu.misc.directmessage_title", { author })}
-      />,
-      {
-        variant: "info",
-        autoHideDuration: getNotiDuration(message) * 1000 * 2, //*2 to slow things down
-        anchorOrigin: {
-          horizontal: notiPos.horizontal,
-          vertical: notiPos.vertical,
-        },
-      }
-    );
   });
 };
