@@ -32,21 +32,20 @@ type StatusBadgeProps = {
         description: string;
     };
     type?: StatusBadgeTypesVars;
-    className?: string;
     children: React.ReactNode;
 };
 
-function StatusBadge({ children, tooltip, type, className }: StatusBadgeProps) {
+function StatusBadge({ children, tooltip, type }: StatusBadgeProps) {
     //If no tooltip is provided, just show the text
     if (!tooltip) {
-        return <span className={cn(statusBadgeVariants({ type }), className)}>
+        return <span className={statusBadgeVariants({ type })}>
             {children}
         </span>
     }
 
     return <Tooltip>
         <TooltipTrigger asChild>
-            <span className={cn(statusBadgeVariants({ type }), className)}>
+            <span className={statusBadgeVariants({ type })}>
                 {children}
             </span>
         </TooltipTrigger>
@@ -90,11 +89,11 @@ const discordStatusMap = {
     },
 } as const;
 
-const serviceSignalColors: Record<ServiceSignalState, StatusBadgeTypesVars> = {
-    ok: 'success',
-    degraded: 'warning',
-    failing: 'destructive',
-    unknown: 'default',
+const serviceSignalStyles: Record<ServiceSignalState, { dot: string; text: string }> = {
+    ok: { dot: 'bg-success', text: 'text-foreground/90' },
+    degraded: { dot: 'bg-warning', text: 'text-warning-inline' },
+    failing: { dot: 'bg-destructive', text: 'text-destructive-inline' },
+    unknown: { dot: 'bg-muted-foreground/40', text: 'text-muted-foreground' },
 };
 
 const serviceRows = [
@@ -105,16 +104,22 @@ const serviceRows = [
 
 //everfall: database, log delivery and save health that the game console no longer prints
 function ServiceRow({ label, signal }: { label: string; signal?: ServiceSignal }) {
-    return (
-        <div className="flex justify-between items-start text-muted-foreground text-sm gap-3">
-            <span className="shrink-0">{label}:</span>
-            <StatusBadge
-                tooltip={signal?.reason}
-                type={signal ? serviceSignalColors[signal.state] : 'default'}
-                className="min-w-0 text-right text-balance tracking-normal normal-case font-medium"
-            >{signal?.text ?? '--'}</StatusBadge>
+    const style = serviceSignalStyles[signal?.state ?? 'unknown'];
+    const row = (
+        <div className={cn('grid grid-cols-[0.5rem_1fr] items-center gap-x-2 gap-y-px', signal?.reason && 'cursor-help')}>
+            <span className={cn('size-2 rounded-full', style.dot)} />
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className={cn('col-start-2 text-xs leading-snug text-pretty', style.text)}>
+                {signal?.text ?? '--'}
+            </span>
         </div>
     );
+    if (!signal?.reason) return row;
+
+    return <Tooltip>
+        <TooltipTrigger asChild>{row}</TooltipTrigger>
+        <TooltipContent side='right'><p>{signal.reason}</p></TooltipContent>
+    </Tooltip>
 }
 
 export default function ServerStatus() {
@@ -230,12 +235,11 @@ export default function ServerStatus() {
                     type={discordStatusColor}
                 >{discordStatusText}</StatusBadge>
             </div>
-            <h3 className="mt-2 text-sm font-semibold text-foreground/80">
-                Services
-            </h3>
-            {serviceRows.map(({ key, label }) => (
-                <ServiceRow key={key} label={label} signal={globalStatus?.services[key]} />
-            ))}
+            <div className="mt-1.5 flex flex-col gap-2.5 border-t pt-3">
+                {serviceRows.map(({ key, label }) => (
+                    <ServiceRow key={key} label={label} signal={globalStatus?.services[key]} />
+                ))}
+            </div>
         </div>
     )
 }
