@@ -230,7 +230,7 @@ export default function ServerStatus() {
                     type={discordStatusColor}
                 >{discordStatusText}</StatusBadge>
             </div>
-            <h3 className="mt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
+            <h3 className="mt-2 text-sm font-semibold text-foreground/80">
                 Services
             </h3>
             {serviceRows.map(({ key, label }) => (
