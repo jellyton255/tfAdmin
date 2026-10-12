@@ -40,7 +40,7 @@ Changing a key's scopes or revoking it takes effect immediately. Revoked keys st
 | `players.warn` | Warn players | Warn players, revoke warns |
 | `players.kick` | Kick players | Kick an online player |
 | `players.direct_message` | Message players | Direct message an online player |
-| `players.note` | Edit player notes | Set the admin note on a player |
+| `players.note` | Edit player notes | Add and delete staff notes on a player |
 | `players.whitelist` | Manage whitelist | Whitelist flag, approvals and requests |
 | `announcement` | Send announcements | Broadcast an announcement |
 | `control.server` | Control the server | Start, stop, restart, kick everyone |
@@ -140,7 +140,7 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/players/online` | any valid key | Connected players: `netid`, `displayName`, `pureName`, `license` |
 | `GET /api/v1/players/stats` | any valid key | Totals: `total`, `playedLast24h`, `joinedLast24h`, `joinedLast7d`, `onlineNow` |
 | `GET /api/v1/players` | any valid key | Database search, paginated. Query: `q` with `type=name\|ids\|notes`, `filter=isOnline,isAdmin,isWhitelisted,hasNote`, `sort=tsLastConnection\|tsJoined\|playTime`, `order=desc\|asc` |
-| `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history |
+| `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history. `noteHistory` lists every note newest first; `notes`, `notesLastEditedBy` and `notesLastEditedAt` describe the newest one |
 | `GET /api/v1/actions` | any valid key | Bans and warns, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`name` is a fuzzy player name search), `kind=ban\|warn`, `author`, `status=active\|revoked`, `order` |
 | `GET /api/v1/actions/stats` | any valid key | Totals for the last 7 days and all time, plus a per-admin count |
 | `GET /api/v1/actions/{id}` | any valid key | One action |
@@ -167,7 +167,9 @@ Writes behave exactly like the matching panel buttons: same database records, sa
 | `POST /api/v1/players/{license}/kick` | `players.kick` | `{ reason? }`. Player must be online (409 `PLAYER_OFFLINE`) |
 | `POST /api/v1/players/{license}/message` | `players.direct_message` | `{ message }`. Player must be online |
 | `PUT /api/v1/players/{license}/whitelist` | `players.whitelist` | `{ whitelisted: true\|false }` |
-| `PUT /api/v1/players/{license}/note` | `players.note` | `{ note }`; an empty string clears it |
+| `POST /api/v1/players/{license}/notes` | `players.note` | `{ note }`. 201 with `{ note }`; earlier notes are kept |
+| `DELETE /api/v1/players/{license}/notes/{noteId}` | `players.note` | Deletes one note, returns it |
+| `PUT /api/v1/players/{license}/note` | `players.note` | Legacy: `{ note }` is appended like `POST .../notes`; an empty note is rejected |
 | `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
 | `POST /api/v1/actions/import-ban` | `players.ban_import` | `{ externalRef, identifiers[], hwids?[], playerName?, reason, author, expiresAt?, notify? }`. Records a system or legacy ban. 201 with `{ action, created: true, dropped, eventSent }`; 200 with `created: false` on a replay |
 | `POST /api/v1/actions/{id}/revoke` | `players.ban` for bans, `players.warn` for warns | Revokes the action; 409 if already revoked. Returns `{ action }` |

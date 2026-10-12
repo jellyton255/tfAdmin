@@ -1226,7 +1226,91 @@
     },
     "/players/{license}/note": {
       "put": {
-        "summary": "Set player note",
+        "summary": "Add player note (legacy)",
+        "description": "Kept for older clients. Appends the note to the player's note history like `POST /players/{license}/notes`; it no longer replaces earlier notes, and an empty note is rejected.\n\nRequires the `players.note` scope.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "note"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/notes": {
+      "post": {
+        "summary": "Add player note",
         "description": "Requires the `players.note` scope.",
         "tags": [
           "Players"
@@ -1255,7 +1339,8 @@
                 "properties": {
                   "note": {
                     "type": "string",
-                    "maxLength": 2048
+                    "minLength": 1,
+                    "maxLength": 4096
                   }
                 },
                 "required": [
@@ -1267,6 +1352,86 @@
           }
         },
         "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "note": {
+                          "$ref": "#/components/schemas/PlayerNote"
+                        }
+                      },
+                      "required": [
+                        "note"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/notes/{noteId}": {
+      "delete": {
+        "summary": "Delete player note",
+        "description": "Requires the `players.note` scope.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          },
+          {
+            "name": "noteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "responses": {
           "200": {
             "description": "Success",
             "content": {
@@ -1275,7 +1440,16 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/Ok"
+                      "type": "object",
+                      "properties": {
+                        "note": {
+                          "$ref": "#/components/schemas/PlayerNote"
+                        }
+                      },
+                      "required": [
+                        "note"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -4040,7 +4214,8 @@
               "notesLastEditedBy": {
                 "oneOf": [
                   {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Author of the newest note; `notes` holds its text"
                   },
                   {
                     "type": "null"
@@ -4051,12 +4226,18 @@
                 "oneOf": [
                   {
                     "type": "integer",
-                    "description": "Unix epoch milliseconds"
+                    "description": "Time of the newest note"
                   },
                   {
                     "type": "null"
                   }
                 ]
+              },
+              "noteHistory": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlayerNote"
+                }
               },
               "session": {
                 "oneOf": [
@@ -4108,12 +4289,38 @@
               "hwids",
               "notesLastEditedBy",
               "notesLastEditedAt",
+              "noteHistory",
               "session",
               "actions"
             ],
             "additionalProperties": false
           }
         ]
+      },
+      "PlayerNote": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "author",
+          "createdAt"
+        ],
+        "additionalProperties": false
       },
       "PlayersStats": {
         "type": "object",

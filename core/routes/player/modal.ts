@@ -1,5 +1,4 @@
 const modulename = 'WebServer:PlayerModal';
-import dateFormat from 'dateformat';
 import playerResolver from '@lib/player/playerResolver';
 import { PlayerHistoryItem, PlayerModalResp, PlayerModalPlayerData } from '@shared/playerApiTypes';
 import { DatabaseActionType } from '@modules/Database/databaseTypes';
@@ -8,6 +7,7 @@ import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { now } from '@lib/misc';
 import { SYM_CURRENT_MUTEX } from '@lib/symbols';
+import { notesNewestFirst } from '@lib/player/playerNotes';
 const console = consoleFactory(modulename);
 
 //Helpers
@@ -79,12 +79,7 @@ export default async function PlayerModal(ctx: AuthedCtx) {
         playerData.tsWhitelisted = playerDbData.tsWhitelisted ? playerDbData.tsWhitelisted : undefined;
         playerData.tsLastConnection = playerDbData.tsLastConnection;
 
-        if (playerDbData.notes?.lastAdmin && playerDbData.notes?.tsLastEdit) {
-            playerData.notes = playerDbData.notes.text;
-            const lastEditObj = new Date(playerDbData.notes.tsLastEdit * 1000);
-            const lastEditString = dateFormat(lastEditObj, 'longDate');
-            playerData.notesLog = `Last modified by ${playerDbData.notes.lastAdmin} at ${lastEditString}`;
-        }
+        playerData.noteHistory = notesNewestFirst(playerDbData.noteHistory);
     }
 
     // console.dir(metaFields);

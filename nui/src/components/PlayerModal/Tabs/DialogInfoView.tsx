@@ -1,12 +1,14 @@
-import React, { FormEventHandler, useEffect, useState } from "react";
+import React, { FormEventHandler, useState } from "react";
 import {
   Box,
   Button,
   DialogContent,
+  IconButton,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
+import { DeleteOutline } from "@mui/icons-material";
 import {
   useForcePlayerRefresh,
   usePlayerDetailsValue,
@@ -18,7 +20,7 @@ import { DialogLoadError } from "./DialogLoadError";
 import { GenericApiErrorResp, GenericApiResp } from "@shared/genericApiTypes";
 import humanizeDuration, { Unit } from "humanize-duration";
 import { ButtonXS } from "../../misc/ButtonXS";
-import { tsToLocaleDate, userHasPerm } from "@nui/src/utils/miscUtils";
+import { tsToLocaleDate, tsToLocaleDateTime, userHasPerm } from "@nui/src/utils/miscUtils";
 import {
   PlayerModalTabs,
   useSetPlayerModalTab,
@@ -50,6 +52,7 @@ const DialogInfoView: React.FC = () => {
 
   const handleSaveNote: FormEventHandler = async (e) => {
     e.preventDefault();
+    if (!note.trim()) return;
     try {
       const result = await fetchWebPipe<GenericApiResp>(
         `/player/save_note?mutex=current&netid=${player.netid}`,
@@ -59,6 +62,7 @@ const DialogInfoView: React.FC = () => {
         }
       );
       if ("success" in result && result.success === true) {
+        setNote("");
         forceRefresh((val) => val + 1);
         enqueueSnackbar(t(`nui_menu.player_modal.info.notes_changed`), {
           variant: "success",
@@ -74,9 +78,28 @@ const DialogInfoView: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    setNote(player.notes ?? "");
-  }, [playerDetails]);
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      const result = await fetchWebPipe<GenericApiResp>(
+        `/player/delete_note?mutex=current&netid=${player.netid}`,
+        {
+          method: "POST",
+          data: { noteId },
+        }
+      );
+      if ("success" in result && result.success === true) {
+        forceRefresh((val) => val + 1);
+        enqueueSnackbar("Note deleted.", { variant: "success" });
+      } else {
+        enqueueSnackbar(
+          "error" in result ? result.error : t("nui_menu.misc.unknown_error"),
+          { variant: "error" }
+        );
+      }
+    } catch (error) {
+      enqueueSnackbar(t("nui_menu.misc.unknown_error"), { variant: "error" });
+    }
+  };
 
   //Whitelist button
   const btnChangeWhitelistStatus = async () => {
@@ -193,22 +216,54 @@ const DialogInfoView: React.FC = () => {
             type="text"
             value={note}
             onChange={(e) => setNote(e.currentTarget.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSaveNote}
             variant="outlined"
             multiline
-            rows={4}
+            minRows={2}
             fullWidth
+            disabled={!player.license}
+            inputProps={{ maxLength: 4096 }}
           />
           <Button
             type="submit"
             color="primary"
             variant="outlined"
-            style={{ right: 0 }}
+            disabled={!player.license || !note.trim()}
           >
-            Save Note
+            Add Note
           </Button>
         </Box>
       </form>
+      {player.noteHistory?.map((entry) => (
+        <Box
+          key={entry.id}
+          mt={1}
+          pl={1}
+          display="flex"
+          alignItems="flex-start"
+          gap={1}
+          style={{ borderLeft: `3px solid ${theme.palette.divider}` }}
+        >
+          <Box flexGrow={1} minWidth={0}>
+            <Typography style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {entry.text}
+            </Typography>
+            <Typography
+              variant="caption"
+              title={tsToLocaleDateTime(entry.ts)}
+              style={{ color: theme.palette.text.secondary }}
+            >
+              {entry.author} · {tsToLocaleDate(entry.ts, "medium")}
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            title="Delete Note"
+            onClick={() => handleDeleteNote(entry.id)}
+          >
+            <DeleteOutline fontSize="small" />
+          </IconButton>
+        </Box>
+      ))}
     </DialogContent>
   );
 };

@@ -17,6 +17,12 @@ const removeIdsBodySchema = z.object({
     ids: z.array(z.string().min(4, 'invalid identifier')),
 });
 export type ApiRemoveIdsReqSchema = z.infer<typeof removeIdsBodySchema>;
+const saveNoteBodySchema = z.object({
+    note: z.string().trim().min(1, 'The note is empty.').max(4096, 'The note is too long.'),
+});
+const deleteNoteBodySchema = z.object({
+    noteId: z.string().min(1).max(32),
+});
 
 
 /**
@@ -43,6 +49,8 @@ export default async function PlayerActions(ctx: AuthedCtx) {
     //Delegate to the specific action handler
     if (action === 'save_note') {
         return sendTypedResp(await handleSaveNote(ctx, player));
+    } else if (action === 'delete_note') {
+        return sendTypedResp(await handleDeleteNote(ctx, player));
     } else if (action === 'warn') {
         return sendTypedResp(await handleWarning(ctx, player));
     } else if (action === 'ban') {
@@ -62,24 +70,39 @@ export default async function PlayerActions(ctx: AuthedCtx) {
 
 
 /**
- * Handle Save Note (open to all admins)
+ * Handle Save Note (open to all admins): appends an entry to the player's note history
  */
 async function handleSaveNote(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
-    //Checking request
-    if (anyUndefined(
-        ctx.request.body,
-        ctx.request.body.note,
-    )) {
-        return { error: 'Invalid request.' };
+    const schemaRes = saveNoteBodySchema.safeParse(ctx.request.body);
+    if (!schemaRes.success) {
+        return { error: schemaRes.error.issues[0]?.message ?? 'Invalid request.' };
     }
-    const note = ctx.request.body.note.trim();
 
     try {
-        player.setNote(note, ctx.admin.name);
+        player.addNote(schemaRes.data.note, ctx.admin.name);
         ctx.admin.logAction(`Set notes for ${player.license}`);
         return { success: true };
     } catch (error) {
         return { error: `Failed to save note: ${(error as Error).message}` };
+    }
+}
+
+
+/**
+ * Handle Delete Note (open to all admins, like saving one)
+ */
+async function handleDeleteNote(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+    const schemaRes = deleteNoteBodySchema.safeParse(ctx.request.body);
+    if (!schemaRes.success) {
+        return { error: 'Invalid request.' };
+    }
+
+    try {
+        player.deleteNote(schemaRes.data.noteId);
+        ctx.admin.logAction(`Deleted note ${schemaRes.data.noteId} from ${player.license}`);
+        return { success: true };
+    } catch (error) {
+        return { error: `Failed to delete note: ${(error as Error).message}` };
     }
 }
 

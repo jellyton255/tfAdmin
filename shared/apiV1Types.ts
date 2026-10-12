@@ -163,11 +163,21 @@ export type ApiPlayerSummary = {
 };
 export type ApiPlayerSearchResp = ApiResp<{ players: ApiPlayerSummary[] }, ApiPageMeta>;
 
+export type ApiPlayerNote = {
+    id: string;
+    text: string;
+    author: string;
+    createdAt: number; //epoch ms
+};
+
 export type ApiPlayerDetail = ApiPlayerSummary & {
     ids: string[];
     hwids: string[];
+    /** Author and time of the newest note; `notes` holds its text. */
     notesLastEditedBy: string | null;
     notesLastEditedAt: number | null; //epoch ms
+    /** Every staff note, newest first. */
+    noteHistory: ApiPlayerNote[];
     /** Only when the player is online right now. */
     session: {
         netid: number;
@@ -283,6 +293,7 @@ export type ApiKickPlayerReq = { reason?: string };
 export type ApiMessagePlayerReq = { message: string };
 export type ApiSetWhitelistReq = { whitelisted: boolean };
 export type ApiSetNoteReq = { note: string };
+export type ApiPlayerNoteResp = ApiResp<{ note: ApiPlayerNote }>;
 export type ApiBanIdsReq = { identifiers: string[]; reason: string; duration: ApiBanDuration };
 
 export type ApiActionWriteResp = ApiResp<{

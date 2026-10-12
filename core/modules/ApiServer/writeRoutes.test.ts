@@ -316,7 +316,26 @@ describe('player moderation', () => {
 
         const note = await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: '  watch this one ' }, kickOnlyToken);
         expect(note.status).toBe(200);
-        expect(players[1].notes).toMatchObject({ text: 'watch this one', lastAdmin: 'api:kicker' });
+        expect(players[1].noteHistory).toMatchObject([{ text: 'watch this one', author: 'api:kicker' }]);
+    });
+
+    it('appends and deletes notes without losing earlier ones', async () => {
+        const first = await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: 'first' }, kickOnlyToken);
+        expect(first.status).toBe(200);
+        const second = await call('POST', `/api/v1/players/${LIC_OFF}/notes`, { note: ' second ' }, kickOnlyToken);
+        expect(second.status).toBe(201);
+        expect(second.json.data.note).toMatchObject({ text: 'second', author: 'api:kicker' });
+        expect(players[1].noteHistory?.map((n) => n.text)).toEqual(['first', 'second']);
+
+        expect((await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: '   ' }, kickOnlyToken)).status).toBe(400);
+        expect((await call('DELETE', `/api/v1/players/${LIC_OFF}/notes/NOPE`, undefined, kickOnlyToken)).status).toBe(404);
+
+        const firstId = players[1].noteHistory![0].id;
+        const deleted = await call('DELETE', `/api/v1/players/${LIC_OFF}/notes/${firstId}`, undefined, kickOnlyToken);
+        expect(deleted.status).toBe(200);
+        expect(deleted.json.data.note.text).toBe('first');
+        expect(players[1].noteHistory?.map((n) => n.text)).toEqual(['second']);
+        expect(adminLog.some((l) => l.endsWith(`: Deleted note ${firstId} from ${LIC_OFF}`))).toBe(true);
     });
 });
 

@@ -32,6 +32,7 @@ import type {
     ApiOkResp,
     ApiOnlinePlayersResp,
     ApiPlayerDetailResp,
+    ApiPlayerNoteResp,
     ApiPlayerSearchResp,
     ApiPlayersStatsResp,
     ApiResourceCommandResp,
@@ -243,7 +244,10 @@ export class TxAdminClient {
         kick: (license: string, input: ApiKickPlayerReq = {}) => this.post<ApiOkResp>(`/players/${encodeURIComponent(license)}/kick`, input),
         message: (license: string, input: ApiMessagePlayerReq) => this.post<ApiOkResp>(`/players/${encodeURIComponent(license)}/message`, input),
         setWhitelist: (license: string, input: ApiSetWhitelistReq) => this.put<ApiOkResp>(`/players/${encodeURIComponent(license)}/whitelist`, input),
+        /** Legacy: appends like addNote. */
         setNote: (license: string, input: ApiSetNoteReq) => this.put<ApiOkResp>(`/players/${encodeURIComponent(license)}/note`, input),
+        addNote: (license: string, input: ApiSetNoteReq) => this.post<ApiPlayerNoteResp>(`/players/${encodeURIComponent(license)}/notes`, input),
+        deleteNote: (license: string, noteId: string) => this.delete<ApiPlayerNoteResp>(`/players/${encodeURIComponent(license)}/notes/${encodeURIComponent(noteId)}`),
     };
 
     //MARK: Actions

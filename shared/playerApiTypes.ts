@@ -13,6 +13,13 @@ export type PlayerHistoryItem = {
     revokedAt?: number;
 }
 
+export type PlayerNoteItem = {
+    id: string;
+    text: string;
+    author: string;
+    ts: number;
+}
+
 export type PlayerModalPlayerData = {
     //common
     displayName: string;
@@ -34,8 +41,7 @@ export type PlayerModalPlayerData = {
     tsJoined?: number;
     tsWhitelisted?: number;
     playTime?: number;
-    notesLog?: string;
-    notes?: string;
+    noteHistory?: PlayerNoteItem[]; //newest first
     tsLastConnection?: number; //only show if offline
 }
 
@@ -72,6 +78,7 @@ export type PlayerCharactersResp = {
     status: 'unavailable';
     reason: string;
 } | GenericApiErrorResp;
+
 
 
 /**

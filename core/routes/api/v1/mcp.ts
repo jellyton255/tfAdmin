@@ -13,7 +13,7 @@ import { idParamSchema as webhookIdParamSchema } from './webhooks';
 import { banIdsBodySchema } from './actionWrites';
 import { identifierBodySchema, reqIdParamSchema, denyAllBodySchema } from './whitelistWrites';
 import {
-    banBodySchema, warnBodySchema, kickBodySchema, messageBodySchema, whitelistBodySchema, noteBodySchema,
+    banBodySchema, warnBodySchema, kickBodySchema, messageBodySchema, whitelistBodySchema, noteBodySchema, noteIdParamSchema,
 } from './playerWrites';
 import {
     controlParamSchema, announceBodySchema, kickAllBodySchema, commandBodySchema, resourceParamSchema,
@@ -101,7 +101,7 @@ export const MCP_TOOLS: ToolDefinition[] = [
     {
         name: 'tfadmin_players_get',
         title: 'Read Player',
-        description: 'One player in full by license: identifiers, hardware ids, play time, notes, the current session if online, and every ban and warning.',
+        description: 'One player in full by license: identifiers, hardware ids, play time, staff notes (noteHistory, newest first), the current session if online, and every ban and warning.',
         input: licenseParamSchema.shape,
         annotations: readOnly,
         request: ({ license }) => ({ method: 'GET', path: `/players/${enc(license)}` }),
@@ -152,13 +152,22 @@ export const MCP_TOOLS: ToolDefinition[] = [
         request: ({ license, ...body }) => ({ method: 'PUT', path: `/players/${enc(license)}/whitelist`, body }),
     },
     {
-        name: 'tfadmin_players_set_note',
-        title: 'Set Player Note',
-        description: 'Replace the staff note on a player by license. An empty note clears it. Read the current note with tfadmin_players_get first.',
+        name: 'tfadmin_players_add_note',
+        title: 'Add Player Note',
+        description: 'Add a staff note to a player by license. Earlier notes are kept; read them with tfadmin_players_get.',
         scopes: ['players.note'],
         input: { ...licenseParamSchema.shape, ...noteBodySchema.shape },
+        annotations: write,
+        request: ({ license, ...body }) => ({ method: 'POST', path: `/players/${enc(license)}/notes`, body }),
+    },
+    {
+        name: 'tfadmin_players_delete_note',
+        title: 'Delete Player Note',
+        description: 'Delete one staff note from a player by license and note id (from noteHistory in tfadmin_players_get).',
+        scopes: ['players.note'],
+        input: { ...licenseParamSchema.shape, ...noteIdParamSchema.shape },
         annotations: destructive,
-        request: ({ license, ...body }) => ({ method: 'PUT', path: `/players/${enc(license)}/note`, body }),
+        request: ({ license, noteId }) => ({ method: 'DELETE', path: `/players/${enc(license)}/notes/${enc(noteId)}` }),
     },
 
     //Bans and warnings

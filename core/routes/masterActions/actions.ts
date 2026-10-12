@@ -67,7 +67,7 @@ async function handleCleanDatabase(ctx: AuthedCtx) {
     //Prepare filters
     const playersFilter = (x: DatabasePlayerType) => {
         if (players === 'none') return false;
-        return olderThan(x.tsLastConnection, parseInt(players)) && !x.notes;
+        return olderThan(x.tsLastConnection, parseInt(players)) && !x.noteHistory?.length;
     };
     const bansFilter = (x: DatabaseActionType) => {
         if (x.type !== 'ban' || bans === 'none') return false;

@@ -62,6 +62,8 @@ export default () => {
     router.post('/players/:license/message', apiKeyAuthMw('players.direct_message'), v1.players_message as any);
     router.put('/players/:license/whitelist', apiKeyAuthMw('players.whitelist'), v1.players_whitelist as any);
     router.put('/players/:license/note', apiKeyAuthMw('players.note'), v1.players_note as any);
+    router.post('/players/:license/notes', apiKeyAuthMw('players.note'), v1.players_addNote as any);
+    router.delete('/players/:license/notes/:noteId', apiKeyAuthMw('players.note'), v1.players_deleteNote as any);
 
     //Actions (bans/warns) writes
     router.post('/actions/ban-identifiers', apiKeyAuthMw('players.ban'), v1.actions_banIds as any);

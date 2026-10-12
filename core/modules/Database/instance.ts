@@ -14,7 +14,7 @@ import { TimeCounter } from '@modules/Metrics/statsUtils.js';
 const console = consoleFactory(modulename);
 
 //Consts & helpers
-export const DATABASE_VERSION = 5;
+export const DATABASE_VERSION = 6;
 export const defaultDatabase = {
     version: DATABASE_VERSION,
     actions: [],

@@ -152,11 +152,15 @@ const schemas: Record<string, Schema> = {
     }),
     PlayerDetail: {
         allOf: [ref('PlayerSummary'), obj({
-            ids: arr(str()), hwids: arr(str()), notesLastEditedBy: nullable(str()), notesLastEditedAt: nullable(epochMs()),
+            ids: arr(str()), hwids: arr(str()),
+            notesLastEditedBy: nullable(str({ description: 'Author of the newest note; `notes` holds its text' })),
+            notesLastEditedAt: nullable(epochMs('Time of the newest note')),
+            noteHistory: arr(ref('PlayerNote')),
             session: nullable(obj({ netid: int(), connectedAt: epochMs(), idsOnline: arr(str()), hwidsOnline: arr(str()) })),
             actions: arr(ref('Action')),
         })],
     },
+    PlayerNote: obj({ id: str(), text: str(), author: str(), createdAt: epochMs() }),
     PlayersStats: obj({ total: int(), playedLast24h: int(), joinedLast24h: int(), joinedLast7d: int(), onlineNow: int() }),
     Action: obj({
         id: str(), type: enumOf(['ban', 'warn']), playerName: nullable(str()), ids: arr(str()), hwids: arr(str()),
@@ -361,8 +365,24 @@ const paths: Record<string, Schema> = {
     },
     '/players/{license}/note': {
         put: op({
-            tag: 'Players', summary: 'Set player note', permission: 'players.note', params: [licenseParam],
-            body: obj({ note: str({ maxLength: 2048 }) }), response: ref('Ok'), errors: [404],
+            tag: 'Players', summary: 'Add player note (legacy)', permission: 'players.note', params: [licenseParam],
+            description: 'Kept for older clients. Appends the note to the player\'s note history like `POST /players/{license}/notes`; '
+                + 'it no longer replaces earlier notes, and an empty note is rejected.',
+            body: obj({ note: str({ minLength: 1, maxLength: 4096 }) }), response: ref('Ok'), errors: [404, 409],
+        }),
+    },
+    '/players/{license}/notes': {
+        post: op({
+            tag: 'Players', summary: 'Add player note', permission: 'players.note', params: [licenseParam],
+            body: obj({ note: str({ minLength: 1, maxLength: 4096 }) }),
+            response: obj({ note: ref('PlayerNote') }), status: 201, errors: [404, 409],
+        }),
+    },
+    '/players/{license}/notes/{noteId}': {
+        delete: op({
+            tag: 'Players', summary: 'Delete player note', permission: 'players.note',
+            params: [licenseParam, paramPath('noteId', str())],
+            response: obj({ note: ref('PlayerNote') }), errors: [404],
         }),
     },
     '/actions': {

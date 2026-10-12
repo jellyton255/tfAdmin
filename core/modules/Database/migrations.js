@@ -5,6 +5,7 @@ import { DATABASE_VERSION, defaultDatabase } from './instance.js'; //FIXME: circ
 import { now } from '@lib/misc.js';
 import consoleFactory from '@lib/console.js';
 import fatalError from '@lib/fatalError.js';
+import { migrateLegacyNote } from '@lib/player/playerNotes.js';
 const console = consoleFactory(modulename);
 
 
@@ -158,6 +159,25 @@ export default async (dbo) => {
 
         //Saving db
         dbo.data.version = 5;
+        await dbo.write();
+    }
+
+    if (dbo.data.version === 5) {
+        console.warn('Updating your players database from v5 to v6.');
+        console.warn('This process will turn each player note into the first entry of its note history.');
+
+        //Migrating players
+        let migratedNotes = 0;
+        for (const player of dbo.data.players) {
+            const noteHistory = migrateLegacyNote(player.noteHistory ?? player.notes, player.tsJoined);
+            if (noteHistory) migratedNotes++;
+            player.noteHistory = noteHistory;
+            player.notes = undefined;
+        }
+        console.warn(`Players with notes: ${migratedNotes}`);
+
+        //Saving db
+        dbo.data.version = 6;
         await dbo.write();
     }
 

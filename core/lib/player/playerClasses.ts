@@ -4,6 +4,7 @@ import { DatabaseActionWarnType, DatabasePlayerType, DatabaseWhitelistApprovalsT
 import { cloneDeep, union } from 'lodash-es';
 import { now } from '@lib/misc';
 import { parsePlayerIds } from '@lib/player/idUtils';
+import { appendNote } from '@lib/player/playerNotes';
 import consoleFactory from '@lib/console';
 import consts from '@shared/consts';
 import type FxPlayerlist from '@modules/FxPlayerlist';
@@ -83,18 +84,27 @@ export class BasePlayer {
     }
 
     /**
-     * Saves notes for this player.
+     * Appends a note to this player's note history and returns it.
      * NOTE: Techinically, we should be checking this.isRegistered, but not available in BasePlayer
      */
-    setNote(text: string, author: string) {
-        if (!this.license) throw new Error(`cannot save notes for a player that has no license`);
-        this.mutateDbData({
-            notes: {
-                text,
-                lastAdmin: author,
-                tsLastEdit: now(),
-            }
-        });
+    addNote(text: string, author: string) {
+        if (!this.license || !this.dbData) throw new Error(`cannot save notes for a player that is not registered`);
+        const { history, note } = appendNote(this.dbData.noteHistory, text, author, now());
+        this.mutateDbData({ noteHistory: history });
+        return note;
+    }
+
+    /**
+     * Removes one note from this player's note history and returns it.
+     */
+    deleteNote(noteId: string) {
+        if (!this.license || !this.dbData) throw new Error(`cannot delete notes for a player that is not registered`);
+        const history = this.dbData.noteHistory ?? [];
+        const note = history.find((x) => x.id === noteId);
+        if (!note) throw new Error(`note not found`);
+        const remaining = history.filter((x) => x.id !== noteId);
+        this.mutateDbData({ noteHistory: remaining.length ? remaining : undefined });
+        return note;
     }
 
     /**

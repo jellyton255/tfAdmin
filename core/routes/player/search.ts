@@ -7,6 +7,7 @@ import cleanPlayerName from '@shared/cleanPlayerName';
 import { chain as createChain } from 'lodash-es';
 import Fuse from 'fuse.js';
 import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
+import { newestNote } from '@lib/player/playerNotes';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
 const console = consoleFactory(modulename);
 
@@ -73,7 +74,7 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
                 'isAdmin': (p: DatabasePlayerType) => p.ids.some((id) => adminsIdentifiers.includes(id)),
                 'isOnline': (p: DatabasePlayerType) => onlinePlayersLicenses.has(p.license),
                 'isWhitelisted': (p: DatabasePlayerType) => p.tsWhitelisted,
-                'hasNote': (p: DatabasePlayerType) => p.notes,
+                'hasNote': (p: DatabasePlayerType) => !!p.noteHistory?.length,
             };
             chain = chain.filter((p) => {
                 for (const filterName of validRequestedFilters) {
@@ -125,7 +126,7 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
             //Searching by player notes
             const players = chain.value();
             const fuse = new Fuse(players, {
-                keys: ['notes.text'],
+                keys: ['noteHistory.text'],
                 threshold: 0.3
             });
             const filtered = fuse.search(searchValue).map(x => x.item);
@@ -165,7 +166,7 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
             playTime: p.playTime,
             tsJoined: p.tsJoined,
             tsLastConnection: p.tsLastConnection,
-            notes: p.notes ? p.notes.text : undefined,
+            notes: newestNote(p.noteHistory)?.text,
 
             isAdmin: p.ids.some((id) => adminsIdentifiers.includes(id)),
             isOnline: onlinePlayersLicenses.has(p.license),

@@ -10,7 +10,8 @@ export const warnBodySchema = z.object({ reason: reasonSchema.min(1) });
 export const kickBodySchema = z.object({ reason: reasonSchema.optional() });
 export const messageBodySchema = z.object({ message: z.string().trim().min(1).max(1024) });
 export const whitelistBodySchema = z.object({ whitelisted: z.boolean() });
-export const noteBodySchema = z.object({ note: z.string().max(4096) });
+export const noteBodySchema = z.object({ note: z.string().trim().min(1).max(4096) });
+export const noteIdParamSchema = z.object({ noteId: z.string().min(1).max(32) });
 
 const target = (ctx: ApiKeyCtx) => svc.resolvePlayer(licenseParamSchema.parse(ctx.params).license);
 
@@ -53,10 +54,24 @@ export async function whitelist(ctx: ApiKeyCtx) {
     return sendData(ctx, { ok: true as const });
 };
 
-/** PUT /api/v1/players/:license/note  (players.note) */
+/** PUT /api/v1/players/:license/note  (players.note) - kept for older clients; appends like POST /notes */
 export async function note(ctx: ApiKeyCtx) {
     const player = target(ctx);
     const body = noteBodySchema.parse(ctx.request.body);
-    svc.setPlayerNote(ctx.admin, player, body.note);
+    svc.addPlayerNote(ctx.admin, player, body.note);
     return sendData(ctx, { ok: true as const });
+};
+
+/** POST /api/v1/players/:license/notes  (players.note) */
+export async function addNote(ctx: ApiKeyCtx) {
+    const player = target(ctx);
+    const body = noteBodySchema.parse(ctx.request.body);
+    return sendData(ctx, { note: svc.addPlayerNote(ctx.admin, player, body.note) }, 201);
+};
+
+/** DELETE /api/v1/players/:license/notes/:noteId  (players.note) */
+export async function deleteNote(ctx: ApiKeyCtx) {
+    const player = target(ctx);
+    const { noteId } = noteIdParamSchema.parse(ctx.params);
+    return sendData(ctx, { note: svc.deletePlayerNote(ctx.admin, player, noteId) });
 };

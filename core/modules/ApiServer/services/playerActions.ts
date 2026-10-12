@@ -5,6 +5,7 @@ import { ServerPlayer, type PlayerClass } from '@lib/player/playerClasses';
 import type { AuthedAdmin } from '@modules/WebServer/authLogic';
 import { ApiError } from '../envelope';
 import { toApiAction } from '@routes/api/v1/actions';
+import { toApiNote } from '@routes/api/v1/players';
 import type { ApiActionRecord } from '@shared/apiV1Types';
 
 /**
@@ -187,11 +188,31 @@ export const setPlayerWhitelist = (admin: AuthedAdmin, player: PlayerClass, whit
 };
 
 
-export const setPlayerNote = (admin: AuthedAdmin, player: PlayerClass, noteInput: string) => {
+/**
+ * Appends a staff note to the player's note history.
+ */
+export const addPlayerNote = (admin: AuthedAdmin, player: PlayerClass, noteInput: string) => {
+    const text = noteInput.trim();
+    if (!text.length) {
+        throw new ApiError(400, 'VALIDATION_ERROR', 'Cannot save an empty note.', { field: 'note' });
+    }
+    let note;
     try {
-        player.setNote(noteInput.trim(), admin.name);
+        note = player.addNote(text, admin.name);
     } catch (error) {
         throw new ApiError(409, 'CONFLICT', `Failed to save note: ${(error as Error).message}`);
     }
     admin.logAction(`Set notes for ${player.license}`);
+    return toApiNote(note);
+};
+
+
+export const deletePlayerNote = (admin: AuthedAdmin, player: PlayerClass, noteId: string) => {
+    const dbData = player.getDbData();
+    if (!dbData || !dbData.noteHistory?.some((note) => note.id === noteId)) {
+        throw new ApiError(404, 'NOT_FOUND', 'Note not found.', { noteId });
+    }
+    const note = player.deleteNote(noteId);
+    admin.logAction(`Deleted note ${noteId} from ${player.license}`);
+    return toApiNote(note);
 };

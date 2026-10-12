@@ -11,6 +11,9 @@ import { decodeCursor, limitSchema, paginate, secToMs } from '@modules/ApiServer
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { ApiPlayerDetail, ApiPlayerSummary } from '@shared/apiV1Types';
 import { toApiAction } from './actions';
+import { newestNote, notesNewestFirst } from '@lib/player/playerNotes';
+import type { DatabasePlayerNoteType } from '@modules/Database/databaseTypes';
+import type { ApiPlayerNote } from '@shared/apiV1Types';
 
 const licenseSchema = z.string().regex(/^[0-9a-f]{40}$/i, 'license must be 40 hex characters');
 export const licenseParamSchema = z.object({ license: licenseSchema });
@@ -43,9 +46,17 @@ const toSummary = (
     joinedAt: secToMs(p.tsJoined) ?? 0,
     lastConnectionAt: secToMs(p.tsLastConnection) ?? 0,
     whitelistedAt: secToMs(p.tsWhitelisted),
-    notes: p.notes?.text ?? null,
+    notes: newestNote(p.noteHistory)?.text ?? null,
     isAdmin: p.ids.some((id) => adminIds.includes(id)),
     isOnline: onlineLicenses.has(p.license),
+});
+
+
+export const toApiNote = (note: DatabasePlayerNoteType): ApiPlayerNote => ({
+    id: note.id,
+    text: note.text,
+    author: note.author,
+    createdAt: secToMs(note.ts) ?? 0,
 });
 
 
@@ -90,7 +101,7 @@ export async function search(ctx: ApiKeyCtx) {
         isAdmin: (p) => p.ids.some((id) => adminIds.includes(id)),
         isOnline: (p) => onlineLicenses.has(p.license),
         isWhitelisted: (p) => !!p.tsWhitelisted,
-        hasNote: (p) => !!p.notes?.text,
+        hasNote: (p) => !!p.noteHistory?.length,
     };
 
     let players = txCore.database.players.findMany((p: DatabasePlayerType) => {
@@ -110,7 +121,7 @@ export async function search(ctx: ApiKeyCtx) {
             const fuse = new Fuse(players, { isCaseSensitive: true, keys: ['pureName'], threshold: 0.3 });
             players = fuse.search(pureName).map((x) => x.item);
         } else if (query.type === 'notes') {
-            const fuse = new Fuse(players, { keys: ['notes.text'], threshold: 0.3 });
+            const fuse = new Fuse(players, { keys: ['noteHistory.text'], threshold: 0.3 });
             players = fuse.search(query.q).map((x) => x.item);
         } else {
             const { validIds, validHwids, invalids } = parseLaxIdsArrayInput(query.q);
@@ -158,12 +169,14 @@ export async function get(ctx: ApiKeyCtx) {
     const adminIds = txCore.adminStore.getAdminsIdentifiers();
     const onlineLicenses = txCore.fxPlayerlist.getOnlinePlayersLicenses();
     const currTs = now();
+    const lastNote = newestNote(dbData.noteHistory);
     const detail: ApiPlayerDetail = {
         ...toSummary(dbData, adminIds, onlineLicenses),
         ids: dbData.ids,
         hwids: dbData.hwids,
-        notesLastEditedBy: dbData.notes?.lastAdmin ?? null,
-        notesLastEditedAt: secToMs(dbData.notes?.tsLastEdit),
+        notesLastEditedBy: lastNote?.author ?? null,
+        notesLastEditedAt: secToMs(lastNote?.ts),
+        noteHistory: notesNewestFirst(dbData.noteHistory).map(toApiNote),
         session: player instanceof ServerPlayer && player.isConnected ? {
             netid: player.netid,
             connectedAt: secToMs(player.tsConnected) ?? 0,

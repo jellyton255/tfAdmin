@@ -8,11 +8,23 @@ export type DatabasePlayerType = {
     tsLastConnection: number;
     tsJoined: number;
     tsWhitelisted?: number;
-    notes?: {
-        text: string;
-        lastAdmin: string | null;
-        tsLastEdit: number | null;
-    };
+    noteHistory?: DatabasePlayerNoteType[]; //oldest first, absent when empty
+};
+
+export type DatabasePlayerNoteType = {
+    id: string;
+    text: string;
+    author: string;
+    ts: number;
+};
+
+/**
+ * The single overwritable note of database v5 and older, migrated into `noteHistory` on v6.
+ */
+export type DatabaseLegacyPlayerNoteType = {
+    text: string;
+    lastAdmin: string | null;
+    tsLastEdit: number | null;
 };
 
 export type DatabaseActionBaseType = {

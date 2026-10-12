@@ -31,7 +31,10 @@ const players: DatabasePlayerType[] = [
         license: LIC_A, ids: [`license:${LIC_A}`, 'discord:11111111111111111', 'fivem:1001'], hwids: ['hwid1'],
         displayName: 'Alice', pureName: 'alice', playTime: 500,
         tsLastConnection: nowSec - 100, tsJoined: nowSec - 100_000, tsWhitelisted: nowSec - 50_000,
-        notes: { text: 'nice player', lastAdmin: 'julian', tsLastEdit: nowSec - 10 },
+        noteHistory: [
+            { id: 'NOTE0001', text: 'spoke about rdm', author: 'casey', ts: nowSec - 500 },
+            { id: 'NOTE0002', text: 'nice player', author: 'julian', ts: nowSec - 10 },
+        ],
     },
     {
         license: LIC_B, ids: [`license:${LIC_B}`, 'fivem:1002'], hwids: [],
@@ -275,6 +278,8 @@ describe('players', () => {
         expect(online.json.data.player.session.netid).toBe(7);
         expect(online.json.data.player.ids).toContain('discord:11111111111111111');
         expect(online.json.data.player.notesLastEditedBy).toBe('julian');
+        expect(online.json.data.player.notesLastEditedAt).toBe((nowSec - 10) * 1000);
+        expect(online.json.data.player.noteHistory.map((n: any) => n.id)).toEqual(['NOTE0002', 'NOTE0001']);
         expect(online.json.data.player.actions.map((a: any) => a.id)).toEqual(['BAN1-AAAA']);
         expect(online.json.data.player.actions[0].banStatus).toBe('permanent');
 

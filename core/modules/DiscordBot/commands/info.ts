@@ -1,6 +1,7 @@
 const modulename = 'DiscordBot:cmd:info';
 import { APIEmbedField, CommandInteraction, EmbedBuilder, EmbedData } from 'discord.js';
 import { parsePlayerId } from '@lib/player/idUtils';
+import { newestNote } from '@lib/player/playerNotes';
 import { embedder } from '../discordHelpers';
 import { findPlayersByIdentifier } from '@lib/player/playerFinder';
 import { txEnv } from '@core/globalData';
@@ -114,7 +115,7 @@ export default async (interaction: CommandInteraction) => {
             bodyText['Log'] = `${banText}, ${warnText}`;
 
             //Filling notes + identifiers
-            const notesText = (dbData.notes) ? dbData.notes.text : 'nothing here';
+            const notesText = newestNote(dbData.noteHistory)?.text ?? 'nothing here';
             const idsText = (dbData.ids.length) ? dbData.ids.join('\n') : 'nothing here';
             fields = [
                 {
