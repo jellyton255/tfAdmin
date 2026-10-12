@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, LogInIcon } from "lucide-react";
+import { KeyRoundIcon, Loader2, LogInIcon } from "lucide-react";
 import { ApiOauthRedirectResp, ApiVerifyPasswordReq, ApiVerifyPasswordResp } from '@shared/authApiTypes';
 import { useAuth } from '@/hooks/auth';
 import './cfxreLoginButton.css';
@@ -12,6 +12,8 @@ import { fetchWithTimeout } from '@/hooks/fetch';
 import { processFetchError } from './errors';
 import { ServerGlowIcon } from '@/components/serverIcon';
 import { LocalStorageKey } from '@/lib/localStorage';
+import { browserSupportsWebAuthnAutofill, startAuthentication, WebAuthnAbortService } from '@simplewebauthn/browser';
+import { canUsePasskeys, isPasskeyPromptDismissed, PasskeyLoginOptionsResp, signalUnknownPasskey } from '@/lib/passkeys';
 
 
 function HeaderNoServer() {
@@ -67,7 +69,7 @@ export enum LogoutReasonHash {
 
 export default function Login() {
     const { setAuthData } = useAuth();
-    const usernameRef = useRef<HTMLInputElement>(null);
+    const usernameRef = useRef<HTMLInputElement | null>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
     const [errorMessage, setErrorMessage] = useState<string | undefined>();
     const [isFetching, setIsFetching] = useState(false);
@@ -116,6 +118,78 @@ export default function Login() {
             setIsFetching(false);
         }
     }
+
+    const handleVerifyError = (error: string) => {
+        if (error === 'refreshToUpdate') {
+            window.location.href = `/login${LogoutReasonHash.UPDATED}`;
+            window.location.reload();
+        } else {
+            onErrorResponse(error);
+        }
+    }
+
+    /**
+     * Runs a passkey login, either from the button (browser prompt) or from the username field's
+     * autofill suggestions. The autofill request stays pending until the user picks a passkey,
+     * so it is armed again after the server rejects an attempt or the button's prompt finishes.
+     * An aborted autofill request is not re-armed: the button's prompt replaced it or the page is leaving.
+     */
+    const runPasskeyLogin = async (useBrowserAutofill: boolean) => {
+        let rearm = !useBrowserAutofill;
+        try {
+            const optionsResp = await fetchWithTimeout<PasskeyLoginOptionsResp>('/auth/passkey/options', {
+                method: 'POST',
+                body: {},
+            });
+            if ('error' in optionsResp) {
+                if (!useBrowserAutofill) onErrorResponse(optionsResp.error);
+                return;
+            }
+            const response = await startAuthentication({ optionsJSON: optionsResp.options, useBrowserAutofill });
+
+            setIsFetching(true);
+            const data = await fetchWithTimeout<ApiVerifyPasswordResp>(
+                `/auth/passkey/verify?uiVersion=${encodeURIComponent(window.txConsts.txaVersion)}`,
+                { method: 'POST', body: { response } },
+            );
+            rearm = true;
+            if (!('error' in data)) {
+                rearm = false;
+                setAuthData(data);
+            } else if (data.error === 'unknown_passkey') {
+                signalUnknownPasskey(response.id);
+                setErrorMessage('This passkey is not registered for this server.');
+            } else if (data.error === 'challenge_expired') {
+                setErrorMessage('The passkey request expired.\nPlease try again.');
+            } else {
+                handleVerifyError(data.error);
+            }
+        } catch (error) {
+            //an autofill request that fails outright is not retried, or a network error would loop
+            rearm = !useBrowserAutofill;
+            if (!isPasskeyPromptDismissed(error)) onError(error);
+        } finally {
+            setIsFetching(false);
+            if (rearm) armPasskeyAutofill();
+        }
+    }
+
+    const armPasskeyAutofill = () => {
+        browserSupportsWebAuthnAutofill().then((supported) => {
+            if (supported && usernameRef.current) runPasskeyLogin(true);
+        });
+    }
+
+    //Arms the passkey autofill when the username field mounts, and cancels it when it unmounts
+    const usernameInputRef = useCallback((el: HTMLInputElement | null) => {
+        usernameRef.current = el;
+        if (!canUsePasskeys()) return;
+        if (el) {
+            armPasskeyAutofill();
+        } else {
+            WebAuthnAbortService.cancelCeremony();
+        }
+    }, []);
 
     const handleRedirect = async () => {
         try {
@@ -191,11 +265,11 @@ export default function Login() {
                     </Label>
                     <Input
                         id="frm-login"
-                        ref={usernameRef}
+                        ref={usernameInputRef}
                         type="text"
                         placeholder="username"
                         autoCapitalize='off'
-                        autoComplete='off'
+                        autoComplete='username webauthn'
                         className="col-span-6"
                         required
                     />
@@ -236,6 +310,20 @@ export default function Login() {
                         <LogInIcon className="inline mr-2 h-4 w-4" />
                     )} Login with Cfx.re
                 </Button>
+                {canUsePasskeys() && (
+                    <Button
+                        type="button"
+                        variant='outline'
+                        disabled={isFetching}
+                        onClick={() => runPasskeyLogin(false)}
+                    >
+                        {isFetching ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <KeyRoundIcon className="inline mr-2 h-4 w-4" />
+                        )} Login with Passkey
+                    </Button>
+                )}
             </CardContent>
         </form>
     );

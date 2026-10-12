@@ -17,6 +17,7 @@ import consts from "@shared/consts";
 import { txToast } from "@/components/TxToaster";
 import useSWR from 'swr';
 import TxAnchor from "@/components/TxAnchor";
+import AccountPasskeysTab from "./AccountPasskeysTab";
 
 
 /**
@@ -357,12 +358,14 @@ export default function AccountDialog() {
                     value={accountModalTab}
                     onValueChange={setAccountModalTab}
                 >
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsList className="grid w-full grid-cols-3 mb-4">
                         <TabsTrigger value="password">Password</TabsTrigger>
                         <TabsTrigger value="identifiers" disabled={authData.isTempPassword}>Identifiers</TabsTrigger>
+                        <TabsTrigger value="passkeys" disabled={authData.isTempPassword}>Passkeys</TabsTrigger>
                     </TabsList>
                     <ChangePasswordTab />
                     <ChangeIdentifiersTab />
+                    <AccountPasskeysTab />
                 </Tabs>
             </DialogContent>
         </Dialog>
