@@ -28,7 +28,7 @@ const LIC_C = 'c'.repeat(40);
 
 const players: DatabasePlayerType[] = [
     {
-        license: LIC_A, ids: [`license:${LIC_A}`, 'discord:11111111111111111', 'fivem:1001'], hwids: ['hwid1'],
+        license: LIC_A, ids: [`license:${LIC_A}`, 'discord:11111111111111111', 'fivem:1001', 'ip:10.0.0.1'], hwids: ['hwid1'],
         displayName: 'Alice', pureName: 'alice', playTime: 500,
         tsLastConnection: nowSec - 100, tsJoined: nowSec - 100_000, tsWhitelisted: nowSec - 50_000,
         noteHistory: [
@@ -37,12 +37,12 @@ const players: DatabasePlayerType[] = [
         ],
     },
     {
-        license: LIC_B, ids: [`license:${LIC_B}`, 'fivem:1002'], hwids: [],
+        license: LIC_B, ids: [`license:${LIC_B}`, 'fivem:1002', 'ip:10.0.0.1'], hwids: [],
         displayName: 'Bob', pureName: 'bob', playTime: 20,
         tsLastConnection: nowSec - 5000, tsJoined: nowSec - 6000,
     },
     {
-        license: LIC_C, ids: [`license:${LIC_C}`, 'discord:33333333333333333'], hwids: [],
+        license: LIC_C, ids: [`license:${LIC_C}`, 'discord:33333333333333333'], hwids: ['hwid1'],
         displayName: 'Carol', pureName: 'carol', playTime: 90,
         tsLastConnection: nowSec - 200, tsJoined: nowSec - 300,
     },
@@ -289,6 +289,21 @@ describe('players', () => {
 
         expect((await get(`/api/v1/players/${'f'.repeat(40)}`)).status).toBe(404);
         expect((await get('/api/v1/players/not-a-license')).status).toBe(400);
+    });
+
+    it('lists linked accounts by shared identifier or hwid, never by ip', async () => {
+        const fromAlice = await get(`/api/v1/players/${LIC_A}/linked`);
+        expect(fromAlice.status).toBe(200);
+        expect(fromAlice.json.data).toMatchObject({ ignoredHwids: [], truncated: false });
+        expect(fromAlice.json.data.players).toEqual([expect.objectContaining({
+            license: LIC_C, matchedIds: [], matchedHwids: ['hwid1'], warnCount: 0,
+            isBanned: true, banCount: 1, //Alice's ban also covers hwid1
+        })]);
+
+        const fromCarol = await get(`/api/v1/players/${LIC_C}/linked`);
+        expect(fromCarol.json.data.players).toEqual([expect.objectContaining({
+            license: LIC_A, isOnline: true, isBanned: true, banCount: 1,
+        })]);
     });
 });
 

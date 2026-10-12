@@ -12,8 +12,9 @@ import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { ApiPlayerDetail, ApiPlayerSummary } from '@shared/apiV1Types';
 import { toApiAction } from './actions';
 import { newestNote, notesNewestFirst } from '@lib/player/playerNotes';
+import { getLinkedAccounts } from '@lib/player/linkedAccounts';
 import type { DatabasePlayerNoteType } from '@modules/Database/databaseTypes';
-import type { ApiPlayerNote } from '@shared/apiV1Types';
+import type { ApiLinkedPlayer, ApiPlayerNote } from '@shared/apiV1Types';
 
 const licenseSchema = z.string().regex(/^[0-9a-f]{40}$/i, 'license must be 40 hex characters');
 export const licenseParamSchema = z.object({ license: licenseSchema });
@@ -188,4 +189,38 @@ export async function get(ctx: ApiKeyCtx) {
             .map((a) => toApiAction(a, currTs)),
     };
     return sendData(ctx, { player: detail });
+};
+
+
+/**
+ * GET /api/v1/players/:license/linked - other players sharing an identifier (not IP) or HWID
+ */
+export async function linked(ctx: ApiKeyCtx) {
+    const { license } = licenseParamSchema.parse(ctx.params);
+    let player;
+    try {
+        player = playerResolver(undefined, undefined, license.toLowerCase());
+    } catch (error) {
+        throw new ApiError(404, 'NOT_FOUND', 'Player not found.', { license });
+    }
+
+    const onlineLicenses = txCore.fxPlayerlist.getOnlinePlayersLicenses();
+    const result = getLinkedAccounts({
+        license: player.license,
+        ids: player.allIdentifiers,
+        hwids: player.allHardwareIdentifiers,
+    }, now());
+    const players = result.matches.map(({ player: p, ...match }): ApiLinkedPlayer => ({
+        license: p.license,
+        displayName: p.displayName,
+        playTime: p.playTime,
+        lastConnectionAt: secToMs(p.tsLastConnection) ?? 0,
+        isOnline: onlineLicenses.has(p.license),
+        matchedIds: match.matchedIds,
+        matchedHwids: match.matchedHwids,
+        isBanned: match.isBanned,
+        banCount: match.banCount,
+        warnCount: match.warnCount,
+    }));
+    return sendData(ctx, { players, ignoredHwids: result.ignoredHwids, truncated: result.truncated });
 };

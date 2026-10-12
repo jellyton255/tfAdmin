@@ -107,6 +107,14 @@ export const MCP_TOOLS: ToolDefinition[] = [
         request: ({ license }) => ({ method: 'GET', path: `/players/${enc(license)}` }),
     },
     {
+        name: 'tfadmin_players_linked',
+        title: 'Linked Accounts',
+        description: 'Other players that share an identifier (license, license2, discord, fivem, steam, live, xbl; never IP) or a hardware id with this license, with what matched and whether each one is banned. At most 50, strongest links first; hardware ids shared by more than 25 players are skipped and listed in ignoredHwids.',
+        input: licenseParamSchema.shape,
+        annotations: readOnly,
+        request: ({ license }) => ({ method: 'GET', path: `/players/${enc(license)}/linked` }),
+    },
+    {
         name: 'tfadmin_players_ban',
         title: 'Ban Player',
         description: `Ban a player by license. Kicks them if online. ${durationHelp}`,

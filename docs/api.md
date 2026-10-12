@@ -141,6 +141,7 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/players/stats` | any valid key | Totals: `total`, `playedLast24h`, `joinedLast24h`, `joinedLast7d`, `onlineNow` |
 | `GET /api/v1/players` | any valid key | Database search, paginated. Query: `q` with `type=name\|ids\|notes`, `filter=isOnline,isAdmin,isWhitelisted,hasNote`, `sort=tsLastConnection\|tsJoined\|playTime`, `order=desc\|asc` |
 | `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history. `noteHistory` lists every note newest first; `notes`, `notesLastEditedBy` and `notesLastEditedAt` describe the newest one |
+| `GET /api/v1/players/{license}/linked` | any valid key | Up to 50 other players that share an identifier (never an IP) or a HWID, with what matched and their ban state. HWIDs shared by more than 25 players are skipped and listed in `ignoredHwids`; `truncated` flags a cut list |
 | `GET /api/v1/actions` | any valid key | Bans and warns, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`name` is a fuzzy player name search), `kind=ban\|warn`, `author`, `status=active\|revoked`, `order` |
 | `GET /api/v1/actions/stats` | any valid key | Totals for the last 7 days and all time, plus a per-admin count |
 | `GET /api/v1/actions/{id}` | any valid key | One action |

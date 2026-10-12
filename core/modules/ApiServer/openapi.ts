@@ -161,6 +161,13 @@ const schemas: Record<string, Schema> = {
         })],
     },
     PlayerNote: obj({ id: str(), text: str(), author: str(), createdAt: epochMs() }),
+    LinkedPlayer: obj({
+        license: str(), displayName: str(), playTime: int({ description: 'minutes' }), lastConnectionAt: epochMs(), isOnline: bool(),
+        matchedIds: arr(str({ description: 'Shared identifier (license, license2, discord, fivem, steam, live or xbl; never ip)' })),
+        matchedHwids: arr(str()),
+        isBanned: { ...bool(), description: 'Has a ban that is neither revoked nor expired' },
+        banCount: int({ description: 'Bans not revoked' }), warnCount: int({ description: 'Warns not revoked' }),
+    }),
     PlayersStats: obj({ total: int(), playedLast24h: int(), joinedLast24h: int(), joinedLast7d: int(), onlineNow: int() }),
     Action: obj({
         id: str(), type: enumOf(['ban', 'warn']), playerName: nullable(str()), ids: arr(str()), hwids: arr(str()),
@@ -330,6 +337,14 @@ const paths: Record<string, Schema> = {
         get: op({
             tag: 'Players', summary: 'Player detail with history', params: [licenseParam],
             response: obj({ player: ref('PlayerDetail') }), errors: [404],
+        }),
+    },
+    '/players/{license}/linked': {
+        get: op({
+            tag: 'Players', summary: 'Linked accounts', params: [licenseParam],
+            description: 'Other players that share an identifier (not IP) or a HWID with this one, strongest links first, at most 50. '
+                + 'HWIDs shared by more than 25 players are skipped and listed in `ignoredHwids`.',
+            response: obj({ players: arr(ref('LinkedPlayer')), ignoredHwids: arr(str()), truncated: bool() }), errors: [404],
         }),
     },
     '/players/{license}/ban': {

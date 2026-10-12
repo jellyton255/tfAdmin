@@ -35,6 +35,7 @@ export default () => {
     router.get('/players/online', apiKeyAuthMw(), v1.players_online as any);
     router.get('/players/stats', apiKeyAuthMw(), v1.players_stats as any);
     router.get('/players/:license', apiKeyAuthMw(), v1.players_get as any);
+    router.get('/players/:license/linked', apiKeyAuthMw(), v1.players_linked as any);
     router.get('/actions', apiKeyAuthMw(), v1.actions_search as any);
     router.get('/actions/stats', apiKeyAuthMw(), v1.actions_stats as any);
     router.get('/actions/:id', apiKeyAuthMw(), v1.actions_get as any);

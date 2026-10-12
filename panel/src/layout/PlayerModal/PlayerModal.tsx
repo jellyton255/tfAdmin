@@ -1,13 +1,14 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { setPlayerModalUrlParam, usePlayerModalStateValue } from "@/hooks/playerModal";
-import { InfoIcon, ListIcon, HistoryIcon, GavelIcon, UsersIcon } from "lucide-react";
+import { InfoIcon, ListIcon, HistoryIcon, GavelIcon, UsersIcon, LinkIcon } from "lucide-react";
 import PlayerInfoTab from "./PlayerInfoTab";
 import { useEffect, useState } from "react";
 import PlayerIdsTab from "./PlayerIdsTab";
 import PlayerHistoryTab from "./PlayerHistoryTab";
 import PlayerBanTab from "./PlayerBanTab";
 import PlayerCharactersTab from "./PlayerCharactersTab";
+import PlayerLinkedTab from "./PlayerLinkedTab";
 import GenericSpinner from "@/components/GenericSpinner";
 import { cn } from "@/lib/utils";
 import { useBackendApi } from "@/hooks/fetch";
@@ -28,6 +29,10 @@ const modalTabs: ModalTabInfo[] = [
     {
         title: 'IDs',
         icon: <ListIcon className="mr-2 h-5 w-5 hidden xs:block" />,
+    },
+    {
+        title: 'Linked Accounts',
+        icon: <LinkIcon className="mr-2 h-5 w-5 hidden xs:block" />,
     },
     {
         title: 'Characters',
@@ -193,6 +198,10 @@ export default function PlayerModal() {
                                     player={modalData.player}
                                     playerRef={playerRef!}
                                     refreshModalData={refreshModalData}
+                                />}
+                                {selectedTab === 'Linked Accounts' && <PlayerLinkedTab
+                                    playerRef={playerRef!}
+                                    onOpenPlayer={() => setSelectedTab(modalTabs[0].title)}
                                 />}
                                 {selectedTab === 'Characters' && <PlayerCharactersTab
                                     playerRef={playerRef!}

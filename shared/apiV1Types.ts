@@ -189,6 +189,28 @@ export type ApiPlayerDetail = ApiPlayerSummary & {
 };
 export type ApiPlayerDetailResp = ApiResp<{ player: ApiPlayerDetail }>;
 
+export type ApiLinkedPlayer = {
+    license: string;
+    displayName: string;
+    playTime: number; //minutes
+    lastConnectionAt: number; //epoch ms
+    isOnline: boolean;
+    /** Identifiers (never IPs) this player shares with the requested one. */
+    matchedIds: string[];
+    matchedHwids: string[];
+    /** Has a ban that is neither revoked nor expired. */
+    isBanned: boolean;
+    banCount: number; //not revoked
+    warnCount: number; //not revoked
+};
+export type ApiPlayerLinkedResp = ApiResp<{
+    players: ApiLinkedPlayer[];
+    /** HWIDs shared by too many players to mean anything; they were not used for matching. */
+    ignoredHwids: string[];
+    /** More players matched than were returned. */
+    truncated: boolean;
+}>;
+
 export type ApiPlayersStatsResp = ApiResp<{
     total: number;
     playedLast24h: number;

@@ -80,6 +80,27 @@ export type PlayerCharactersResp = {
 } | GenericApiErrorResp;
 
 
+/**
+ * Everfall: other players that share an identifier or HWID with the player
+ */
+export type PlayerLinkedAccount = {
+    license: string;
+    displayName: string;
+    playTime: number; //minutes
+    tsLastConnection: number;
+    isOnline: boolean;
+    matchedIds: string[];
+    matchedHwids: string[];
+    isBanned: boolean;
+    banCount: number;
+    warnCount: number;
+}
+export type PlayerLinkedAccountsResp = {
+    accounts: PlayerLinkedAccount[];
+    ignoredHwids: string[];
+    truncated: boolean;
+} | GenericApiErrorResp;
+
 
 /**
  * Used in the players page

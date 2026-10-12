@@ -817,6 +817,83 @@
         }
       }
     },
+    "/players/{license}/linked": {
+      "get": {
+        "summary": "Linked accounts",
+        "description": "Other players that share an identifier (not IP) or a HWID with this one, strongest links first, at most 50. HWIDs shared by more than 25 players are skipped and listed in `ignoredHwids`.\n\nAny valid key (read-only keys included).",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "players": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/LinkedPlayer"
+                          }
+                        },
+                        "ignoredHwids": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "truncated": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "players",
+                        "ignoredHwids",
+                        "truncated"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
     "/players/{license}/ban": {
       "post": {
         "summary": "Ban a player",
@@ -4319,6 +4396,66 @@
           "text",
           "author",
           "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "LinkedPlayer": {
+        "type": "object",
+        "properties": {
+          "license": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "playTime": {
+            "type": "integer",
+            "description": "minutes"
+          },
+          "lastConnectionAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "isOnline": {
+            "type": "boolean"
+          },
+          "matchedIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Shared identifier (license, license2, discord, fivem, steam, live or xbl; never ip)"
+            }
+          },
+          "matchedHwids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isBanned": {
+            "type": "boolean",
+            "description": "Has a ban that is neither revoked nor expired"
+          },
+          "banCount": {
+            "type": "integer",
+            "description": "Bans not revoked"
+          },
+          "warnCount": {
+            "type": "integer",
+            "description": "Warns not revoked"
+          }
+        },
+        "required": [
+          "license",
+          "displayName",
+          "playTime",
+          "lastConnectionAt",
+          "isOnline",
+          "matchedIds",
+          "matchedHwids",
+          "isBanned",
+          "banCount",
+          "warnCount"
         ],
         "additionalProperties": false
       },
