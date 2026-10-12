@@ -71,9 +71,15 @@ export type ApiChangePasswordReq = ApiChangePasswordReqSchema;
 export type ApiChangeIdentifiersReq = ApiChangeIdentifiersReqSchema;
 
 
+export type PasskeyProvider = {
+    name: string;
+    iconLight: string | null; //svg data URI for light backgrounds
+    iconDark: string | null; //svg data URI for dark backgrounds
+};
 export type PasskeyInfo = {
     id: string;
     name: string;
+    provider: PasskeyProvider | null; //from the authenticator AAGUID, null when unknown
     rpId: string;
     synced: boolean;
     createdAt: number; //epoch ms

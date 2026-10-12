@@ -41,6 +41,9 @@ describe('PasskeyStore', () => {
         const reloaded = new PasskeyStore(filePath);
         expect(reloaded.getOrCreateUserHandle('julian')).toBe(handle);
         expect(reloaded.list('JULIAN').map((p) => p.id)).toEqual(['cred1']);
+        const provider = reloaded.list('julian')[0]?.provider;
+        expect(provider?.name).toBe('Apple Passwords');
+        expect(provider?.iconLight).toMatch(/^data:image\/svg\+xml;base64,/);
         expect(fs.statSync(filePath).mode & 0o777).toBe(0o600);
     });
 
@@ -91,7 +94,8 @@ describe('PasskeyStore', () => {
     });
 
     it('names passkeys after known providers', () => {
-        expect(defaultPasskeyName('fbfc3007-154e-4ecc-8c0b-6e020557d7bd', 'multiDevice', [])).toBe('iCloud Keychain');
+        expect(defaultPasskeyName('fbfc3007-154e-4ecc-8c0b-6e020557d7bd', 'multiDevice', [])).toBe('Apple Passwords');
+        expect(defaultPasskeyName('EA9B8D66-4D01-1D21-3CE4-B6B48CB575D4', 'multiDevice', [])).toBe('Google Password Manager');
         expect(defaultPasskeyName('00000000-0000-0000-0000-000000000000', 'singleDevice', ['usb'])).toBe('Security Key');
         expect(defaultPasskeyName('00000000-0000-0000-0000-000000000000', 'multiDevice', ['hybrid'])).toBe('Passkey');
     });

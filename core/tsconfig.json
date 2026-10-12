@@ -31,6 +31,9 @@
     /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */
     "allowJs": true,
 
+    /* Allow importing JSON data files. */
+    "resolveJsonModule": true,
+
     /* Specify an output folder for all emitted files. */
     "outDir": "../.tsc/core",
 
