@@ -1,29 +1,39 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { TfadminBuild } from '@shared/tfadminStatusTypes';
 
 
 /**
- * Reads the commit from a tfAdmin build stamp (`.tfadmin-build`).
+ * Reads a tfAdmin build stamp (`.tfadmin-build`). Builds from before build
+ * numbers existed carry only a commit.
  */
-export const readBuildCommit = (dir: string) => {
+export const readBuildStamp = (dir: string): TfadminBuild | undefined => {
+    let stamp: string;
     try {
-        const stamp = fs.readFileSync(path.join(dir, '.tfadmin-build'), 'utf8');
-        return stamp.match(/^commit=(\S+)$/m)?.[1];
+        stamp = fs.readFileSync(path.join(dir, '.tfadmin-build'), 'utf8');
     } catch (error) {
-        return undefined;
+        return;
     }
+    const commit = stamp.match(/^commit=(\S+)$/m)?.[1];
+    if (!commit) return;
+    const build = stamp.match(/^build=(\d+)$/m)?.[1];
+    return { build: build ? Number(build) : null, commit };
 }
 
+export const readBuildCommit = (dir: string) => readBuildStamp(dir)?.commit;
+
+export const formatBuild = ({ build, commit }: TfadminBuild) => build ? `r${build} (${commit})` : commit;
+
 
 /**
- * Returns the commit of the tfAdmin build staged in `stageDir` when it differs from
- * the running build in `runningDir`. The host launcher installs the staged folder
- * over the monitor every time the process starts.
+ * Returns the tfAdmin build staged in `stageDir` when it differs from the running
+ * build in `runningDir`. The host launcher installs the staged folder over the
+ * monitor every time the process starts.
  */
 export const getPendingStagedBuild = (runningDir: string, stageDir: string | undefined) => {
     if (!stageDir) return;
     if (!fs.existsSync(path.join(stageDir, 'core', 'index.js'))) return;
-    const stagedCommit = readBuildCommit(stageDir);
-    if (!stagedCommit || stagedCommit === readBuildCommit(runningDir)) return;
-    return stagedCommit;
+    const staged = readBuildStamp(stageDir);
+    if (!staged || staged.commit === readBuildCommit(runningDir)) return;
+    return staged;
 }

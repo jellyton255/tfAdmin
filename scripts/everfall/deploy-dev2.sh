@@ -35,20 +35,19 @@ if (( build )); then
     GITHUB_REF="refs/tags/v${TX_VERSION}" pnpm run build
 fi
 
-if [[ ! -f dist/core/index.js ]]; then
-    echo "dist/ has no build; run without --no-build first" >&2
+if [[ ! -f dist/core/index.js || ! -f dist/.tfadmin-build ]]; then
+    echo "dist/ has no stamped build; run without --no-build first" >&2
     exit 1
 fi
 
-sha=$(git rev-parse --short HEAD)
-dirty=$(git status --porcelain --untracked-files=no | grep -q . && echo "-dirty" || true)
-
 # .runtime is FXServer's own cache; leave it in place.
 rsync -a --delete --exclude=.runtime dist/ "$MONITOR_DIR/"
-printf '%s\n' "version=${TX_VERSION}" "commit=${sha}${dirty}" "deployed=$(date -u +%FT%TZ)" \
-    > "$MONITOR_DIR/.tfadmin-build"
+# The build wrote version, build and commit into the stamp
+printf 'deployed=%s\n' "$(date -u +%FT%TZ)" >> "$MONITOR_DIR/.tfadmin-build"
+build=$(sed -n 's/^build=//p' dist/.tfadmin-build)
+commit=$(sed -n 's/^commit=//p' dist/.tfadmin-build)
 
-echo "Deployed tfAdmin ${TX_VERSION} (${sha}${dirty}) to $MONITOR_DIR"
+echo "Deployed tfAdmin r${build} (${commit}) to $MONITOR_DIR"
 
 if (( restart )); then
     PATH="$PM2_BIN_DIR:$PATH" pm2 restart "$PM2_APP"

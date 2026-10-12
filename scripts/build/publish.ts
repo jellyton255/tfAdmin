@@ -5,6 +5,7 @@ import {
     getPublishVersion,
     licenseBanner,
 } from './utils';
+import { writeBuildStamp } from './tfadminBuild';
 
 
 //Detect the tag/version and set the .cienv file
@@ -18,6 +19,7 @@ copyStaticFiles('./dist/', txVersion, 'publish');
 fs.writeFileSync('./dist/.yarn.installed', '');
 fs.writeFileSync('./dist/package.json', '{"type":"commonjs"}');
 fs.writeFileSync('./dist/LICENSE.txt', licenseBanner());
+writeBuildStamp('.', './dist', txVersion);
 
 //Transpile & bundle core
 try {

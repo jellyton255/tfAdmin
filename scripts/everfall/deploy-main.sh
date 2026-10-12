@@ -27,8 +27,8 @@ if (( build )); then
     GITHUB_REF="refs/tags/v${TX_VERSION}" pnpm run build
 fi
 
-if [[ ! -f dist/core/index.js ]]; then
-    echo "dist/ has no build; run without --no-build first" >&2
+if [[ ! -f dist/core/index.js || ! -f dist/.tfadmin-build ]]; then
+    echo "dist/ has no stamped build; run without --no-build first" >&2
     exit 1
 fi
 
@@ -37,12 +37,11 @@ if ! node "$REPO_ROOT/scripts/everfall/smoke-core-bundle.mjs" --repo "$REPO_ROOT
     exit 1
 fi
 
-sha=$(git rev-parse --short HEAD)
-dirty=$(git status --porcelain --untracked-files=no | grep -q . && echo "-dirty" || true)
-
 mkdir -p "$STAGE_DIR"
 rsync -a --delete dist/ "$STAGE_DIR/"
-printf '%s\n' "version=${TX_VERSION}" "commit=${sha}${dirty}" "deployed=$(date -u +%FT%TZ)" \
-    > "$STAGE_DIR/.tfadmin-build"
+# The build wrote version, build and commit into the stamp
+printf 'deployed=%s\n' "$(date -u +%FT%TZ)" >> "$STAGE_DIR/.tfadmin-build"
+build=$(sed -n 's/^build=//p' dist/.tfadmin-build)
+commit=$(sed -n 's/^commit=//p' dist/.tfadmin-build)
 
-echo "Staged tfAdmin ${TX_VERSION} (${sha}${dirty}) in $STAGE_DIR; loads on main's next restart."
+echo "Staged tfAdmin r${build} (${commit}) in $STAGE_DIR; loads on main's next restart."

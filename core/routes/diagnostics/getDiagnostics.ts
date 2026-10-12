@@ -4,6 +4,7 @@ import MemCache from '@lib/MemCache';
 import * as diagnosticsFuncs from '@lib/diagnostics';
 import consoleFactory from '@lib/console';
 import { getTfadminStatus } from '@lib/tfadminStatus';
+import { formatBuild } from '@lib/stagedBuild';
 import type { DiagnosticsPageData, InfoTree } from '@shared/diagnosticsTypes';
 import type { GenericApiErrorResp } from '@shared/genericApiTypes';
 import type { QuantileArray } from '@modules/Metrics/statsUtils';
@@ -28,10 +29,10 @@ const perfQuantiles = (perfData: QuantileArray) => {
 //tfAdmin build + upstream status, only for admins with all permissions (not cached)
 const withTfadminTree = (ctx: AuthedCtx, data: DiagnosticsPageData): DiagnosticsPageData => {
     if (!ctx.admin.hasPermission('all_permissions')) return data;
-    const { runningCommit, pendingCommit, nightly, upstream } = getTfadminStatus();
+    const { running, pending, nightly, upstream } = getTfadminStatus();
     const tree: InfoTree = {
-        'Running': runningCommit ?? '--',
-        'Staged': pendingCommit ?? '--',
+        'Running': running ? formatBuild(running) : '--',
+        'Staged': pending ? formatBuild(pending) : '--',
         'Nightly': nightly
             ? { result: nightly.result, commit: nightly.commit ?? '--', at: nightly.checkedAt }
             : '--',

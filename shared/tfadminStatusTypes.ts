@@ -1,6 +1,15 @@
 import type { GenericApiErrorResp } from "./genericApiTypes";
 
 /**
+ * A tfAdmin build, read from its `.tfadmin-build` stamp.
+ * `build` counts master's commits since the fork; older builds have none.
+ */
+export type TfadminBuild = {
+    build: number | null;
+    commit: string;
+};
+
+/**
  * Written by /usr/local/sbin/tfadmin-nightly into /var/lib/tfadmin-nightly/status.json.
  */
 export type TfadminNightlyStatus = {
@@ -23,9 +32,9 @@ export type TfadminUpstreamStatus = {
 };
 
 export type TfadminStatus = {
-    runningCommit: string | null;
+    running: TfadminBuild | null;
     /** Build staged for the next restart (Main only), when it differs from the running one. */
-    pendingCommit: string | null;
+    pending: TfadminBuild | null;
     nightly: TfadminNightlyStatus | null;
     upstream: TfadminUpstreamStatus | null;
 };

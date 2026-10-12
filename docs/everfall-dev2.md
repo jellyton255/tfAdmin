@@ -7,7 +7,7 @@ that ships inside the FXServer artifact.
 | --- | --- |
 | Working checkout | `/var/fxservers/dev2/tfAdmin` (`origin` = jellyton255/tfAdmin, `upstream` = citizenfx/txAdmin) |
 | Installed build | `/var/fxservers/dev2/FxServer/opt/cfx-server/citizen/system_resources/monitor` |
-| Build marker | `monitor/.tfadmin-build` (version, commit, deploy time) |
+| Build marker | `monitor/.tfadmin-build` (txAdmin base version, build number, commit, deploy time) |
 | txData | `/var/fxservers/dev2/txData` (untouched by deploys) |
 | Process | pm2 app `fxserver-dev2` (`/var/fxservers/dev2/run.sh`, panel on port 40122) |
 | Stock backup | `/var/fxservers/dev2/backups/txadmin-stock-8.1.1-*/` (monitor copy + txData tarball) |
@@ -46,7 +46,9 @@ What each kind of change needs to go live:
 
 Restarting either kicks everyone on Dev2, so check who is on first.
 
-Confirm what is running:
+Confirm what is running. The panel sidebar shows it as `tf: r<build>`; the build number counts
+master's commits since the fork, so it rises by one with every commit and needs no release step.
+Release Notes (System) lists the build each change shipped in.
 
 ```sh
 cat /var/fxservers/dev2/FxServer/opt/cfx-server/citizen/system_resources/monitor/.tfadmin-build

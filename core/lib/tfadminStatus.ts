@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { z } from 'zod';
 import { txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
-import { getPendingStagedBuild, readBuildCommit } from '@lib/stagedBuild';
+import { getPendingStagedBuild, readBuildStamp } from '@lib/stagedBuild';
 import type { TfadminStatus } from '@shared/tfadminStatusTypes';
 const console = consoleFactory(modulename);
 
@@ -52,8 +52,8 @@ const readStatusFile = () => {
 export const getTfadminStatus = (): TfadminStatus => {
     const statusFile = readStatusFile();
     return {
-        runningCommit: readBuildCommit(txEnv.txaPath) ?? null,
-        pendingCommit: getPendingStagedBuild(txEnv.txaPath, process.env.TFADMIN_STAGE_DIR) ?? null,
+        running: readBuildStamp(txEnv.txaPath) ?? null,
+        pending: getPendingStagedBuild(txEnv.txaPath, process.env.TFADMIN_STAGE_DIR) ?? null,
         nightly: statusFile?.nightly ?? null,
         upstream: statusFile?.upstream ?? null,
     };
