@@ -81,6 +81,9 @@ local function handleHttp(req, res)
     if req.path == '/characters' then
         return TxHandleCharactersHttp(req, res) -- everfall: resource/sv_characters.lua
     end
+    if req.path:sub(1, 10) == '/services/' then
+        return TxHandleServicesHttp(req, res) -- everfall: resource/sv_services.lua
+    end
     res.writeHead(200, { ["Content-Type"] = "application/json" })
 
     if req.path == '/stats.json' then

@@ -8,6 +8,18 @@ import type { ServerLogEventType } from "./serverLogApiTypes";
 /**
  * Status channel
  */
+export type ServiceSignalState = 'ok' | 'degraded' | 'failing' | 'unknown';
+export type ServiceSignal = {
+    state: ServiceSignalState;
+    text: string;
+    reason?: string;
+};
+export type ServiceSignals = {
+    database: ServiceSignal;
+    logDelivery: ServiceSignal;
+    playerSaves: ServiceSignal;
+};
+
 export type GlobalStatusType = {
     configState: TxConfigState;
     discord: DiscordBotStatus;
@@ -31,6 +43,7 @@ export type GlobalStatusType = {
         nextSkip: false;
         nextIsTemp: false;
     };
+    services: ServiceSignals; // everfall: resource/sv_services.lua via core/modules/ServiceHealth
 }
 
 

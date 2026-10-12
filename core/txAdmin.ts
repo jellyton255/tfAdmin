@@ -18,6 +18,7 @@ import Database from '@modules/Database';
 import CacheStore from '@modules/CacheStore';
 import UpdateChecker from '@modules/UpdateChecker';
 import ApiServer from '@modules/ApiServer'; // everfall:api
+import ServiceHealth from '@modules/ServiceHealth'; // everfall:services
 const console = consoleFactory();
 
 
@@ -36,6 +37,7 @@ export type TxCoreType = {
     fxResources: FxResources;
     fxRunner: FxRunner;
     fxScheduler: FxScheduler;
+    serviceHealth: ServiceHealth; // everfall:services
 
     //Other
     apiServer: ApiServer; // everfall:api
@@ -108,6 +110,7 @@ export default function bootTxAdmin() {
     _txCore.fxResources = startModule(FxResources);
     _txCore.fxPlayerlist = startModule(FxPlayerlist);
     _txCore.cacheStore = startModule(CacheStore);
+    _txCore.serviceHealth = startModule(ServiceHealth); // everfall:services
 
     //Very Low Priority
     _txCore.updateChecker = startModule(UpdateChecker);

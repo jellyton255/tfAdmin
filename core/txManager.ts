@@ -206,6 +206,7 @@ export default class TxManager {
                 whitelist: txConfig.whitelist.mode,
             },
             scheduler: txCore.fxScheduler.getStatus(), //no push events, updated every Scheduler.checkSchedule()
+            services: txCore.serviceHealth.signals, // everfall:services - cached, refreshed every 15s
         }
     }
 }
