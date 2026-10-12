@@ -44,6 +44,13 @@ export default () => {
     router.post('/auth/changePassword', apiAuthMw, routes.auth_changePassword);
     router.get('/auth/getIdentifiers', apiAuthMw, routes.auth_getIdentifiers);
     router.post('/auth/changeIdentifiers', apiAuthMw, routes.auth_changeIdentifiers);
+    router.post('/auth/passkey/options', routes.auth_passkeyLoginOptions);
+    router.post('/auth/passkey/verify', authLimiter, routes.auth_passkeyLoginVerify);
+    router.get('/auth/passkeys', apiAuthMw, routes.auth_passkeyList);
+    router.post('/auth/passkeys/registerOptions', apiAuthMw, routes.auth_passkeyRegisterOptions);
+    router.post('/auth/passkeys/register', apiAuthMw, routes.auth_passkeyRegister);
+    router.post('/auth/passkeys/rename', apiAuthMw, routes.auth_passkeyRename);
+    router.post('/auth/passkeys/remove', apiAuthMw, routes.auth_passkeyRemove);
 
     //Admin Manager
     router.get('/adminManager/list', apiAuthMw, routes.adminManager_list);

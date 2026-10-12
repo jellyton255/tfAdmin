@@ -6,6 +6,7 @@ import type { ApiAddMasterCallbackReqSchema } from "@core/routes/authentication/
 import type { ApiAddMasterSaveReqSchema } from "@core/routes/authentication/addMasterSave";
 import type { ApiChangePasswordReqSchema } from "@core/routes/authentication/changePassword";
 import type { ApiChangeIdentifiersReqSchema } from "@core/routes/authentication/changeIdentifiers";
+import type { ApiPasskeyRemoveReqSchema, ApiPasskeyRenameReqSchema } from "@core/routes/authentication/passkeyManage";
 
 export type ReactAuthDataType = {
     name: string;
@@ -68,3 +69,27 @@ export type ApiAddMasterSaveResp = {
 
 export type ApiChangePasswordReq = ApiChangePasswordReqSchema;
 export type ApiChangeIdentifiersReq = ApiChangeIdentifiersReqSchema;
+
+
+export type PasskeyInfo = {
+    id: string;
+    name: string;
+    rpId: string;
+    synced: boolean;
+    createdAt: number; //epoch ms
+    lastUsedAt: number | null; //epoch ms
+};
+export type ApiPasskeyListResp = {
+    error: string;
+} | {
+    passkeys: PasskeyInfo[];
+    currentPasskeyId: string | null; //the passkey this session signed in with
+    userHandle: string | null; //base64url WebAuthn user id, for the browser signal API
+};
+export type ApiPasskeyRegisterResp = {
+    error: string;
+} | {
+    passkey: PasskeyInfo;
+};
+export type ApiPasskeyRenameReq = ApiPasskeyRenameReqSchema;
+export type ApiPasskeyRemoveReq = ApiPasskeyRemoveReqSchema;

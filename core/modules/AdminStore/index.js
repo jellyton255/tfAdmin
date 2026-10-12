@@ -485,6 +485,9 @@ export default class AdminStore {
         });
         if (!found) throw new Error('Admin not found');
 
+        //A new admin with the same name must not inherit the passkeys
+        txCore.webServer.passkeyStore.removeAllForAdmin(name);
+
         //Saving admin file
         this.refreshOnlineAdmins().catch((e) => { });
         try {

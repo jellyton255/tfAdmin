@@ -132,9 +132,19 @@ const validCfxreSessAuthSchema = z.object({
 });
 export type CfxreSessAuthType = z.infer<typeof validCfxreSessAuthSchema>;
 
+const validPasskeySessAuthSchema = z.object({
+    type: z.literal('passkey'),
+    username: z.string(),
+    csrfToken: z.string(),
+    expiresAt: z.literal(false),
+    credentialId: z.string(),
+});
+export type PasskeySessAuthType = z.infer<typeof validPasskeySessAuthSchema>;
+
 export const validSessAuthSchema = z.discriminatedUnion('type', [
     validPassSessAuthSchema,
-    validCfxreSessAuthSchema
+    validCfxreSessAuthSchema,
+    validPasskeySessAuthSchema,
 ]);
 
 
@@ -196,6 +206,12 @@ export const normalAuthLogic = (
                 || vaultAdmin.providers.citizenfx.identifier !== sessAuth.identifier
             ) {
                 return failResp(`Cfxre identifier doesn't match for '${sessAuth.username}'.`);
+            }
+            return successResp(vaultAdmin, sessAuth.csrfToken);
+        } else if (sessAuth.type === 'passkey') {
+            //Removing a passkey ends the sessions started with it
+            if (!txCore.webServer.passkeyStore.ownsPasskey(sessAuth.username, sessAuth.credentialId)) {
+                return failResp(`Passkey no longer registered for '${sessAuth.username}'.`);
             }
             return successResp(vaultAdmin, sessAuth.csrfToken);
         } else {

@@ -29,6 +29,7 @@ import serveStaticMw from './middlewares/serveStaticMw';
 import serveRuntimeMw from './middlewares/serveRuntimeMw';
 import consts from '@shared/consts';
 import { apiNotFound } from '@modules/ApiServer/router'; // everfall:api
+import PasskeyStore from './passkeys/PasskeyStore';
 const console = consoleFactory(modulename);
 const nanoid = customAlphabet(dict49, 32);
 
@@ -45,6 +46,7 @@ export default class WebServer {
     //setupKoa
     private app: Koa;
     public sessionStore: SessionMemoryStorage;
+    public readonly passkeyStore = new PasskeyStore(txHostConfig.dataSubPath('passkeys.json'));
     private koaCallback: (req: any, res: any) => Promise<void>;
     //setupWebSocket
     private io: SocketIO;

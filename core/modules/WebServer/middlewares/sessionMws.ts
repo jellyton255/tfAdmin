@@ -1,5 +1,5 @@
 import { UserInfoType } from "@modules/AdminStore/providers/CitizenFX";
-import { validSessAuthSchema, type CfxreSessAuthType, type PassSessAuthType } from "../authLogic";
+import { validSessAuthSchema, type CfxreSessAuthType, type PassSessAuthType, type PasskeySessAuthType } from "../authLogic";
 import { LRUCacheWithDelete } from "mnemonist";
 import { RawKoaCtx } from "../ctxTypes";
 import { Next } from "koa";
@@ -15,10 +15,16 @@ const console = consoleFactory('WebServer:Sessions');
 
 //Types
 export type ValidSessionType = {
-    auth?: PassSessAuthType | CfxreSessAuthType;
+    auth?: PassSessAuthType | CfxreSessAuthType | PasskeySessAuthType;
     tmpOauthLoginStateKern?: string; //uuid v4
     tmpOauthLoginCallbackUri?: string; //the URI provided to the IDMS as a callback
     tmpAddMasterUserInfo?: UserInfoType;
+    tmpPasskeyRegistration?: {
+        challenge: string;
+        origin: string;
+        rpID: string;
+        expiresAt: number;
+    };
 }
 export type SessToolsType = {
     get: () => DeepReadonly<ValidSessionType> | undefined;
@@ -43,7 +49,7 @@ const storedSessionSchema = z.object({
 });
 const sessionsFileSchema = z.object({
     version: z.literal(1),
-    sessions: z.record(z.string(), storedSessionSchema),
+    sessions: z.record(z.string(), z.unknown()),
 });
 
 /**
@@ -148,10 +154,12 @@ export class SessionMemoryStorage {
             console.warn(`Ignoring an invalid sessions file: ${(error as Error).message}`);
             return;
         }
+        //Entries are checked one by one, so a session type this build doesn't know only drops that session
         const now = Date.now();
-        for (const [hash, stored] of Object.entries(parsed.sessions)) {
-            if (stored.expires < now) continue;
-            this.sessions.set(hash, stored);
+        for (const [hash, entry] of Object.entries(parsed.sessions)) {
+            const stored = storedSessionSchema.safeParse(entry);
+            if (!stored.success || stored.data.expires < now) continue;
+            this.sessions.set(hash, stored.data);
         }
         console.verbose.ok(`Restored ${this.sessions.size} admin session(s).`);
     }

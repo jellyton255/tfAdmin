@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url';
 const THIRD_PARTY_GUARDED = new Set([
     'define', 'window', 'self', 'document', 'localStorage', 'XMLHttpRequest', 'HTMLElement',
     'DedicatedWorkerGlobalScope', 'EdgeRuntime', 'Bun', 'AsyncIterator', 'WebSocketPair',
-    '__magic__', 'esbuildDetection',
+    '__magic__', 'esbuildDetection', 'msCrypto',
 ]);
 // Sentry SDK build flags, always read behind a `typeof` check.
 const SENTRY_BUILD_FLAG = /^__SENTRY_[A-Z_]+__$/;

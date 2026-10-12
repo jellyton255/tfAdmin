@@ -17,6 +17,17 @@ export { default as auth_self } from './authentication/self';
 export { default as auth_logout } from './authentication/logout';
 export { default as auth_getIdentifiers } from './authentication/getIdentifiers';
 export { default as auth_changeIdentifiers } from './authentication/changeIdentifiers';
+export {
+    AuthPasskeyLoginOptions as auth_passkeyLoginOptions,
+    AuthPasskeyLoginVerify as auth_passkeyLoginVerify,
+} from './authentication/passkeyLogin';
+export {
+    AuthPasskeyList as auth_passkeyList,
+    AuthPasskeyRegisterOptions as auth_passkeyRegisterOptions,
+    AuthPasskeyRegister as auth_passkeyRegister,
+    AuthPasskeyRename as auth_passkeyRename,
+    AuthPasskeyRemove as auth_passkeyRemove,
+} from './authentication/passkeyManage';
 
 export { default as adminManager_page } from './adminManager/page.js';
 export { default as adminManager_list } from './adminManager/list';
