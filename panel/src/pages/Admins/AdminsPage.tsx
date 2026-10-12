@@ -1,6 +1,6 @@
 import { useState } from "react";
 import useSWR from "swr";
-import { Loader2Icon, PencilIcon, PlusIcon, Trash2Icon, UserCogIcon, UsersIcon } from "lucide-react";
+import { KeyRoundIcon, Loader2Icon, PencilIcon, PlusIcon, Trash2Icon, UserCogIcon, UsersIcon, XIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import type {
     AdminManagerDeleteReq,
     AdminManagerDeleteResp,
     AdminManagerListResp,
+    AdminManagerRemovePasskeysReq,
+    AdminManagerRemovePasskeysResp,
 } from "@shared/adminManagerApiTypes";
 import AdminFormDialog, { type AdminFormValues } from "./AdminFormDialog";
 import AdminPasswordDialog from "./AdminPasswordDialog";
@@ -59,10 +61,11 @@ function getPermsSummary(admin: AdminManagerAdmin) {
 }
 
 
-function AdminRow({ admin, onEdit, onDelete, onOpenAccount }: {
+function AdminRow({ admin, onEdit, onDelete, onRemovePasskeys, onOpenAccount }: {
     admin: AdminManagerAdmin;
     onEdit: (admin: AdminManagerAdmin) => void;
     onDelete: (admin: AdminManagerAdmin) => void;
+    onRemovePasskeys: (admin: AdminManagerAdmin) => void;
     onOpenAccount: () => void;
 }) {
     return (
@@ -85,6 +88,27 @@ function AdminRow({ admin, onEdit, onDelete, onOpenAccount }: {
                 )}
             </TableCell>
             <TableCell className="text-muted-foreground whitespace-nowrap">{getPermsSummary(admin)}</TableCell>
+            <TableCell className="whitespace-nowrap">
+                {admin.passkeyCount ? (
+                    <div className="inline-flex items-center gap-1.5 text-muted-foreground">
+                        <KeyRoundIcon className="size-4" />
+                        {admin.passkeyCount}
+                        {!admin.isSelf && admin.canEdit && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-1.5 text-destructive hover:text-destructive"
+                                title="Remove Passkeys"
+                                onClick={() => onRemovePasskeys(admin)}
+                            >
+                                <XIcon className="size-4" />
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <span className="text-muted-foreground">&ndash;</span>
+                )}
+            </TableCell>
             <TableCell className="text-right whitespace-nowrap">
                 {admin.isSelf ? (
                     <Button size="sm" variant="outline" onClick={onOpenAccount}>
@@ -132,6 +156,11 @@ export default function AdminsPage() {
     const deleteApi = useBackendApi<AdminManagerDeleteResp, AdminManagerDeleteReq>({
         method: 'POST',
         path: '/adminManager/delete',
+    });
+
+    const removePasskeysApi = useBackendApi<AdminManagerRemovePasskeysResp, AdminManagerRemovePasskeysReq>({
+        method: 'POST',
+        path: '/adminManager/removePasskeys',
     });
 
     const swr = useSWR(LIST_SWR_KEY, async () => {
@@ -185,6 +214,23 @@ export default function AdminsPage() {
         });
     };
 
+    const handleRemovePasskeys = (admin: AdminManagerAdmin) => {
+        openConfirmDialog({
+            title: `Remove ${admin.name}'s passkeys?`,
+            message: `All ${admin.passkeyCount} passkey(s) will stop working, and sessions started with them will be signed out.`,
+            actionLabel: 'Remove',
+            confirmBtnVariant: 'destructive',
+            onConfirm: async () => {
+                await removePasskeysApi({
+                    data: { name: admin.name },
+                    toastLoadingMessage: 'Removing passkeys...',
+                    genericHandler: { successMsg: `Removed ${admin.name}'s passkeys.` },
+                });
+                swr.mutate();
+            },
+        });
+    };
+
     const handleAdd = () => {
         setFormState({
             mode: 'add',
@@ -217,6 +263,7 @@ export default function AdminsPage() {
                                 <TableHead>Username</TableHead>
                                 <TableHead>Identifiers</TableHead>
                                 <TableHead>Permissions</TableHead>
+                                <TableHead>Passkeys</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -227,6 +274,7 @@ export default function AdminsPage() {
                                     admin={admin}
                                     onEdit={handleEdit}
                                     onDelete={handleDelete}
+                                    onRemovePasskeys={handleRemovePasskeys}
                                     onOpenAccount={() => openAccountModal()}
                                 />
                             ))}

@@ -17,6 +17,7 @@ export default async function AdminManagerList(ctx: AuthedCtx) {
     }
 
     const selfName = ctx.admin.name.toLowerCase();
+    const passkeyCounts = txCore.webServer.passkeyStore.countByAdmin();
     const admins: AdminManagerAdmin[] = [];
     for (const admin of txCore.adminStore.getAdminsList()) {
         const isSelf = admin.name.toLowerCase() === selfName;
@@ -30,6 +31,7 @@ export default async function AdminManagerList(ctx: AuthedCtx) {
             discordId: admin.providers.discord?.id ?? null,
             canEdit: !isSelf && (ctx.admin.isMaster || !admin.master),
             canDelete: !isSelf && !admin.master,
+            passkeyCount: passkeyCounts.get(admin.name.toLowerCase()) ?? 0,
         });
     }
 

@@ -18,6 +18,7 @@ export type AdminManagerAdmin = {
     discordId: string | null;
     canEdit: boolean;
     canDelete: boolean;
+    passkeyCount: number;
 };
 
 export type AdminManagerListResp = {
@@ -41,3 +42,8 @@ export type AdminManagerDeleteReq = {
     name: string;
 };
 export type AdminManagerDeleteResp = GenericApiOkResp;
+
+export type AdminManagerRemovePasskeysReq = {
+    name: string;
+};
+export type AdminManagerRemovePasskeysResp = GenericApiOkResp;

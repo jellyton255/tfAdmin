@@ -6,7 +6,7 @@ import got from '@lib/got';
 import consts from '@shared/consts';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
-import type { AdminManagerAddResp, AdminManagerDeleteResp, AdminManagerEditResp } from '@shared/adminManagerApiTypes';
+import type { AdminManagerAddResp, AdminManagerDeleteResp, AdminManagerEditResp, AdminManagerRemovePasskeysResp } from '@shared/adminManagerApiTypes';
 const console = consoleFactory(modulename);
 
 //Helpers
@@ -51,6 +51,8 @@ export default async function AdminManagerActions(ctx: AuthedCtx) {
         return ctx.send<AdminManagerEditResp>(await handleEdit(ctx));
     } else if (action === 'delete') {
         return ctx.send<AdminManagerDeleteResp>(await handleDelete(ctx));
+    } else if (action === 'removePasskeys') {
+        return ctx.send<AdminManagerRemovePasskeysResp>(handleRemovePasskeys(ctx));
     } else {
         return ctx.send<ErrorResp>({ error: 'Unknown action.' });
     }
@@ -235,6 +237,32 @@ async function handleDelete(ctx: AuthedCtx): Promise<AdminManagerDeleteResp> {
     try {
         await txCore.adminStore.deleteAdmin(name);
         ctx.admin.logAction(`Deleting user '${name}'.`);
+        return { success: true };
+    } catch (error) {
+        return { error: (error as Error).message };
+    }
+}
+
+
+/**
+ * Handle Remove Passkeys
+ * Lets admin managers lock out a lost or compromised account, since passkey sessions don't depend on the password.
+ */
+function handleRemovePasskeys(ctx: AuthedCtx): AdminManagerRemovePasskeysResp {
+    const parsed = deleteBodySchema.safeParse(ctx.request.body);
+    if (!parsed.success) return { error: 'Invalid request: missing admin name.' };
+    const { name } = parsed.data;
+
+    const admin = txCore.adminStore.getAdminByName(name);
+    if (!admin) return { error: 'Admin not found.' };
+    const isSelf = ctx.admin.name.toLowerCase() === name.toLowerCase();
+    if (!isSelf && admin.master && !ctx.admin.isMaster) {
+        return { error: 'You cannot change an admin master.' };
+    }
+
+    try {
+        const removed = txCore.webServer.passkeyStore.removeAllForAdmin(name);
+        ctx.admin.logAction(`Removing ${removed} passkey(s) of '${name}'.`);
         return { success: true };
     } catch (error) {
         return { error: (error as Error).message };
