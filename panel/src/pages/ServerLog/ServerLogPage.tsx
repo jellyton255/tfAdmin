@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import useSWRSubscription from "swr/subscription";
 import { useAtom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
@@ -11,6 +11,7 @@ import {
     Loader2Icon,
     ScrollTextIcon,
     SearchIcon,
+    XIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -19,12 +20,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { txToast } from "@/components/TxToaster";
-import { useBackendApi } from "@/hooks/fetch";
+import { ApiTimeout, useBackendApi } from "@/hooks/fetch";
 import { useOpenPlayerModal } from "@/hooks/playerModal";
 import { createValidatedStorage, LocalStorageKey } from "@/lib/localStorage";
 import { tsToLocaleTimeString } from "@/lib/dateTime";
 import { cn, getSocket } from "@/lib/utils";
-import type { ServerLogEventType, ServerLogPartialResp } from "@shared/serverLogApiTypes";
+import type { ServerLogEventType, ServerLogPartialResp, ServerLogSearchResp } from "@shared/serverLogApiTypes";
 
 
 const MAX_ENTRIES = 500;
@@ -62,6 +63,30 @@ type HistoryState = {
 };
 
 
+//MARK: Search state
+type SearchDraft = {
+    text: string;
+    player: string;
+    from: string;
+    to: string;
+};
+const emptySearchDraft: SearchDraft = { text: '', player: '', from: '', to: '' };
+
+type SearchState = {
+    draft: SearchDraft;
+    types: string | undefined;
+    //the `to` of every page loaded so far, the last one is the current page
+    pageTos: (number | undefined)[];
+    events: ServerLogEventType[];
+    isLoading: boolean;
+    //`to` of the next older page, when there is one
+    cursor: number | null;
+};
+
+//datetime-local values are in the browser's time zone
+const draftTimeToTs = (value: string) => value ? new Date(value).getTime() : undefined;
+
+
 //MARK: LogLine
 type LogLineProps = {
     event: ServerLogEventType;
@@ -97,12 +122,14 @@ function LogLine({ event, onPlayerClick }: LogLineProps) {
 export default function ServerLogPage() {
     const openPlayerModal = useOpenPlayerModal();
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [mode, setMode] = useState<'live' | 'history'>('live');
+    const [mode, setMode] = useState<'live' | 'history' | 'search'>('live');
     const [history, setHistory] = useState<HistoryState>({
         events: [],
         isLoading: false,
         olderExhausted: false,
     });
+    const [search, setSearch] = useState<SearchState | null>(null);
+    const [searchDraft, setSearchDraft] = useState<SearchDraft>(emptySearchDraft);
     const [clearedAt, setClearedAt] = useState(0);
     const [playerSearch, setPlayerSearch] = useState('');
     const [hiddenFilters, setHiddenFilters] = useAtom(hiddenFiltersAtom);
@@ -110,6 +137,10 @@ export default function ServerLogPage() {
     const partialApi = useBackendApi<ServerLogPartialResp>({
         method: 'GET',
         path: '/serverLog/partial',
+    });
+    const searchApi = useBackendApi<ServerLogSearchResp>({
+        method: 'GET',
+        path: '/serverLog/search',
     });
 
     //Live mode: subscribe to the serverlog room while in live mode
@@ -136,12 +167,11 @@ export default function ServerLogPage() {
         },
     );
 
-    const sourceEvents = mode === 'live' ? (live.data ?? []) : history.events;
-    const shownTypes = new Set(
-        eventFilters
-            .filter((filter) => !hiddenFilters.includes(filter.key))
-            .flatMap((filter) => filter.types),
-    );
+    const sourceEvents = mode === 'live'
+        ? (live.data ?? [])
+        : mode === 'search' ? (search?.events ?? []) : history.events;
+    const enabledFilters = eventFilters.filter((filter) => !hiddenFilters.includes(filter.key));
+    const shownTypes = new Set(enabledFilters.flatMap((filter) => filter.types));
     const searchLower = playerSearch.trim().toLowerCase();
     const visibleEvents = sourceEvents.filter((event) => {
         if (event.ts <= clearedAt) return false;
@@ -152,15 +182,84 @@ export default function ServerLogPage() {
     });
     const firstTs = sourceEvents.at(0)?.ts;
     const lastTs = sourceEvents.at(-1)?.ts;
-    const isLoading = mode === 'live' ? !live.data : history.isLoading;
+    const isLoading = mode === 'live'
+        ? !live.data
+        : mode === 'search' ? (search?.isLoading ?? false) : history.isLoading;
+    const enabledFiltersCount = enabledFilters.length;
+    const hasSearchDraft = Object.values(searchDraft).some((value) => value.trim() !== '');
+    //narrowed event types also apply to the server search
+    const searchTypes = enabledFiltersCount === eventFilters.length
+        ? undefined
+        : enabledFilters.flatMap((filter) => filter.types).join(',');
 
     //Handlers
     const goLive = () => {
         setClearedAt(0);
+        setSearch(null);
         setMode('live');
     };
 
+    const runSearch = async (draft: SearchDraft, types: string | undefined, pageTos: (number | undefined)[]) => {
+        setMode('search');
+        setClearedAt(0);
+        setSearch((prev) => prev
+            ? { ...prev, isLoading: true }
+            : { draft, types, pageTos, events: [], cursor: null, isLoading: true });
+        const resp = await searchApi({
+            queryParams: {
+                text: draft.text.trim() || undefined,
+                player: draft.player.trim() || undefined,
+                types,
+                from: draftTimeToTs(draft.from),
+                to: pageTos.at(-1),
+            },
+            timeout: ApiTimeout.REALLY_LONG,
+        });
+        if (!resp || 'error' in resp) {
+            if (resp) txToast.error({ title: 'Search Failed', msg: resp.error });
+            setSearch((prev) => prev && ({ ...prev, isLoading: false }));
+            return;
+        }
+        setSearch({
+            draft,
+            types,
+            pageTos,
+            events: resp.log,
+            isLoading: false,
+            cursor: resp.cursor,
+        });
+    };
+
+    const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!hasSearchDraft && searchTypes === undefined) return goLive();
+        const fromTs = draftTimeToTs(searchDraft.from);
+        const toTs = draftTimeToTs(searchDraft.to);
+        if (fromTs !== undefined && toTs !== undefined && fromTs > toTs) {
+            txToast.error('The start time must be before the end time.');
+            return;
+        }
+        setSearch(null);
+        runSearch(searchDraft, searchTypes, [toTs]);
+    };
+
+    const clearSearch = () => {
+        setSearchDraft(emptySearchDraft);
+        goLive();
+    };
+
+    const loadSearchPage = (direction: 'older' | 'newer') => {
+        if (!search) return;
+        if (direction === 'older') {
+            if (search.cursor === null) return;
+            runSearch(search.draft, search.types, [...search.pageTos, search.cursor]);
+        } else {
+            runSearch(search.draft, search.types, search.pageTos.slice(0, -1));
+        }
+    };
+
     const loadHistory = async (direction: 'older' | 'newer') => {
+        if (mode === 'search') return loadSearchPage(direction);
         const ref = direction === 'older' ? (firstTs ?? Date.now()) : (lastTs ?? Date.now());
         setMode('history');
         setHistory((prev) => ({ ...prev, isLoading: true }));
@@ -211,7 +310,6 @@ export default function ServerLogPage() {
         scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const enabledFiltersCount = eventFilters.filter((filter) => !hiddenFilters.includes(filter.key)).length;
     const formatRangeTs = (ts: number | undefined) => {
         if (!ts) return '--';
         return new Date(ts).toLocaleString(window.txBrowserLocale, {
@@ -227,9 +325,11 @@ export default function ServerLogPage() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                     <span className={cn(
                         'font-semibold',
-                        mode === 'live' ? 'text-success-inline' : 'text-warning-inline',
+                        mode === 'live' && 'text-success-inline',
+                        mode === 'history' && 'text-warning-inline',
+                        mode === 'search' && 'text-accent',
                     )}>
-                        {mode === 'live' ? 'Live' : 'History'}
+                        {mode === 'live' ? 'Live' : mode === 'history' ? 'History' : 'Search Results'}
                     </span>
                     <span className="text-muted-foreground tabular-nums">
                         {formatRangeTs(firstTs)} to {formatRangeTs(lastTs)}
@@ -238,6 +338,51 @@ export default function ServerLogPage() {
             </PageHeader>
 
             <div className="flex flex-col grow min-h-0 gap-3 px-2 md:px-0">
+                <form className="flex flex-wrap items-center gap-2" onSubmit={handleSearchSubmit}>
+                    <Input
+                        className="h-9 grow basis-48 max-w-sm"
+                        placeholder="Search Messages"
+                        maxLength={128}
+                        value={searchDraft.text}
+                        onChange={(e) => setSearchDraft((prev) => ({ ...prev, text: e.target.value }))}
+                    />
+                    <Input
+                        className="h-9 grow basis-48 max-w-sm"
+                        placeholder="Player Name or Identifier"
+                        maxLength={128}
+                        value={searchDraft.player}
+                        onChange={(e) => setSearchDraft((prev) => ({ ...prev, player: e.target.value }))}
+                    />
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="serverlog-search-from" className="text-muted-foreground">From</Label>
+                        <Input
+                            id="serverlog-search-from"
+                            type="datetime-local"
+                            className="h-9 w-auto"
+                            value={searchDraft.from}
+                            onChange={(e) => setSearchDraft((prev) => ({ ...prev, from: e.target.value }))}
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="serverlog-search-to" className="text-muted-foreground">To</Label>
+                        <Input
+                            id="serverlog-search-to"
+                            type="datetime-local"
+                            className="h-9 w-auto"
+                            value={searchDraft.to}
+                            onChange={(e) => setSearchDraft((prev) => ({ ...prev, to: e.target.value }))}
+                        />
+                    </div>
+                    <Button type="submit" size="sm" disabled={isLoading && mode === 'search'}>
+                        <SearchIcon className="size-4 mr-1.5" /> Search Logs
+                    </Button>
+                    {(mode === 'search' || hasSearchDraft) && (
+                        <Button type="button" size="sm" variant="outline-muted" onClick={clearSearch}>
+                            <XIcon className="size-4 mr-1.5" /> Clear Search
+                        </Button>
+                    )}
+                </form>
+
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="relative grow min-w-52 max-w-sm">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -277,7 +422,9 @@ export default function ServerLogPage() {
                         <Button
                             size="sm"
                             variant="outline-muted"
-                            disabled={isLoading || (mode === 'history' && history.olderExhausted)}
+                            disabled={isLoading
+                                || (mode === 'history' && history.olderExhausted)
+                                || (mode === 'search' && search?.cursor == null)}
                             onClick={() => loadHistory('older')}
                         >
                             <ChevronLeftIcon className="size-4 mr-1" /> View Older
@@ -285,12 +432,14 @@ export default function ServerLogPage() {
                         <Button
                             size="sm"
                             variant="outline-muted"
-                            disabled={isLoading || mode === 'live'}
+                            disabled={isLoading
+                                || mode === 'live'
+                                || (mode === 'search' && (search?.pageTos.length ?? 0) < 2)}
                             onClick={() => loadHistory('newer')}
                         >
                             View Newer <ChevronRightIcon className="size-4 ml-1" />
                         </Button>
-                        {mode === 'history' && (
+                        {mode !== 'live' && (
                             <Button size="sm" variant="outline-success" onClick={goLive}>
                                 Go Live
                             </Button>
@@ -317,7 +466,7 @@ export default function ServerLogPage() {
                         <div>
                             {!isLoading && !visibleEvents.length && (
                                 <div className="px-3 py-8 text-center font-sans text-muted-foreground">
-                                    No log entries to show.
+                                    {mode === 'search' ? 'No matching log entries.' : 'No log entries to show.'}
                                 </div>
                             )}
                             {visibleEvents.map((event, i) => (

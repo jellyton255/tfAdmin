@@ -18,7 +18,7 @@ export class LoggerBase {
     lrErrors = 0;
     public activeFilePath: string;
     public lrLastError: string | undefined;
-    private basePath: string;
+    public readonly basePath: string;
     private logNameRegex: RegExp;
 
     constructor(

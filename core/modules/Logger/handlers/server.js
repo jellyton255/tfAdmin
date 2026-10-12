@@ -6,6 +6,7 @@ import { getBootDivider } from '../loggerUtils';
 import consoleFactory from '@lib/console';
 import bytes from 'bytes';
 import { summarizeIdsArray } from '@lib/player/idUtils';
+import { playerQueryToId, searchServerLog } from './serverLogSearch';
 const console = consoleFactory(modulename);
 
 /*
@@ -305,9 +306,26 @@ export default class ServerLogger extends LoggerBase {
 
 
     /**
-     * TODO: filter function, so we can search for all log from a specific player
+     * Searches the recent buffer and the log files on disk.
+     * Sessions of online players matching an identifier query are followed even
+     * when their join event is no longer in the buffer.
+     * @param {import('./serverLogSearch').ServerLogSearchQuery} query
      */
-    readFiltered() {
-        throw new Error('Not yet implemented.');
+    async search(query) {
+        const seedSessionIds = [];
+        const mutex = txCore.fxRunner.child?.mutex;
+        const playerId = query.player ? playerQueryToId(query.player) : null;
+        if (mutex && playerId) {
+            const { idsFound } = txCore.fxPlayerlist.getAssociatedOnlineNetIds([playerId]);
+            for (const [, netid] of idsFound) {
+                seedSessionIds.push(`${mutex}#${netid}`);
+            }
+        }
+        return searchServerLog({
+            buffer: this.recentBuffer,
+            basePath: this.basePath,
+            query,
+            seedSessionIds,
+        });
     }
 };

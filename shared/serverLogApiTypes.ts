@@ -18,3 +18,11 @@ export type ServerLogPartialResp = {
     boundry: boolean;
     log: ServerLogEventType[];
 } | GenericApiErrorResp;
+
+export type ServerLogSearchResp = {
+    //chronological order, oldest first
+    log: ServerLogEventType[];
+    truncated: boolean;
+    //pass as `to` to load the next older page
+    cursor: number | null;
+} | GenericApiErrorResp;

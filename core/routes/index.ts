@@ -75,6 +75,7 @@ export { default as advanced_runCommand } from './advanced/runCommand';
 
 //FIXME: reorganizar TODAS rotas de logs, incluindo listagem e download
 export { default as serverLogPartial } from './serverLogPartial';
+export { default as serverLogSearch } from './serverLogSearch';
 
 export { default as host_status } from './hostStatus';
 
