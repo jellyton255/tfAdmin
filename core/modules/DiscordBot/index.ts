@@ -1,5 +1,5 @@
 const modulename = 'DiscordBot';
-import Discord, { ActivityType, ChannelType, Client, EmbedBuilder, GatewayIntentBits } from 'discord.js';
+import Discord, { ActivityType, ChannelType, Client, DiscordAPIError, EmbedBuilder, GatewayIntentBits, RESTJSONErrorCodes } from 'discord.js';
 import slashCommands from './slash';
 import interactionCreateHandler from './interactionCreateHandler';
 import { generateStatusMessage } from './commands/status';
@@ -41,7 +41,6 @@ export default class DiscordBot {
     readonly #clientOptions: Discord.ClientOptions = {
         intents: [
             GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMembers,
         ],
         allowedMentions: {
             parse: ['users'],
@@ -60,7 +59,6 @@ export default class DiscordBot {
     guildName: string | undefined;
     announceChannel: Discord.TextBasedChannel | undefined;
     #lastDisallowedIntentsError: number = 0; //ms
-    #lastGuildMembersCacheRefresh: number = 0; //ms
     #lastStatus = DiscordBotStatus.Disabled;
     #lastExplicitStatus = DiscordBotStatus.Disabled;
 
@@ -107,7 +105,6 @@ export default class DiscordBot {
      * Called by settings save to attempt to restart the bot with new settings
      */
     async attemptBotReset(botCfg: SpawnConfig | false) {
-        this.#lastGuildMembersCacheRefresh = 0;
         if (this.#client) {
             console.warn('Stopping Discord Bot');
             this.#client.destroy();
@@ -423,25 +420,21 @@ export default class DiscordBot {
     }
 
     /**
-     * Refreshes the bot guild member cache
+     * Fetches a guild member directly from the API, or undefined if they are not in the guild.
+     * NOTE: individual lookups don't need the privileged GuildMembers intent.
      */
-    async refreshMemberCache() {
-        if (!txConfig.discordBot.enabled) throw new Error(`discord bot is disabled`);
-        if (!this.#client?.isReady()) throw new Error(`discord bot not ready yet`);
-        if (!this.guild) throw new Error(`guild not resolved`);
-
-        //Check when the cache was last refreshed
-        const currTs = Date.now();
-        if (currTs - this.#lastGuildMembersCacheRefresh > 60_000) {
-            try {
-                await this.guild.members.fetch();
-                this.#lastGuildMembersCacheRefresh = currTs;
-                return true;
-            } catch (error) {
-                return false;
+    async #fetchMember(guild: Discord.Guild, uid: string) {
+        try {
+            return await guild.members.fetch({ user: uid, force: true, cache: false });
+        } catch (error) {
+            if (
+                error instanceof DiscordAPIError
+                && (error.code === RESTJSONErrorCodes.UnknownMember || error.code === RESTJSONErrorCodes.UnknownUser)
+            ) {
+                return undefined;
             }
+            throw error;
         }
-        return false;
     }
 
 
@@ -453,13 +446,7 @@ export default class DiscordBot {
         if (!this.#client?.isReady()) throw new Error(`discord bot not ready yet`);
         if (!this.guild) throw new Error(`guild not resolved`);
 
-        //Try to get member from cache or refresh cache then try again
-        let member = this.guild.members.cache.find(m => m.id === uid);
-        if (!member && await this.refreshMemberCache()) {
-            member = this.guild.members.cache.find(m => m.id === uid);
-        }
-
-        //Return result
+        const member = await this.#fetchMember(this.guild, uid);
         if (member) {
             return {
                 isMember: true,
@@ -480,12 +467,7 @@ export default class DiscordBot {
 
         //Check if in guild member
         if (this.guild) {
-            //Try to get member from cache or refresh cache then try again
-            let member = this.guild.members.cache.find(m => m.id === uid);
-            if (!member && await this.refreshMemberCache()) {
-                member = this.guild.members.cache.find(m => m.id === uid);
-            }
-
+            const member = await this.#fetchMember(this.guild, uid);
             if (member) {
                 return {
                     tag: member.nickname ?? member.user.username,
