@@ -43,6 +43,8 @@ export const defaultEmbedConfigJson = JSON.stringify({
     "partialColor": "#FFF100",
     "offlineString": "🔴 Offline",
     "offlineColor": "#A70B28",
+    "maintenanceString": "🟠 Maintenance",
+    "maintenanceColor": "#FD8C4C",
     "buttons": [
         {
             "emoji": "1062338355909640233",

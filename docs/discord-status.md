@@ -85,6 +85,8 @@ To get the emoji ID, insert it into discord, and add `\` before it then send the
     "partialColor": "#FFF100",
     "offlineString": "🔴 Offline",
     "offlineColor": "#A70B28",
+    "maintenanceString": "🟠 Maintenance",
+    "maintenanceColor": "#FD8C4C",
     "buttons": [
         {
             "emoji": "1062338355909640233",
