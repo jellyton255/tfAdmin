@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} warn |||| %{smart_count} warns",
                 "log_btn": "DETALLES",
                 "notes_changed": "Nota de jugador cambiada.",
-                "notes_placeholder": "Notas sobre este jugador..."
+                "notes_placeholder": "Notas sobre este jugador...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Historial relacionado",
@@ -340,7 +341,8 @@
                 "warned_by": "ADVERTIDO por %{author}",
                 "revoked_by": "Revocado por %{author}.",
                 "expired_at": "Expirado el %{date}.",
-                "expires_at": "Expirado el %{date}."
+                "expires_at": "Expirado el %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Banear jugador",

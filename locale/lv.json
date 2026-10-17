@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} brīdinājums |||| %{smart_count} brīdinājumi",
                 "log_btn": "SĪKĀK",
                 "notes_changed": "Spēlētāja piezīmes ir mainītas.",
-                "notes_placeholder": "Piezīmes par šo spēlētāju..."
+                "notes_placeholder": "Piezīmes par šo spēlētāju...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Saistītā vēsture",
@@ -340,7 +341,8 @@
                 "warned_by": "BRĪDINĀJA %{author}",
                 "revoked_by": "Atsaukta: %{author}.",
                 "expired_at": "Beidzās %{date}.",
-                "expires_at": "Beigsies %{date}."
+                "expires_at": "Beigsies %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Banot spēlētāju",

@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} warn |||| %{smart_count} warns",
                 "log_btn": "DETAILS",
                 "notes_changed": "Player note changed.",
-                "notes_placeholder": "Notes about this player..."
+                "notes_placeholder": "Notes about this player...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "ประวัติที่เกี่ยวข้อง",
@@ -340,7 +341,8 @@
                 "warned_by": "WARNED by %{author}",
                 "revoked_by": "Revoked by %{author}.",
                 "expired_at": "Expired at %{date}.",
-                "expires_at": "Expires at %{date}."
+                "expires_at": "Expires at %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "แบนผู้เล่น",

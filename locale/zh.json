@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} 警告 |||| %{smart_count} 警告",
                 "log_btn": "详细信息",
                 "notes_changed": "玩家备注已更改。",
-                "notes_placeholder": "关于此玩家的备注..."
+                "notes_placeholder": "关于此玩家的备注...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "历史信息",
@@ -340,7 +341,8 @@
                 "warned_by": "被 %{author} 警告",
                 "revoked_by": "被 %{author} 撤销",
                 "expired_at": "将于 %{date} 过期。",
-                "expires_at": "将于 %{date} 过期。"
+                "expires_at": "将于 %{date} 过期。",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "封禁玩家",

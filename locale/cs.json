@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} varování |||| %{smart_count} varování",
                 "log_btn": "PODROBNOSTI",
                 "notes_changed": "Poznámka o hráči změněna.",
-                "notes_placeholder": "Poznámky o tomto hráči..."
+                "notes_placeholder": "Poznámky o tomto hráči...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Související historie",
@@ -340,7 +341,8 @@
                 "warned_by": "VAROVÁN adminem %{author}",
                 "revoked_by": "Zrušeno adminem %{author}.",
                 "expired_at": "Vypršelo %{date}.",
-                "expires_at": "Vyprší %{date}."
+                "expires_at": "Vyprší %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Zabanovat hráče",

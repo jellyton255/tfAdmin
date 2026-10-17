@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} waarschuwing |||| %{smart_count} waarschuwingen",
                 "log_btn": "DETAILS",
                 "notes_changed": "Speler Notities veranderd.",
-                "notes_placeholder": "Notities over deze speler..."
+                "notes_placeholder": "Notities over deze speler...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Gerelateerde geschiedenis",
@@ -340,7 +341,8 @@
                 "warned_by": "Gewaarschuwd Door %{author}",
                 "revoked_by": "Ingetrokken Door %{author}.",
                 "expired_at": "Verlopen Op %{date}.",
-                "expires_at": "Verloopt Op %{date}."
+                "expires_at": "Verloopt Op %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Ban speler",

@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} Varning |||| %{smart_count} Varnningar",
                 "log_btn": "Detaljer",
                 "notes_changed": "Spelar notering ändrad.",
-                "notes_placeholder": "Noteringar om spelare..."
+                "notes_placeholder": "Noteringar om spelare...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Historik",
@@ -340,7 +341,8 @@
                 "warned_by": "Varnad av %{author}",
                 "revoked_by": "Tillbaka dragen av %{author}.",
                 "expired_at": "Gick ut den %{date}.",
-                "expires_at": "Går ut den %{date}."
+                "expires_at": "Går ut den %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Bannlys spelare",

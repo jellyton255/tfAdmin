@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} warn |||| %{smart_count} warns",
                 "log_btn": "CHI TIẾT",
                 "notes_placeholder": "Ghi chú về người chơi này...",
-                "notes_changed": "Đã cập nhật ghi chú của người chơi."
+                "notes_changed": "Đã cập nhật ghi chú của người chơi.",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "ids": {
                 "current_ids": "Định danh hiện tại",
@@ -345,7 +346,8 @@
                 "warned_by": "Cảnh cáo bởi %{author}",
                 "revoked_by": "Gỡ bỏ bởi %{author}.",
                 "expired_at": "Hết hạn lúc %{date}.",
-                "expires_at": "Hết hạn lúc %{date}."
+                "expires_at": "Hết hạn lúc %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Cấm người chơi",

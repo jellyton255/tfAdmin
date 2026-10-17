@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} попередження |||| %{smart_count} попереджень",
                 "log_btn": "ДЕТАЛІ",
                 "notes_placeholder": "Примітки про цього гравця...",
-                "notes_changed": "Примітка гравця змінена."
+                "notes_changed": "Примітка гравця змінена.",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "ids": {
                 "current_ids": "Поточні ідентифікатори",
@@ -345,7 +346,8 @@
                 "warned_by": "ПОПЕРЕЖЕНО %{author}",
                 "revoked_by": "Скасовано %{author}.",
                 "expired_at": "Закінчився %{date}.",
-                "expires_at": "Термін дії до %{date}."
+                "expires_at": "Термін дії до %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Забанити гравця",

@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} uyarı |||| %{smart_count} uyarı",
                 "log_btn": "DETAYLAR",
                 "notes_changed": "Oyuncu notu değişti.",
-                "notes_placeholder": "Bu oyuncu hakkında notlar..."
+                "notes_placeholder": "Bu oyuncu hakkında notlar...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "İlgili geçmiş",
@@ -340,7 +341,8 @@
                 "warned_by": "%{author} tarafından uyarıldı",
                 "revoked_by": "%{author} tarafından iptal edildi.",
                 "expired_at": "%{date} tarihinde süresi doldu.",
-                "expires_at": "%{date} tarihinde sona eriyor."
+                "expires_at": "%{date} tarihinde sona eriyor.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Oyuncuyu yasakla",

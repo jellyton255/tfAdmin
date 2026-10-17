@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} предупреждение |||| %{smart_count} предупреждения",
                 "log_btn": "ПОДРОБНОСТИ",
                 "notes_changed": "Примечание игрока изменено.",
-                "notes_placeholder": "Заметки об этом игроке..."
+                "notes_placeholder": "Заметки об этом игроке...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Связанная история",
@@ -340,7 +341,8 @@
                 "warned_by": "Предупредил %{author}",
                 "revoked_by": "Отменил %{author}.",
                 "expired_at": "Истек %{date}.",
-                "expires_at": "Истекает %{date}."
+                "expires_at": "Истекает %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Забанить игрока",

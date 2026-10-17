@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} varoitus |||| %{smart_count} varoitusta",
                 "log_btn": "LISÄTIEDOT",
                 "notes_changed": "Pelaajan merkintöjä muutettu.",
-                "notes_placeholder": "Merkintöjä pelaajasta..."
+                "notes_placeholder": "Merkintöjä pelaajasta...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Historia",
@@ -340,7 +341,8 @@
                 "warned_by": "VAROITUKSEN antanut %{author}",
                 "revoked_by": "Kumonnut %{author}.",
                 "expired_at": "Expired at %{date}.",
-                "expires_at": "Expires at %{date}."
+                "expires_at": "Expires at %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Aseta pelaaja porttikieltoon",

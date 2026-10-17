@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} peringatan |||| %{smart_count} peringatan",
                 "log_btn": "RINCIAN",
                 "notes_placeholder": "Catatan pemain...",
-                "notes_changed": "Catatan pemain diubah."
+                "notes_changed": "Catatan pemain diubah.",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "ids": {
                 "current_ids": "Identitas Saat Ini",
@@ -345,7 +346,8 @@
                 "warned_by": "PERINGATAN oleh %{author}",
                 "revoked_by": "Dicabut oleh %{author}.",
                 "expired_at": "Kadaluarsa pada %{date}.",
-                "expires_at": "Kadaluarsa pada %{date}."
+                "expires_at": "Kadaluarsa pada %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Ban player",

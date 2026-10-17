@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} upozori |||| %{smart_count} upozorenja",
                 "log_btn": "DETALJI",
                 "notes_changed": "Bilješka promijenjena.",
-                "notes_placeholder": "Bilješke o igraču..."
+                "notes_placeholder": "Bilješke o igraču...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Povezana povijest",
@@ -340,7 +341,8 @@
                 "warned_by": "UPOZOREN od %{author}",
                 "revoked_by": "Maknut od %{author}.",
                 "expired_at": "Isteko u %{date}.",
-                "expires_at": "Ističe u %{date}."
+                "expires_at": "Ističe u %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Zabrani ulazak igraču",

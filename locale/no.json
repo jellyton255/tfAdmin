@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} advarsel |||| %{smart_count} advarsler",
                 "log_btn": "DETALJER",
                 "notes_placeholder": "Notater på denne spilleren...",
-                "notes_changed": "Spiller notater endret."
+                "notes_changed": "Spiller notater endret.",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "ids": {
                 "current_ids": "Nåværende Identifikatorer",
@@ -345,7 +346,8 @@
                 "warned_by": "ADVART av %{author}",
                 "revoked_by": "Fjernet av %{author}.",
                 "expired_at": "Utløpte den %{date}.",
-                "expires_at": "Utløper den %{date}."
+                "expires_at": "Utløper den %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Utesteng spiller",

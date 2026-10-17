@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} ostrzeżenie |||| %{smart_count} ostrzeżenia",
                 "log_btn": "DETALE",
                 "notes_changed": "Zmieniono notatkę gracza.",
-                "notes_placeholder": "Notatki dotyczące tego gracza..."
+                "notes_placeholder": "Notatki dotyczące tego gracza...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Powiązana historia",
@@ -340,7 +341,8 @@
                 "warned_by": "OSTRZEŻONY przez %{author}",
                 "revoked_by": "Unieważnione przez %{author}.",
                 "expired_at": "Wygasł: %{date}.",
-                "expires_at": "Wygasa: %{date}."
+                "expires_at": "Wygasa: %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Zbanuj gracza",

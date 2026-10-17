@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} figyelmeztetés |||| %{smart_count} figyelmeztetések",
                 "log_btn": "Részletek",
                 "notes_changed": "Játékos jegyzete változott.",
-                "notes_placeholder": "Jegyzetek ehhez a játékoshoz..."
+                "notes_placeholder": "Jegyzetek ehhez a játékoshoz...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Kapcsolódó előzmények",
@@ -340,7 +341,8 @@
                 "warned_by": "FIGYELMEZTETVE %{author} által",
                 "revoked_by": "Visszavonva %{author} által.",
                 "expired_at": "Lejárat ekkor: %{date}.",
-                "expires_at": "Lejárat ekkor: %{date}."
+                "expires_at": "Lejárat ekkor: %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Játékos kitiltása",

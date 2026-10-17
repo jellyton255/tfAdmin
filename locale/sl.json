@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} opozorilo |||| %{smart_count} opozoril",
                 "log_btn": "PODROBNOSTI",
                 "notes_changed": "Opombe spremenjene.",
-                "notes_placeholder": "Opombe o igralcu..."
+                "notes_placeholder": "Opombe o igralcu...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Povezana zgodovina",
@@ -340,7 +341,8 @@
                 "warned_by": "OPOZORJEN od %{author}",
                 "revoked_by": "Preklical %{author}.",
                 "expired_at": "Poteče %{date}.",
-                "expires_at": "Poteče %{date}."
+                "expires_at": "Poteče %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Odstrani igralca",

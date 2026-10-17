@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} perspėjimas |||| %{smart_count} perspėjimai",
                 "log_btn": "DETALĖS",
                 "notes_changed": "Žaidėjo užrašai pakeisti",
-                "notes_placeholder": "Užrašai apie žaidėją..."
+                "notes_placeholder": "Užrašai apie žaidėją...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Susijusi informacija",
@@ -340,7 +341,8 @@
                 "warned_by": "Perspėtas %{author}",
                 "revoked_by": "Atimta %{author}.",
                 "expired_at": "Baigė galioti %{date}.",
-                "expires_at": "Baigs galioti %{date}."
+                "expires_at": "Baigs galioti %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Užblokuoti žaidėją",

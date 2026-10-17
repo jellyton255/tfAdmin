@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} hoiatus |||| %{smart_count} hoiatused",
                 "log_btn": "ÜKSIKASJAD",
                 "notes_changed": "Mängija märge muudetud.",
-                "notes_placeholder": "Mängija märge..."
+                "notes_placeholder": "Mängija märge...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "Seotud ajalugu",
@@ -340,7 +341,8 @@
                 "warned_by": "HOIATAJA %{author}",
                 "revoked_by": "Eemaldaja %{author}.",
                 "expired_at": "Aegunud kell %{date}.",
-                "expires_at": "Aegub kell %{date}."
+                "expires_at": "Aegub kell %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Keelusta mängija",

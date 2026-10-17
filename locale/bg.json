@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} предупреждение |||| %{smart_count} предупреждения",
                 "log_btn": "ПОДРОБНОСТИ",
                 "notes_changed": "Бележката на играча е променена.",
-                "notes_placeholder": "Бележки за този играч..."
+                "notes_placeholder": "Бележки за този играч...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "История на Бановете...",
@@ -340,7 +341,8 @@
                 "warned_by": "ПРЕДУПРЕДЕН от %{author}",
                 "revoked_by": "Отменено от %{author}.",
                 "expired_at": "Изтекъл на %{date}.",
-                "expires_at": "Изтича на %{date}."
+                "expires_at": "Изтича на %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Банни играч",

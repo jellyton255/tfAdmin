@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} चेतावनी |||| %{smart_count} चेतावनीहरू",
                 "log_btn": "विवरणहरू",
                 "notes_placeholder": "यस खेलाडीको बारेमा टिप्पणीहरू...",
-                "notes_changed": "खेलाडी टिप्पणी परिवर्तन गरियो।"
+                "notes_changed": "खेलाडी टिप्पणी परिवर्तन गरियो।",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "ids": {
                 "current_ids": "हालका पहिचानकर्ताहरू",
@@ -345,7 +346,8 @@
                 "warned_by": "%{author} द्वारा चेतावनी दिइएको",
                 "revoked_by": "%{author} द्वारा खारेज गरिएको।",
                 "expired_at": "%{date} मा समाप्त भयो।",
-                "expires_at": "%{date} मा समाप्त हुन्छ।"
+                "expires_at": "%{date} मा समाप्त हुन्छ।",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "खेलाडीलाई प्रतिबन्ध लगाउनुहोस्",

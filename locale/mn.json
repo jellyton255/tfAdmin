@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} сэрэмжлүүлэг |||| %{smart_count} сэрэмжлүүлэг",
                 "log_btn": "ДЭЛГЭРЭНГҮЙ",
                 "notes_placeholder": "Энэ тоглогчийн тухай тэмдэглэл...",
-                "notes_changed": "Тоглогчийн тэмдэглэл өөрчлөгдсөн."
+                "notes_changed": "Тоглогчийн тэмдэглэл өөрчлөгдсөн.",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "ids": {
                 "current_ids": "Одоогийн танигч",
@@ -345,7 +346,8 @@
                 "warned_by": "АНХААРУУЛГА %{author}",
                 "revoked_by": "Хүчингүй болгосон %{author}.",
                 "expired_at": "Хугацаа дууссан %{date}.",
-                "expires_at": "Дуусах цаг %{date}."
+                "expires_at": "Дуусах цаг %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "Тоглогчийг хориглох",

@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} 警告 |||| %{smart_count} 警告",
                 "log_btn": "詳細",
                 "notes_placeholder": "このプレイヤーについてのメモ...",
-                "notes_changed": "プレイヤーのメモが変更された。"
+                "notes_changed": "プレイヤーのメモが変更された。",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "ids": {
                 "current_ids": "現在のID",
@@ -345,7 +346,8 @@
                 "warned_by": "%{author}によって警告された",
                 "revoked_by": "%{author}によって取り消された",
                 "expired_at": "%{date}に失効した",
-                "expires_at": "%{date}に失効する"
+                "expires_at": "%{date}に失効する",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "プレイヤーをBAN",

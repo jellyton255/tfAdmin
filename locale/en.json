@@ -328,6 +328,7 @@
                 "log_empty": "No bans/warns found.",
                 "log_ban_count": "%{smart_count} ban |||| %{smart_count} bans",
                 "log_warn_count": "%{smart_count} warn |||| %{smart_count} warns",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks",
                 "log_btn": "DETAILS",
                 "notes_placeholder": "Notes about this player...",
                 "notes_changed": "Player note changed."
@@ -343,6 +344,7 @@
                 "revoked_success": "Action revoked!",
                 "banned_by": "BANNED by %{author}",
                 "warned_by": "WARNED by %{author}",
+                "kicked_by": "KICKED by %{author}",
                 "revoked_by": "Revoked by %{author}.",
                 "expired_at": "Expired at %{date}.",
                 "expires_at": "Expires at %{date}."

@@ -56,6 +56,7 @@ const DialogBanView: React.FC = () => {
   const assocPlayer = useAssociatedPlayerValue();
   const playerDetails = usePlayerDetailsValue();
   const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
   const [duration, setDuration] = useState("2 hours");
   const [customDuration, setCustomDuration] = useState("hours");
   const [customDurLength, setCustomDurLength] = useState("1");
@@ -92,6 +93,7 @@ const DialogBanView: React.FC = () => {
         data: {
           reason: trimmedReason,
           duration: actualDuration,
+          note: note.trim() || undefined,
         },
       }
     )
@@ -274,6 +276,18 @@ const DialogBanView: React.FC = () => {
             </TextField>
           </Box>
         )}
+        <TextField
+          size="small"
+          sx={{ mt: 2 }}
+          label="Staff Notes (Not Shown to the Player)"
+          variant="outlined"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          inputProps={{ maxLength: 4096 }}
+          multiline
+          minRows={2}
+          fullWidth
+        />
         <Button
           variant="contained"
           type="submit"

@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} هشدار |||| %{smart_count} هشدار",
                 "log_btn": "جزئیات",
                 "notes_changed": "یادداشت بازیکن تغییر کرد.",
-                "notes_placeholder": "یادداشت‌ها درباره این بازیکن..."
+                "notes_placeholder": "یادداشت‌ها درباره این بازیکن...",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "تاریخچه مرتبط",
@@ -340,7 +341,8 @@
                 "warned_by": "هشدار داده شده توسط %{author}",
                 "revoked_by": "لغو شده توسط %{author}.",
                 "expired_at": "منقضی شده در %{date}.",
-                "expires_at": "منقضی می‌شود در %{date}."
+                "expires_at": "منقضی می‌شود در %{date}.",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "بن کردن بازیکن",

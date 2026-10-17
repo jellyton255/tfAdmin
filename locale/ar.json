@@ -330,7 +330,8 @@
                 "log_warn_count": "%{smart_count} تحذيرات |||| %{smart_count} تحذيرات",
                 "log_btn": "تفاصيل",
                 "notes_changed": ".تم تغيير ملاحظة اللاعب",
-                "notes_placeholder": "... ملاحظات حول هذا اللاعب"
+                "notes_placeholder": "... ملاحظات حول هذا اللاعب",
+                "log_kick_count": "%{smart_count} kick |||| %{smart_count} kicks"
             },
             "history": {
                 "title": "التاريخ ذو الصلة",
@@ -340,7 +341,8 @@
                 "warned_by": "%{author} حذر من قبل",
                 "revoked_by": ".%{author} أبطله من قبل",
                 "expired_at": ".%{date} انتهت في",
-                "expires_at": ".%{date} تنتهي في"
+                "expires_at": ".%{date} تنتهي في",
+                "kicked_by": "KICKED by %{author}"
             },
             "ban": {
                 "title": "لاعب المحظور",
