@@ -12,10 +12,13 @@ import { useClosePromptDialog, usePromptDialogState } from "@/hooks/dialogs";
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
 import { AutosizeTextarea } from "./ui/autosize-textarea";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 
 
 export default function PromptDialog() {
     const inputRef = useRef<any>(null);
+    const noteRef = useRef<HTMLTextAreaElement>(null);
     const dialogState = usePromptDialogState();
     const closeDialog = useClosePromptDialog();
 
@@ -23,7 +26,7 @@ export default function PromptDialog() {
         if (!dialogState.isOpen) return;
         closeDialog();
         const input = inputRef.current?.value ?? inputRef.current?.textArea.value ?? '';
-        dialogState.onSubmit(input.trim());
+        dialogState.onSubmit(input.trim(), noteRef.current?.value.trim() ?? '');
     }
 
     const handleForm = (e: React.FormEvent<HTMLFormElement>) => {
@@ -75,6 +78,18 @@ export default function PromptDialog() {
                             autoComplete="off"
                             required={dialogState.required}
                         />
+                    )}
+                    {dialogState.noteLabel && (
+                        <div className="grid gap-1">
+                            <Label htmlFor="promptDialogNote">{dialogState.noteLabel}</Label>
+                            <Textarea
+                                id="promptDialogNote"
+                                ref={noteRef}
+                                className="resize-y"
+                                rows={2}
+                                maxLength={4096}
+                            />
+                        </div>
                     )}
                     <DialogFooter className="gap-2 flex-col">
                         <div className="flex flex-col sm:flex-row sm:justify-start gap-2 w-full flex-wrap">

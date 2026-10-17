@@ -1,7 +1,7 @@
 import { throttle } from "throttle-debounce";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronsUpDownIcon, XIcon, ChevronDownIcon, ExternalLinkIcon } from 'lucide-react';
+import { ChevronsUpDownIcon, XIcon, ChevronDownIcon, ExternalLinkIcon, StickyNoteIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
@@ -39,9 +39,9 @@ export const availableSearchTypes = [
     },
     {
         value: 'reason',
-        label: 'Reason',
-        placeholder: 'Enter part of the reason to search for',
-        description: 'Search actions by their reason contents.'
+        label: 'Reason or Notes',
+        placeholder: 'Enter part of the reason or a staff note',
+        description: 'Search actions by their reason or staff notes.'
     },
     {
         value: 'identifiers',
@@ -68,10 +68,16 @@ export type HistorySearchBoxReturnStateType = {
     search: HistoryTableSearchType;
     filterbyType?: string;
     filterbyAdmin?: string;
+    filterbyNotes?: boolean;
 }
 
 type HistorySearchBoxProps = {
-    doSearch: (search: HistoryTableSearchType, filterbyType: string | undefined, filterbyAdmin: string | undefined) => void;
+    doSearch: (
+        search: HistoryTableSearchType,
+        filterbyType: string | undefined,
+        filterbyAdmin: string | undefined,
+        filterbyNotes: boolean,
+    ) => void;
     initialState: HistorySearchBoxReturnStateType;
     adminStats: {
         name: string;
@@ -87,6 +93,7 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
     const [hasSearchText, setHasSearchText] = useState(!!initialState.search.value);
     const [typeFilter, setTypeFilter] = useState(initialState.filterbyType);
     const [adminNameFilter, setAdminNameFilter] = useState(initialState.filterbyAdmin);
+    const [notesFilter, setNotesFilter] = useState(!!initialState.filterbyNotes);
 
     const updateSearch = () => {
         if (!inputRef.current) return;
@@ -97,13 +104,14 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
             { value: searchValue, type: currSearchType },
             effectiveTypeFilter,
             effectiveAdminNameFilter,
+            notesFilter,
         );
     }
 
     //Call onSearch when params change
     useEffect(() => {
         updateSearch();
-    }, [currSearchType, typeFilter, adminNameFilter]);
+    }, [currSearchType, typeFilter, adminNameFilter, notesFilter]);
 
     //Input handlers
     const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -219,6 +227,9 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
                             <SelectItem value={'warn'} className="cursor-pointer">
                                 Warns
                             </SelectItem>
+                            <SelectItem value={'kick'} className="cursor-pointer">
+                                Kicks
+                            </SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -246,6 +257,16 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
                             ))}
                         </SelectContent>
                     </Select>
+
+                    <Button
+                        variant={notesFilter ? 'secondary' : 'outline'}
+                        className="grow md:grow-0"
+                        aria-pressed={notesFilter}
+                        onClick={() => setNotesFilter(!notesFilter)}
+                    >
+                        <StickyNoteIcon className="mr-2 h-4 w-4" />
+                        Has Notes
+                    </Button>
 
                     <div className="flex justify-end flex-grow">
                         <DropdownMenu>

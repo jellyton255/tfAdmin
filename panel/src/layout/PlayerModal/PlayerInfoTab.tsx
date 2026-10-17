@@ -2,14 +2,19 @@ import DateTimeCorrected from "@/components/DateTimeCorrected";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAdminPerms } from "@/hooks/auth";
+import { useAdminPerms, useAuth } from "@/hooks/auth";
 import { useBackendApi } from "@/hooks/fetch";
 import { PlayerModalRefType } from "@/hooks/playerModal";
 import { cn } from "@/lib/utils";
-import { msToDuration, msToShortDuration, tsToLocaleDateTimeString } from "@/lib/dateTime";
+import { msToDuration, tsToLocaleDateTimeString } from "@/lib/dateTime";
+import StaffNoteText, { formatNoteAge } from "@/components/StaffNoteText";
 import { GenericApiOkResp } from "@shared/genericApiTypes";
 import { PlayerModalPlayerData, PlayerNoteItem } from "@shared/playerApiTypes";
-import { ShieldAlertIcon, Trash2Icon } from "lucide-react";
+import { CornerDownRightIcon, ShieldAlertIcon, Trash2Icon } from "lucide-react";
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { isNoteAuthor } from "@shared/noteAuthor";
 import { useMemo, useState } from "react";
 import { useOpenConfirmDialog } from "@/hooks/dialogs";
 import { ModalTabInner } from "@/components/modal-tabs";
@@ -53,7 +58,28 @@ function PlayerNotesBox({ playerRef, player, serverTime, refreshModalData }: Pla
         method: 'POST',
         path: `/player/delete_note`,
     });
+    const moveNoteApi = useBackendApi<GenericApiOkResp>({
+        method: 'POST',
+        path: `/player/move_note`,
+    });
+    const { authData } = useAuth();
+    const { hasPerm } = useAdminPerms();
     const notes = player.noteHistory ?? [];
+    const sanctions = [...player.actionHistory].reverse();
+    const canMove = (note: PlayerNoteItem) => sanctions.length > 0
+        && (hasPerm('manage.admins') || (!!authData && isNoteAuthor(note, authData.name)));
+
+    const handleMove = (note: PlayerNoteItem, actionId: string) => {
+        moveNoteApi({
+            queryParams: playerRef,
+            data: { noteId: note.id, actionId },
+            toastLoadingMessage: 'Moving note...',
+            genericHandler: { successMsg: `Note moved to ${actionId}.` },
+            success: (data) => {
+                if ('success' in data) refreshModalData();
+            },
+        });
+    }
 
     const doSaveNote = () => {
         const note = draft.trim();
@@ -132,7 +158,7 @@ function PlayerNotesBox({ playerRef, player, serverTime, refreshModalData }: Pla
             {notes.map((note) => (
                 <li key={note.id} className="group flex gap-2 px-2 py-1 border-l-4 border-muted rounded-r-sm bg-muted/30">
                     <div className="min-w-0 grow">
-                        <p className="text-sm whitespace-pre-wrap break-words">{note.text}</p>
+                        <StaffNoteText text={note.text} />
                         <small
                             className="block text-xs text-muted-foreground"
                             title={tsToLocaleDateTimeString(note.ts, 'long', 'short')}
@@ -140,6 +166,33 @@ function PlayerNotesBox({ playerRef, player, serverTime, refreshModalData }: Pla
                             {note.author} · {formatNoteAge(serverTime - note.ts)}
                         </small>
                     </div>
+                    {canMove(note) && <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="size-7 shrink-0 text-muted-foreground"
+                                title="Move to a Sanction"
+                            >
+                                <CornerDownRightIcon className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="max-w-sm">
+                            <DropdownMenuLabel>Move to a Sanction</DropdownMenuLabel>
+                            {sanctions.map((action) => (
+                                <DropdownMenuItem
+                                    key={action.id}
+                                    className="cursor-pointer flex-col items-start gap-0"
+                                    onClick={() => handleMove(note, action.id)}
+                                >
+                                    <span className="text-xs text-muted-foreground">
+                                        <span className="font-mono">{action.id}</span> · {action.type} · {tsToLocaleDateTimeString(action.ts, 'medium', 'short')}
+                                    </span>
+                                    <span className="line-clamp-1">{action.reason}</span>
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>}
                     <Button
                         size="icon"
                         variant="ghost"
@@ -155,10 +208,6 @@ function PlayerNotesBox({ playerRef, player, serverTime, refreshModalData }: Pla
     </div>
 }
 
-function formatNoteAge(secondsAgo: number) {
-    if (secondsAgo < 60) return 'just now';
-    return `${msToShortDuration(secondsAgo * 1000, { largest: 1 })} ago`;
-}
 
 
 type PlayerInfoTabProps = {

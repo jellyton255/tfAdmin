@@ -101,7 +101,9 @@ type PromptDialogType = {
     cancelLabel?: string;
     submitLabel?: string;
     submitBtnVariant?: VariantProps<typeof buttonVariants>['variant'];
-    onSubmit: (input: string) => void;
+    /** Shows an optional second box, such as a staff note, passed to onSubmit as `note`. */
+    noteLabel?: string;
+    onSubmit: (input: string, note: string) => void;
     onCancel?: () => void;
 }
 export const promptDialogOpenAtom = atom(false);

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { GenericApiOkResp } from "@shared/genericApiTypes";
 import { useAdminPerms } from "@/hooks/auth";
 import { Loader2Icon } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useBackendApi } from "@/hooks/fetch";
 import type { ApiRevokeActionReqSchema } from "../../../../core/routes/history/actions";
 
@@ -15,6 +17,7 @@ type ActionModifyTabProps = {
 
 export default function ActionModifyTab({ action, refreshModalData }: ActionModifyTabProps) {
     const [isRevoking, setIsRevoking] = useState(false);
+    const [reason, setReason] = useState('');
     const { hasPerm } = useAdminPerms();
     const revokeActionApi = useBackendApi<GenericApiOkResp, ApiRevokeActionReqSchema>({
         method: 'POST',
@@ -25,7 +28,7 @@ export default function ActionModifyTab({ action, refreshModalData }: ActionModi
     const doRevokeAction = () => {
         setIsRevoking(true);
         revokeActionApi({
-            data: { actionId: action.id },
+            data: { actionId: action.id, reason: reason.trim() || undefined },
             toastLoadingMessage: `Revoking ${action.type}...`,
             genericHandler: {
                 successMsg: `${upperCasedType} revoked.`,
@@ -59,6 +62,20 @@ export default function ActionModifyTab({ action, refreshModalData }: ActionModi
                         <li>The revocation cannot be undone!</li>
                     </ul>
                 </p>
+
+                {!isAlreadyRevoked && hasRevokePerm && <div className="flex flex-col gap-1 pt-2">
+                    <Label htmlFor="revokeReason">Revoke Reason (Staff Only)</Label>
+                    <Textarea
+                        id="revokeReason"
+                        className="w-full min-h-[3.25rem] resize-y"
+                        rows={2}
+                        maxLength={2048}
+                        disabled={isRevoking}
+                        value={reason}
+                        onChange={(e) => setReason(e.currentTarget.value)}
+                        placeholder="Optional, for example: appeal accepted in ticket #1234."
+                    />
+                </div>}
 
                 <Button
                     variant="destructive"

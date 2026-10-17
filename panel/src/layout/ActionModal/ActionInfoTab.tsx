@@ -7,6 +7,7 @@ import type { DatabaseActionType } from "../../../../core/modules/Database/datab
 import { useOpenPlayerModal } from "@/hooks/playerModal";
 import DateTimeCorrected from "@/components/DateTimeCorrected";
 import { ModalTabInner } from "@/components/modal-tabs";
+import StaffNoteText, { formatNoteAge } from "@/components/StaffNoteText";
 
 
 const calcTextAreaLines = (text?: string) => {
@@ -40,9 +41,10 @@ type ActionInfoTabProps = {
     action: DatabaseActionType;
     serverTime: number;
     tsFetch: number;
+    setSelectedTab: (tab: string) => void;
 }
 
-export default function ActionInfoTab({ action, serverTime, tsFetch }: ActionInfoTabProps) {
+export default function ActionInfoTab({ action, serverTime, tsFetch, setSelectedTab }: ActionInfoTabProps) {
     const openPlayerModal = useOpenPlayerModal();
 
     let banExpirationText: React.ReactNode;
@@ -87,6 +89,9 @@ export default function ActionInfoTab({ action, serverTime, tsFetch }: ActionInf
         revokedText = <span className="opacity-75">No</span>;
     }
 
+    const visibleNotes = (action.notes ?? []).filter((note) => !note.deleted);
+    const newestNote = [...visibleNotes].reverse().sort((a, b) => b.ts - a.ts)[0];
+
     //Player stuff
     const playerDisplayName = action.playerName !== false
         ? <span>{action.playerName}</span>
@@ -124,10 +129,18 @@ export default function ActionInfoTab({ action, serverTime, tsFetch }: ActionInf
                         <dd className="text-sm leading-6 col-span-2 mt-0">{warnAckedText}</dd>
                     </div>
                 )}
-                <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
-                    <dt className="text-sm font-medium leading-6 text-muted-foreground">Revoked</dt>
-                    <dd className="text-sm leading-6 col-span-2 mt-0">{revokedText}</dd>
-                </div>
+                {action.type !== 'kick' && (
+                    <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                        <dt className="text-sm font-medium leading-6 text-muted-foreground">Revoked</dt>
+                        <dd className="text-sm leading-6 col-span-2 mt-0">{revokedText}</dd>
+                    </div>
+                )}
+                {action.revocation.reason && (
+                    <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                        <dt className="text-sm font-medium leading-6 text-muted-foreground">Revoke Reason</dt>
+                        <dd className="text-sm leading-6 col-span-2 mt-0 whitespace-pre-wrap break-words">{action.revocation.reason}</dd>
+                    </div>
+                )}
 
                 <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
                     <dt className="text-sm font-medium leading-6 text-muted-foreground">Admin</dt>
@@ -149,6 +162,26 @@ export default function ActionInfoTab({ action, serverTime, tsFetch }: ActionInf
             </dl>
 
             <ActionReasonBox actionReason={action.reason} />
+
+            <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm font-medium">Newest Staff Note</span>
+                <Button
+                    variant="outline"
+                    size="inline"
+                    style={{ minWidth: '8.25ch' }}
+                    onClick={() => setSelectedTab('Notes')}
+                >{visibleNotes.length ? `All (${visibleNotes.length})` : 'Add'}</Button>
+            </div>
+            {newestNote ? (
+                <div className="mt-1 px-2 py-1 border-l-4 border-muted rounded-r-sm bg-muted/30">
+                    <StaffNoteText text={newestNote.text} />
+                    <small className="block text-xs text-muted-foreground">
+                        {newestNote.author} · {formatNoteAge(serverTime - newestNote.ts)}
+                    </small>
+                </div>
+            ) : (
+                <p className="mt-1 text-sm text-muted-foreground italic">No notes yet.</p>
+            )}
         </ModalTabInner>
     );
 }

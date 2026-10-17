@@ -9,6 +9,9 @@ import type { BanTemplatesDataType } from "@shared/otherTypes";
 import BanForm, { BanFormType } from "@/components/BanForm";
 import { txToast } from "@/components/TxToaster";
 import { ModalTabInner, ModalTabMessage } from "@/components/modal-tabs";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { STAFF_NOTE_LABEL } from "@/components/StaffNoteText";
 
 
 type PlayerBanTabProps = {
@@ -19,6 +22,7 @@ type PlayerBanTabProps = {
 export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabProps) {
     const banFormRef = useRef<BanFormType>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [note, setNote] = useState('');
     const { hasPerm } = useAdminPerms();
     const closeModal = useClosePlayerModal();
     const playerBanApi = useBackendApi<GenericApiOkResp>({
@@ -46,7 +50,7 @@ export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabPr
         setIsSaving(true);
         playerBanApi({
             queryParams: playerRef,
-            data: {reason, duration},
+            data: { reason, duration, note: note.trim() || undefined },
             toastLoadingMessage: 'Banning player...',
             genericHandler: {
                 successMsg: 'Player banned.',
@@ -64,6 +68,18 @@ export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabPr
                 disabled={isSaving}
                 onNavigateAway={() => { closeModal(); }}
             />
+            <div className="grid gap-1">
+                <Label htmlFor="banStaffNote">{STAFF_NOTE_LABEL}</Label>
+                <Textarea
+                    id="banStaffNote"
+                    className="resize-y"
+                    rows={2}
+                    maxLength={4096}
+                    disabled={isSaving}
+                    value={note}
+                    onChange={(e) => setNote(e.currentTarget.value)}
+                />
+            </div>
             <div className="flex place-content-end">
                 <Button
                     size="sm"

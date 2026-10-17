@@ -4,6 +4,7 @@ import { PlayerHistoryItem } from "@shared/playerApiTypes";
 import InlineCode from "@/components/InlineCode";
 import { useOpenActionModal } from "@/hooks/actionModal";
 import { ModalTabInner, ModalTabMessage } from "@/components/modal-tabs";
+import { StickyNoteIcon } from "lucide-react";
 
 
 type HistoryItemProps = {
@@ -20,6 +21,9 @@ function HistoryItem({ action, serverTime, modalOpener }: HistoryItemProps) {
     } else if (action.type === 'warn') {
         borderColorClass = 'border-warning';
         actionMessage = `WARNED by ${action.author}`;
+    } else if (action.type === 'kick') {
+        borderColorClass = 'border-muted-foreground/40';
+        actionMessage = `KICKED by ${action.author}`;
     }
     if (action.revokedBy) {
         borderColorClass = '';
@@ -41,6 +45,14 @@ function HistoryItem({ action, serverTime, modalOpener }: HistoryItemProps) {
             <div className="flex w-full justify-between">
                 <strong className="text-sm text-muted-foreground">{actionMessage}</strong>
                 <small className="text-right text-2xs space-x-1">
+                    {action.noteCount ? (
+                        <span
+                            className="inline-flex items-center gap-0.5 text-muted-foreground"
+                            title={action.noteCount === 1 ? '1 staff note' : `${action.noteCount} staff notes`}
+                        >
+                            <StickyNoteIcon className="size-3" />{action.noteCount}
+                        </span>
+                    ) : null}
                     <InlineCode className="tracking-widest">{action.id}</InlineCode>
                     <span
                         className="opacity-75 cursor-help"
@@ -68,7 +80,7 @@ export default function PlayerHistoryTab({ actionHistory, serverTime, refreshMod
 
     if (!actionHistory.length) {
         return <ModalTabMessage>
-            No bans/warns found.
+            No bans, warns or kicks found.
         </ModalTabMessage>;
     }
 

@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useActionModalStateValue } from "@/hooks/actionModal";
-import { EraserIcon, InfoIcon, ListIcon, Trash2Icon, Undo2Icon } from "lucide-react";
+import { InfoIcon, ListIcon, StickyNoteIcon, Undo2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import GenericSpinner from "@/components/GenericSpinner";
 import { cn } from "@/lib/utils";
@@ -10,33 +10,30 @@ import { HistoryActionModalResp, HistoryActionModalSuccess } from "@shared/histo
 import ActionIdsTab from "./ActionIdsTab";
 import ActionInfoTab from "./ActionInfoTab";
 import ActionModifyTab from "./ActionModifyTab";
-import ActionDeleteTab from "./ActionDeleteTab";
+import ActionNotesTab from "./ActionNotesTab";
+import type { DatabaseNoteType } from "../../../../core/modules/Database/databaseTypes";
 import { ModalContent, ModalTabMessage, ModalTabsList, ModalTabWrapper, type ModalTabInfo } from "@/components/modal-tabs";
 
 
-const modalTabs: ModalTabInfo[] = [
-    {
-        title: 'Info',
-        icon: <InfoIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-    },
-    {
-        title: 'IDs',
-        icon: <ListIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-    },
-    {
-        //In the future, when adding "edit" and "remove" to the modal, join with "revoke" in a tab bellow
-        // title: 'Modify',
-        // icon: <EraserIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-        title: 'Revoke',
-        icon: <Undo2Icon className="mr-2 h-5 w-5 hidden xs:block" />,
-        className: 'hover:bg-destructive hover:text-destructive-foreground',
-    },
-]
+const infoTab: ModalTabInfo = {
+    title: 'Info',
+    icon: <InfoIcon className="mr-2 h-5 w-5 hidden xs:block" />,
+};
+const idsTab: ModalTabInfo = {
+    title: 'IDs',
+    icon: <ListIcon className="mr-2 h-5 w-5 hidden xs:block" />,
+};
+const revokeTab: ModalTabInfo = {
+    title: 'Revoke',
+    icon: <Undo2Icon className="mr-2 h-5 w-5 hidden xs:block" />,
+    className: 'hover:bg-destructive hover:text-destructive-foreground',
+};
+const notesIcon = <StickyNoteIcon className="mr-2 h-5 w-5 hidden xs:block" />;
 
 
 export default function ActionModal() {
     const { isModalOpen, closeModal, actionRef } = useActionModalStateValue();
-    const [selectedTab, setSelectedTab] = useState(modalTabs[0].title);
+    const [selectedTab, setSelectedTab] = useState(infoTab.title);
     const [currRefreshKey, setCurrRefreshKey] = useState(0);
     const [modalData, setModalData] = useState<HistoryActionModalSuccess | undefined>(undefined);
     const [modalError, setModalError] = useState('');
@@ -77,10 +74,17 @@ export default function ActionModal() {
     useEffect(() => {
         if (!isModalOpen) {
             setTimeout(() => {
-                setSelectedTab(modalTabs[0].title);
+                setSelectedTab(infoTab.title);
             }, 200);
         }
     }, [isModalOpen]);
+
+    //Kicks are a record only, so they have nothing to revoke
+    const visibleNoteCount = modalData?.action.notes?.filter((note: DatabaseNoteType) => !note.deleted).length ?? 0;
+    const notesTab: ModalTabInfo = { title: 'Notes', icon: notesIcon };
+    const modalTabs = modalData?.action.type === 'kick'
+        ? [infoTab, notesTab, idsTab]
+        : [infoTab, notesTab, idsTab, revokeTab];
 
     const handleOpenClose = (newOpenState: boolean) => {
         if (isModalOpen && !newOpenState) {
@@ -120,6 +124,11 @@ export default function ActionModal() {
                 <span className="text-warning-inline font-mono mr-2">[{modalData.action.id}]</span>
                 Warned {displayName}
             </>;
+        } else if (modalData.action.type === 'kick') {
+            pageTitle = <>
+                <span className="text-muted-foreground font-mono mr-2">[{modalData.action.id}]</span>
+                Kicked {displayName}
+            </>;
         } else {
             throw new Error(`Unknown action type: ${modalData.action.type}`);
         }
@@ -155,6 +164,9 @@ export default function ActionModal() {
                                 onKeyDown={handleTabButtonKeyDown}
                             >
                                 {tab.icon} {tab.title}
+                                {tab.title === 'Notes' && visibleNoteCount > 0 && (
+                                    <span className="ml-1.5 text-muted-foreground">{visibleNoteCount}</span>
+                                )}
                             </Button>
                         ))}
                     </ModalTabsList>
@@ -174,11 +186,17 @@ export default function ActionModal() {
                                     action={modalData.action}
                                     serverTime={modalData.serverTime}
                                     tsFetch={tsFetch}
+                                    setSelectedTab={setSelectedTab}
+                                />}
+                                {selectedTab === 'Notes' && <ActionNotesTab
+                                    action={modalData.action}
+                                    serverTime={modalData.serverTime}
+                                    refreshModalData={refreshModalData}
                                 />}
                                 {selectedTab === 'IDs' && <ActionIdsTab
                                     action={modalData.action}
                                 />}
-                                {selectedTab === 'Revoke' && <ActionModifyTab
+                                {selectedTab === 'Revoke' && modalData.action.type !== 'kick' && <ActionModifyTab
                                     action={modalData.action}
                                     refreshModalData={refreshModalData}
                                 />}

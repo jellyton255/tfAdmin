@@ -23,6 +23,7 @@ const updateUrlSearchParams = (
     search: HistoryTableSearchType,
     filterbyType: string | undefined,
     filterbyAdmin: string | undefined,
+    filterbyNotes: boolean,
 ) => {
     const newUrl = new URL(window.location.toString());
     if (search && search.type && search.value) {
@@ -42,6 +43,11 @@ const updateUrlSearchParams = (
     } else {
         newUrl.searchParams.delete("filterbyAdmin");
     }
+    if (filterbyNotes) {
+        newUrl.searchParams.set("filterbyNotes", "true");
+    } else {
+        newUrl.searchParams.delete("filterbyNotes");
+    }
     window.history.replaceState({}, "", newUrl);
 }
 const getInitialState = () => {
@@ -60,6 +66,7 @@ const getInitialState = () => {
         },
         filterbyType: params.get('filterbyType') ?? SEARCH_ANY_STRING,
         filterbyAdmin: params.get('filterbyAdmin') ?? SEARCH_ANY_STRING,
+        filterbyNotes: params.get('filterbyNotes') === 'true',
     } satisfies HistorySearchBoxReturnStateType;
 }
 
@@ -86,10 +93,11 @@ export default function HistoryPage() {
     const doSearch = useCallback((
         search: HistoryTableSearchType,
         filterbyType: string | undefined,
-        filterbyAdmin: string | undefined
+        filterbyAdmin: string | undefined,
+        filterbyNotes: boolean,
     ) => {
-        setSearchBoxReturn({ search, filterbyType, filterbyAdmin });
-        updateUrlSearchParams(search, filterbyType, filterbyAdmin);
+        setSearchBoxReturn({ search, filterbyType, filterbyAdmin, filterbyNotes });
+        updateUrlSearchParams(search, filterbyType, filterbyAdmin, filterbyNotes);
     }, []);
     const initialState = useMemo(getInitialState, []);
 
@@ -145,6 +153,7 @@ export default function HistoryPage() {
                 search={searchBoxReturn.search}
                 filterbyType={searchBoxReturn.filterbyType}
                 filterbyAdmin={searchBoxReturn.filterbyAdmin}
+                filterbyNotes={!!searchBoxReturn.filterbyNotes}
             />
         ) : null}
     </div>);

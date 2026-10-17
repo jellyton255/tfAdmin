@@ -11,6 +11,7 @@ import { PlayerModalPlayerData } from "@shared/playerApiTypes";
 import { useLocation, useRoute } from "wouter";
 import { useContentRefresh } from "@/hooks/pages";
 import { useCloseAllSheets } from "@/hooks/sheets";
+import { STAFF_NOTE_LABEL } from "@/components/StaffNoteText";
 
 
 type PlayerModalFooterProps = {
@@ -94,10 +95,11 @@ export default function PlayerModalFooter({ playerRef, player }: PlayerModalFoot
             message: 'Type the kick reason or leave it blank (press enter)',
             placeholder: 'any reason you want',
             submitLabel: 'Send',
-            onSubmit: (input) => {
+            noteLabel: STAFF_NOTE_LABEL,
+            onSubmit: (input, note) => {
                 playerKickApi({
                     queryParams: playerRef,
-                    data: { reason: input },
+                    data: { reason: input, note: note || undefined },
                     genericHandler: { successMsg: 'Player kicked.' },
                     toastLoadingMessage: 'Kicking player...',
                     success: closeOnSuccess,
@@ -117,10 +119,11 @@ export default function PlayerModalFooter({ playerRef, player }: PlayerModalFoot
             placeholder: 'The reason for the warn, rule violated, etc.',
             submitLabel: 'Send',
             required: true,
-            onSubmit: (input) => {
+            noteLabel: STAFF_NOTE_LABEL,
+            onSubmit: (input, note) => {
                 playerWarnApi({
                     queryParams: playerRef,
-                    data: { reason: input },
+                    data: { reason: input, note: note || undefined },
                     genericHandler: { successMsg: 'Warning sent.' },
                     toastLoadingMessage: 'Sending warning...',
                     success: closeOnSuccess,

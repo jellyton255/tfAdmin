@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { convertRowDateTime } from '@/lib/dateTime';
 import { TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2Icon, GavelIcon, AlertTriangleIcon, Undo2Icon, TimerOffIcon, TimerIcon, HourglassIcon } from 'lucide-react';
+import { Loader2Icon, GavelIcon, AlertTriangleIcon, Undo2Icon, TimerOffIcon, TimerIcon, HourglassIcon, DoorOpenIcon, StickyNoteIcon } from 'lucide-react';
 import { useBackendApi } from '@/hooks/fetch';
 import { HistoryTableActionType, HistoryTableSearchResp, HistoryTableSearchType, HistoryTableSortingType } from '@shared/historyApiTypes';
 import { useOpenActionModal } from '@/hooks/actionModal';
@@ -37,6 +37,11 @@ function HistoryRow({ action, modalOpener }: HistoryRowProps) {
             <GavelIcon className='size-5' />
         </div>
         rowId = <span className='tracking-wider text-destructive'>{action.id}</span>
+    } else if (action.type === 'kick') {
+        rowPrefix = <div className='flex items-center px-1 bg-secondary text-muted-foreground'>
+            <DoorOpenIcon className='size-5' />
+        </div>
+        rowId = <span className='tracking-wider text-muted-foreground'>{action.id}</span>
     } else {
         throw new Error(`Invalid action type: ${action.type}`);
     }
@@ -54,11 +59,19 @@ function HistoryRow({ action, modalOpener }: HistoryRowProps) {
     } else if (action.type === 'warn' && !action.warnAcked) {
         statusIcon = <HourglassIcon className='size-4' />;
     }
+    const noteIcon = action.noteCount ? (
+        <span
+            className='inline-flex items-center gap-0.5 text-xs'
+            title={action.noteCount === 1 ? '1 staff note' : `${action.noteCount} staff notes`}
+        >
+            <StickyNoteIcon className='size-4' />{action.noteCount}
+        </span>
+    ) : null;
 
     return (
         <TableRow onClick={openModal} className='cursor-pointer'>
             <TableCell className={cn(
-                'w-[10.4rem] border-r p-0',
+                'w-[12rem] border-r p-0',
                 action.isRevoked && 'opacity-40'
             )}>
                 <div className='flex justify-start gap-2'>
@@ -66,7 +79,8 @@ function HistoryRow({ action, modalOpener }: HistoryRowProps) {
                     <div className='p-2 font-mono'>
                         {rowId}
                     </div>
-                    <div className='flex-grow flex justify-end items-center my-auto pr-2 text-muted-foreground'>
+                    <div className='flex-grow flex justify-end items-center gap-1.5 my-auto pr-2 text-muted-foreground'>
+                        {noteIcon}
                         {statusIcon}
                     </div>
                 </div>
@@ -195,9 +209,10 @@ type HistoryTableProps = {
     search: HistoryTableSearchType;
     filterbyType: string | undefined,
     filterbyAdmin: string | undefined,
+    filterbyNotes: boolean,
 }
 
-export default function HistoryTable({ search, filterbyType, filterbyAdmin }: HistoryTableProps) {
+export default function HistoryTable({ search, filterbyType, filterbyAdmin, filterbyNotes }: HistoryTableProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [history, setHistory] = useState<HistoryTableActionType[]>([]);
     const [hasReachedEnd, setHasReachedEnd] = useState(false);
@@ -239,6 +254,9 @@ export default function HistoryTable({ search, filterbyType, filterbyAdmin }: Hi
             }
             if (filterbyAdmin && filterbyAdmin !== SEARCH_ANY_STRING) {
                 queryParams.filterbyAdmin = filterbyAdmin;
+            }
+            if (filterbyNotes) {
+                queryParams.filterbyNotes = true;
             }
             if (!resetOffset && history.length) {
                 queryParams.offsetParam = history[history.length - 1][sorting.key];
@@ -309,7 +327,7 @@ export default function HistoryTable({ search, filterbyType, filterbyAdmin }: Hi
     useEffect(() => {
         rowVirtualizer.scrollToIndex(0);
         fetchNextPage(true);
-    }, [search, filterbyType, filterbyAdmin, sorting]);
+    }, [search, filterbyType, filterbyAdmin, filterbyNotes, sorting]);
 
 
     return (
