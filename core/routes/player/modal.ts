@@ -7,7 +7,7 @@ import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { now } from '@lib/misc';
 import { SYM_CURRENT_MUTEX } from '@lib/symbols';
-import { notesNewestFirst } from '@lib/player/playerNotes';
+import { notesNewestFirst, visibleNotes } from '@lib/notes';
 const console = consoleFactory(modulename);
 
 //Helpers
@@ -23,6 +23,7 @@ const processHistoryLog = (hist: DatabaseActionType[]) => {
                 exp: log.expiration ? log.expiration : undefined,
                 revokedBy: log.revocation.author ? log.revocation.author : undefined,
                 revokedAt: log.revocation.timestamp ? log.revocation.timestamp : undefined,
+                noteCount: visibleNotes(log.notes).length || undefined,
             };
         });
     } catch (error) {

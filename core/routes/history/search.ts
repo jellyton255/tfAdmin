@@ -8,6 +8,7 @@ import { now } from '@lib/misc';
 import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
 import { HistoryTableActionType, HistoryTableSearchResp } from '@shared/historyApiTypes';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
+import { visibleNotes } from '@lib/notes';
 const console = consoleFactory(modulename);
 
 //Helpers
@@ -28,6 +29,7 @@ export default async function HistorySearch(ctx: AuthedCtx) {
         searchType,
         filterbyType,
         filterbyAdmin,
+        filterbyNotes,
         sortingKey,
         sortingDesc,
         offsetParam,
@@ -64,12 +66,16 @@ export default async function HistorySearch(ctx: AuthedCtx) {
     //filter the actions by the simple filters (lightweight)
     const effectiveTypeFilter = typeof filterbyType === 'string' && filterbyType.length ? filterbyType : undefined;
     const effectiveAdminFilter = typeof filterbyAdmin === 'string' && filterbyAdmin.length ? filterbyAdmin : undefined;
-    if (effectiveTypeFilter || effectiveAdminFilter) {
+    const effectiveNotesFilter = filterbyNotes === 'true';
+    if (effectiveTypeFilter || effectiveAdminFilter || effectiveNotesFilter) {
         chain = chain.filter((a) => {
             if (effectiveTypeFilter && a.type !== effectiveTypeFilter) {
                 return false;
             }
             if (effectiveAdminFilter && a.author !== effectiveAdminFilter) {
+                return false;
+            }
+            if (effectiveNotesFilter && !visibleNotes(a.notes).length) {
                 return false;
             }
             return true;
@@ -97,13 +103,18 @@ export default async function HistorySearch(ctx: AuthedCtx) {
             const filtered = fuse.search(cleanId).map(x => x.item);
             chain = createChain(filtered);
         } else if (searchType === 'reason') {
-            //Searching by player notes
-            const actions = chain.value();
+            //Searching by reason or staff notes (deleted notes are not searchable)
+            const actions = chain.value().map((action) => ({
+                action,
+                reason: action.reason,
+                notes: visibleNotes(action.notes).map((note) => note.text),
+            }));
             const fuse = new Fuse(actions, {
-                keys: ['reason'],
-                threshold: 0.3
+                keys: ['reason', 'notes'],
+                threshold: 0.3,
+                ignoreLocation: true,
             });
-            const filtered = fuse.search(searchValue).map(x => x.item);
+            const filtered = fuse.search(searchValue).map(x => x.item.action);
             chain = createChain(filtered);
         } else if (searchType === 'identifiers') {
             //Searching by target identifiers
@@ -154,6 +165,7 @@ export default async function HistorySearch(ctx: AuthedCtx) {
             reason: a.reason,
             timestamp: a.timestamp,
             isRevoked: !!a.revocation.timestamp,
+            noteCount: visibleNotes(a.notes).length,
             banExpiration,
             warnAcked,
         } satisfies HistoryTableActionType;

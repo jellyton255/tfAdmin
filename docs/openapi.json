@@ -929,6 +929,11 @@
                   },
                   "duration": {
                     "$ref": "#/components/schemas/BanDuration"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "description": "Optional staff note saved on the action. Never shown to the player"
                   }
                 },
                 "required": [
@@ -1010,6 +1015,11 @@
                   "reason": {
                     "type": "string",
                     "maxLength": 2048
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "description": "Optional staff note saved on the action. Never shown to the player"
                   }
                 },
                 "required": [
@@ -1061,7 +1071,7 @@
     "/players/{license}/kick": {
       "post": {
         "summary": "Kick an online player",
-        "description": "Requires the `players.kick` scope.",
+        "description": "The kick is recorded as a `kick` action in the player history. `action` is null when the player had no identifiers to record.\n\nRequires the `players.kick` scope.",
         "tags": [
           "Moderation"
         ],
@@ -1090,6 +1100,11 @@
                   "reason": {
                     "type": "string",
                     "maxLength": 2048
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "description": "Optional staff note saved on the action. Never shown to the player"
                   }
                 },
                 "required": [],
@@ -1107,7 +1122,28 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/Ok"
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        },
+                        "action": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/components/schemas/Action"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "ok",
+                        "action"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -1557,7 +1593,7 @@
     },
     "/actions": {
       "get": {
-        "summary": "Search bans and warns",
+        "summary": "Search bans, warns and kicks",
         "description": "Any valid key (read-only keys included).",
         "tags": [
           "Actions"
@@ -1585,7 +1621,7 @@
                 "ids"
               ]
             },
-            "description": "What `q` matches (default ids); `name` is a fuzzy player name search"
+            "description": "What `q` matches (default ids); `reason` also searches staff notes; `name` is a fuzzy player name search"
           },
           {
             "name": "kind",
@@ -1595,7 +1631,8 @@
               "type": "string",
               "enum": [
                 "ban",
-                "warn"
+                "warn",
+                "kick"
               ]
             }
           },
@@ -1617,7 +1654,21 @@
                 "active",
                 "revoked"
               ]
-            }
+            },
+            "description": "`active` = not revoked; kicks are never active"
+          },
+          {
+            "name": "hasNotes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Only actions with (true) or without (false) staff notes"
           },
           {
             "name": "limit",
@@ -1767,6 +1818,11 @@
                   },
                   "duration": {
                     "$ref": "#/components/schemas/BanDuration"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "description": "Optional staff note saved on the action. Never shown to the player"
                   }
                 },
                 "required": [
@@ -1954,7 +2010,7 @@
     "/actions/{id}/revoke": {
       "post": {
         "summary": "Revoke a ban or warn",
-        "description": "Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected.",
+        "description": "Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected. Kicks cannot be revoked (409).",
         "tags": [
           "Moderation"
         ],
@@ -1971,6 +2027,25 @@
             "$ref": "#/components/parameters/ActorId"
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "description": "Optional staff reason, shown in the panel and stored as revokeReason"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success",
@@ -2014,6 +2089,263 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions/{id}/notes": {
+      "post": {
+        "summary": "Add a staff note to an action",
+        "description": "Publishes the `action.noteAdded` event.\n\nRequires the `players.note` scope, or the scope of the action's type: `players.ban`, `players.warn` or `players.kick`.",
+        "tags": [
+          "Actions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "note": {
+                          "$ref": "#/components/schemas/ActionNote"
+                        }
+                      },
+                      "required": [
+                        "note"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/actions/{id}/notes/{noteId}": {
+      "patch": {
+        "summary": "Edit a staff note",
+        "description": "Only the note's author can edit it. A note written through a key acting for a staff member belongs to that staff member.\n\nRequires the `players.note` scope, or the scope of the action's type: `players.ban`, `players.warn` or `players.kick`.",
+        "tags": [
+          "Actions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "noteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "note": {
+                          "$ref": "#/components/schemas/ActionNote"
+                        }
+                      },
+                      "required": [
+                        "note"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a staff note",
+        "description": "The note's author can delete it, and so can a key or staff member with `manage.admins`. The note is hidden, not erased.\n\nRequires the `players.note` scope, or the scope of the action's type: `players.ban`, `players.warn` or `players.kick`.",
+        "tags": [
+          "Actions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "noteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "note": {
+                          "$ref": "#/components/schemas/ActionNote"
+                        }
+                      },
+                      "required": [
+                        "note"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
@@ -4487,6 +4819,43 @@
         ],
         "additionalProperties": false
       },
+      "ActionNote": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "editedAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Last edit, null when never edited"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "author",
+          "createdAt",
+          "editedAt"
+        ],
+        "additionalProperties": false
+      },
       "Action": {
         "type": "object",
         "properties": {
@@ -4497,8 +4866,10 @@
             "type": "string",
             "enum": [
               "ban",
-              "warn"
-            ]
+              "warn",
+              "kick"
+            ],
+            "description": "Kicks are a record only: never active and never revoked"
           },
           "playerName": {
             "oneOf": [
@@ -4589,6 +4960,24 @@
               }
             ]
           },
+          "revokeReason": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Staff reason given when revoking, else null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionNote"
+            },
+            "description": "Staff notes, newest first. Never shown to the player; deleted notes are left out"
+          },
           "externalRef": {
             "oneOf": [
               {
@@ -4615,6 +5004,8 @@
           "acked",
           "revokedAt",
           "revokedBy",
+          "revokeReason",
+          "notes",
           "externalRef"
         ],
         "additionalProperties": false
@@ -4632,6 +5023,12 @@
             "type": "integer"
           },
           "bansLast7d": {
+            "type": "integer"
+          },
+          "totalKicks": {
+            "type": "integer"
+          },
+          "kicksLast7d": {
             "type": "integer"
           },
           "byAdmin": {
@@ -4659,6 +5056,8 @@
           "warnsLast7d",
           "totalBans",
           "bansLast7d",
+          "totalKicks",
+          "kicksLast7d",
           "byAdmin"
         ],
         "additionalProperties": false
@@ -5016,6 +5415,7 @@
           "whitelist.preApproval",
           "whitelist.request",
           "action.revoked",
+          "action.noteAdded",
           "admin.login",
           "apiKey.firstUse",
           "webhook.test"

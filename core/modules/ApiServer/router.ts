@@ -66,10 +66,13 @@ export default () => {
     router.post('/players/:license/notes', apiKeyAuthMw('players.note'), v1.players_addNote as any);
     router.delete('/players/:license/notes/:noteId', apiKeyAuthMw('players.note'), v1.players_deleteNote as any);
 
-    //Actions (bans/warns) writes
+    //Actions (bans/warns/kicks) writes
     router.post('/actions/ban-identifiers', apiKeyAuthMw('players.ban'), v1.actions_banIds as any);
     router.post('/actions/import-ban', apiKeyAuthMw('players.ban_import'), v1.actions_importBan as any);
     router.post('/actions/:id/revoke', apiKeyAuthMw(), v1.actions_revoke as any); //per-type permission inside
+    router.post('/actions/:id/notes', apiKeyAuthMw(), v1.actions_addNote as any); //players.note or the type's scope inside
+    router.patch('/actions/:id/notes/:noteId', apiKeyAuthMw(), v1.actions_editNote as any);
+    router.delete('/actions/:id/notes/:noteId', apiKeyAuthMw(), v1.actions_deleteNote as any);
 
     //Whitelist writes
     router.post('/whitelist/approvals', apiKeyAuthMw('players.whitelist'), v1.whitelist_addApproval as any);

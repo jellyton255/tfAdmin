@@ -10,7 +10,7 @@ import { idParamSchema as actionIdParamSchema, searchQuerySchema as actionsQuery
 import { listQuerySchema as whitelistQuerySchema } from './whitelist';
 import { querySchema as eventsQuerySchema } from './events';
 import { idParamSchema as webhookIdParamSchema } from './webhooks';
-import { banIdsBodySchema } from './actionWrites';
+import { actionNoteBodySchema, actionNoteParamSchema, banIdsBodySchema, revokeBodySchema } from './actionWrites';
 import { identifierBodySchema, reqIdParamSchema, denyAllBodySchema } from './whitelistWrites';
 import {
     banBodySchema, warnBodySchema, kickBodySchema, messageBodySchema, whitelistBodySchema, noteBodySchema, noteIdParamSchema,
@@ -27,7 +27,7 @@ import {
  */
 
 type ToolRequest = {
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     path: string;
     query?: Record<string, unknown>;
     body?: Record<string, unknown>;
@@ -117,7 +117,7 @@ export const MCP_TOOLS: ToolDefinition[] = [
     {
         name: 'tfadmin_players_ban',
         title: 'Ban Player',
-        description: `Ban a player by license. Kicks them if online. ${durationHelp}`,
+        description: `Ban a player by license. Kicks them if online. ${durationHelp} The optional note is a staff note saved on the ban, never shown to the player.`,
         scopes: ['players.ban'],
         input: { ...licenseParamSchema.shape, ...banBodySchema.shape },
         annotations: destructive,
@@ -126,7 +126,7 @@ export const MCP_TOOLS: ToolDefinition[] = [
     {
         name: 'tfadmin_players_warn',
         title: 'Warn Player',
-        description: 'Record a warning on a player by license. An online player sees it right away; an offline player sees it on next join.',
+        description: 'Record a warning on a player by license. An online player sees it right away; an offline player sees it on next join. The optional note is a staff note, never shown to the player.',
         scopes: ['players.warn'],
         input: { ...licenseParamSchema.shape, ...warnBodySchema.shape },
         annotations: destructive,
@@ -135,7 +135,7 @@ export const MCP_TOOLS: ToolDefinition[] = [
     {
         name: 'tfadmin_players_kick',
         title: 'Kick Player',
-        description: 'Kick an online player by license, with an optional reason.',
+        description: 'Kick an online player by license, with an optional reason and an optional staff note. The kick is recorded in the player history.',
         scopes: ['players.kick'],
         input: { ...licenseParamSchema.shape, ...kickBodySchema.shape },
         annotations: destructive,
@@ -178,26 +178,26 @@ export const MCP_TOOLS: ToolDefinition[] = [
         request: ({ license, noteId }) => ({ method: 'DELETE', path: `/players/${enc(license)}/notes/${enc(noteId)}` }),
     },
 
-    //Bans and warnings
+    //Bans, warnings and kicks
     {
         name: 'tfadmin_actions_search',
-        title: 'Search Bans and Warnings',
-        description: `Search bans and warnings by identifiers (type ids), action id, reason, or player name, filtered by kind, author, and status. ${paging}`,
+        title: 'Search Bans, Warnings and Kicks',
+        description: `Search bans, warnings and kicks by identifiers (type ids), action id, reason or staff notes (type reason), or player name, filtered by kind, author, status, and hasNotes. ${paging}`,
         input: actionsQuerySchema.shape,
         annotations: readOnly,
         request: (query) => ({ method: 'GET', path: '/actions', query }),
     },
     {
         name: 'tfadmin_actions_stats',
-        title: 'Ban and Warning Counts',
-        description: 'Total bans and warnings, counts for the last 7 days, and counts per admin.',
+        title: 'Ban, Warning and Kick Counts',
+        description: 'Total bans, warnings and kicks, counts for the last 7 days, and counts per admin.',
         annotations: readOnly,
         request: () => ({ method: 'GET', path: '/actions/stats' }),
     },
     {
         name: 'tfadmin_actions_get',
-        title: 'Read Ban or Warning',
-        description: 'One ban or warning by its action id (such as ABCD-1234).',
+        title: 'Read Ban, Warning or Kick',
+        description: 'One ban, warning or kick by its action id (such as BABC-1234), with its staff notes.',
         input: actionIdParamSchema.shape,
         annotations: readOnly,
         request: ({ id }) => ({ method: 'GET', path: `/actions/${enc(id)}` }),
@@ -214,11 +214,38 @@ export const MCP_TOOLS: ToolDefinition[] = [
     {
         name: 'tfadmin_actions_revoke',
         title: 'Revoke Ban or Warning',
-        description: 'Revoke a ban (needs players.ban) or a warning (needs players.warn) by its action id.',
+        description: 'Revoke a ban (needs players.ban) or a warning (needs players.warn) by its action id, with an optional staff reason. Kicks cannot be revoked.',
         scopes: ['players.ban', 'players.warn'],
-        input: actionIdParamSchema.shape,
+        input: { ...actionIdParamSchema.shape, ...revokeBodySchema.shape },
         annotations: destructive,
-        request: ({ id }) => ({ method: 'POST', path: `/actions/${enc(id)}/revoke` }),
+        request: ({ id, ...body }) => ({ method: 'POST', path: `/actions/${enc(id)}/revoke`, body }),
+    },
+    {
+        name: 'tfadmin_actions_add_note',
+        title: 'Add Action Note',
+        description: 'Add a staff note to a ban, warning or kick by its action id. Notes are never shown to the player.',
+        scopes: ['players.note', 'players.ban', 'players.warn', 'players.kick'],
+        input: { ...actionIdParamSchema.shape, ...actionNoteBodySchema.shape },
+        annotations: write,
+        request: ({ id, ...body }) => ({ method: 'POST', path: `/actions/${enc(id)}/notes`, body }),
+    },
+    {
+        name: 'tfadmin_actions_edit_note',
+        title: 'Edit Action Note',
+        description: 'Replace the text of a staff note on an action. Only the note\'s author can edit it.',
+        scopes: ['players.note', 'players.ban', 'players.warn', 'players.kick'],
+        input: { ...actionNoteParamSchema.shape, ...actionNoteBodySchema.shape },
+        annotations: write,
+        request: ({ id, noteId, ...body }) => ({ method: 'PATCH', path: `/actions/${enc(id)}/notes/${enc(noteId)}`, body }),
+    },
+    {
+        name: 'tfadmin_actions_delete_note',
+        title: 'Delete Action Note',
+        description: 'Delete a staff note from an action. The note\'s author can delete it, and so can a key with manage.admins. The note is hidden, not erased.',
+        scopes: ['players.note', 'players.ban', 'players.warn', 'players.kick'],
+        input: actionNoteParamSchema.shape,
+        annotations: destructive,
+        request: ({ id, noteId }) => ({ method: 'DELETE', path: `/actions/${enc(id)}/notes/${enc(noteId)}` }),
     },
 
     //Whitelist

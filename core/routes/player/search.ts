@@ -7,7 +7,7 @@ import cleanPlayerName from '@shared/cleanPlayerName';
 import { chain as createChain } from 'lodash-es';
 import Fuse from 'fuse.js';
 import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
-import { newestNote } from '@lib/player/playerNotes';
+import { newestNote } from '@lib/notes';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
 const console = consoleFactory(modulename);
 

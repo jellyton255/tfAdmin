@@ -7,6 +7,8 @@ import humanizeDuration, { Unit } from 'humanize-duration';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { z } from 'zod';
+import { addSanctionNote } from '@modules/ApiServer/services/playerActions';
+import { addActionNote, deleteActionNote, editActionNote } from '@modules/ApiServer/services/actionNotes';
 const console = consoleFactory(modulename);
 
 //Schema
@@ -14,13 +16,23 @@ const addLegacyBanBodySchema = z.object({
     identifiers: z.string().array(),
     reason: z.string().trim().min(3).max(2048),
     duration: z.string(),
+    note: z.string().trim().max(4096).optional(),
 });
 export type ApiAddLegacyBanReqSchema = z.infer<typeof addLegacyBanBodySchema>;
 
 const revokeActionBodySchema = z.object({
     actionId: z.string(),
+    reason: z.string().trim().max(2048).optional(),
 });
 export type ApiRevokeActionReqSchema = z.infer<typeof revokeActionBodySchema>;
+
+const noteTextSchema = z.string().trim().min(1, 'The note is empty.').max(4096, 'The note is too long.');
+const actionNoteBodySchema = z.discriminatedUnion('op', [
+    z.object({ op: z.literal('add'), actionId: z.string(), text: noteTextSchema }),
+    z.object({ op: z.literal('edit'), actionId: z.string(), noteId: z.string(), text: noteTextSchema }),
+    z.object({ op: z.literal('delete'), actionId: z.string(), noteId: z.string() }),
+]);
+export type ApiActionNoteReqSchema = z.infer<typeof actionNoteBodySchema>;
 
 
 /**
@@ -39,6 +51,8 @@ export default async function HistoryActions(ctx: AuthedCtx & { params: any }) {
         return sendTypedResp(await handleBandIds(ctx));
     } else if (action === 'revokeAction') {
         return sendTypedResp(await handleRevokeAction(ctx));
+    } else if (action === 'actionNote') {
+        return sendTypedResp(await handleActionNote(ctx));
     } else {
         return sendTypedResp({ error: 'unknown action' });
     }
@@ -59,7 +73,8 @@ async function handleBandIds(ctx: AuthedCtx): Promise<GenericApiOkResp> {
     const {
         reason,
         identifiers: identifiersInput,
-        duration: durationInput
+        duration: durationInput,
+        note,
     } = schemaRes.data;
 
     //Filtering identifiers
@@ -103,6 +118,11 @@ async function handleBandIds(ctx: AuthedCtx): Promise<GenericApiOkResp> {
         return { error: `Failed to ban identifiers: ${(error as Error).message}` };
     }
     ctx.admin.logAction(`Banned <${identifiers.join(';')}>: ${reason}`);
+    try {
+        addSanctionNote(ctx.admin, actionId, note);
+    } catch (error) {
+        return { error: `Ban saved, but the note failed: ${(error as Error).message}` };
+    }
 
     // Dispatch `txAdmin:events:playerBanned`
     try {
@@ -151,7 +171,7 @@ async function handleRevokeAction(ctx: AuthedCtx): Promise<GenericApiOkResp> {
     if (!schemaRes.success) {
         return { error: 'Invalid request body.' };
     }
-    const { actionId } = schemaRes.data;
+    const { actionId, reason } = schemaRes.data;
 
     //Check permissions
     const perms = [];
@@ -160,8 +180,9 @@ async function handleRevokeAction(ctx: AuthedCtx): Promise<GenericApiOkResp> {
 
     let action;
     try {
-        action = txCore.database.actions.revoke(actionId, ctx.admin.name, perms) as DatabaseActionType;
-        ctx.admin.logAction(`Revoked ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}`);
+        action = txCore.database.actions.revoke(actionId, ctx.admin.name, perms, reason || undefined) as DatabaseActionType;
+        const reasonSuffix = reason ? `: ${reason}` : '';
+        ctx.admin.logAction(`Revoked ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}${reasonSuffix}`);
     } catch (error) {
         return { error: `Failed to revoke action: ${(error as Error).message}` };
     }
@@ -181,4 +202,30 @@ async function handleRevokeAction(ctx: AuthedCtx): Promise<GenericApiOkResp> {
     } catch (error) { }
 
     return { success: true };
+}
+
+
+/**
+ * Handle staff notes on an action (open to all admins, like player notes).
+ * Authors edit and delete their own notes; manage.admins can delete any note.
+ */
+async function handleActionNote(ctx: AuthedCtx): Promise<GenericApiOkResp> {
+    const schemaRes = actionNoteBodySchema.safeParse(ctx.request.body);
+    if (!schemaRes.success) {
+        return { error: schemaRes.error.issues[0]?.message ?? 'Invalid request body.' };
+    }
+    const req = schemaRes.data;
+
+    try {
+        if (req.op === 'add') {
+            addActionNote(ctx.admin, req.actionId, req.text);
+        } else if (req.op === 'edit') {
+            editActionNote(ctx.admin, req.actionId, req.noteId, req.text);
+        } else {
+            deleteActionNote(ctx.admin, req.actionId, req.noteId);
+        }
+        return { success: true };
+    } catch (error) {
+        return { error: (error as Error).message };
+    }
 }

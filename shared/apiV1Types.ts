@@ -221,25 +221,36 @@ export type ApiPlayersStatsResp = ApiResp<{
 
 
 /**
- * Actions (bans and warns)
+ * Actions (bans, warns and kicks)
  */
+export type ApiActionNote = {
+    id: string;
+    text: string;
+    author: string;
+    createdAt: number; //epoch ms
+    editedAt: number | null; //epoch ms
+};
 export type ApiActionRecord = {
     id: string;
-    type: 'ban' | 'warn';
+    /** Kicks are a record only: never active and never revoked. */
+    type: 'ban' | 'warn' | 'kick';
     playerName: string | null;
     ids: string[];
     hwids: string[];
     reason: string;
     author: string;
     createdAt: number; //epoch ms
-    /** Bans only: null = permanent. Warns: always null. */
+    /** Bans only: null = permanent. Warns and kicks: always null. */
     expiresAt: number | null;
-    /** Bans only: 'active' | 'expired' | 'permanent'; warns: null */
+    /** Bans only: 'active' | 'expired' | 'permanent'; warns and kicks: null */
     banStatus: 'active' | 'expired' | 'permanent' | null;
     /** Warns only */
     acked: boolean | null;
     revokedAt: number | null; //epoch ms
     revokedBy: string | null;
+    revokeReason: string | null;
+    /** Staff notes, newest first. Never shown to the player. */
+    notes: ApiActionNote[];
     /** Bans imported via POST /actions/import-ban: their idempotency key. Otherwise null. */
     externalRef: string | null;
 };
@@ -250,8 +261,11 @@ export type ApiActionsStatsResp = ApiResp<{
     warnsLast7d: number;
     totalBans: number;
     bansLast7d: number;
+    totalKicks: number;
+    kicksLast7d: number;
     byAdmin: { name: string; actions: number }[];
 }>;
+export type ApiActionNoteResp = ApiResp<{ note: ApiActionNote }>;
 
 
 /**
@@ -309,14 +323,22 @@ export type ApiResourcesResp = ApiResp<{ resources: ApiResourceRecord[] }>;
 /** Ban duration: 'permanent' or '<n> hours|days|weeks|months', like the panel. */
 export type ApiBanDuration = string;
 
-export type ApiBanPlayerReq = { reason: string; duration: ApiBanDuration };
-export type ApiWarnPlayerReq = { reason: string };
-export type ApiKickPlayerReq = { reason?: string };
+/** `note` on a sanction is a staff note: saved on the action, never shown to the player. */
+export type ApiBanPlayerReq = { reason: string; duration: ApiBanDuration; note?: string };
+export type ApiWarnPlayerReq = { reason: string; note?: string };
+export type ApiKickPlayerReq = { reason?: string; note?: string };
+export type ApiKickPlayerResp = ApiResp<{
+    ok: true;
+    /** The kick record, null when the player had no identifiers to record. */
+    action: ApiActionRecord | null;
+}>;
+export type ApiActionNoteReq = { text: string };
+export type ApiRevokeActionReq = { reason?: string };
 export type ApiMessagePlayerReq = { message: string };
 export type ApiSetWhitelistReq = { whitelisted: boolean };
 export type ApiSetNoteReq = { note: string };
 export type ApiPlayerNoteResp = ApiResp<{ note: ApiPlayerNote }>;
-export type ApiBanIdsReq = { identifiers: string[]; reason: string; duration: ApiBanDuration };
+export type ApiBanIdsReq = { identifiers: string[]; reason: string; duration: ApiBanDuration; note?: string };
 
 export type ApiActionWriteResp = ApiResp<{
     action: ApiActionRecord;
@@ -384,6 +406,7 @@ export const API_EVENT_TYPES = [
     'whitelist.preApproval',
     'whitelist.request',
     'action.revoked',
+    'action.noteAdded',
     'admin.login',
     'apiKey.firstUse',
     'webhook.test',

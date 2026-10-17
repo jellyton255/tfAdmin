@@ -14,6 +14,7 @@ import ApiServer from './index';
 import apiV1Router from './router';
 import { DuplicateKeyError } from '@modules/Database/dbUtils';
 import { ServerPlayer } from '@lib/player/playerClasses';
+import { appendNote, editNote, softDeleteNote } from '@lib/notes';
 import type { DatabaseActionType, DatabasePlayerType, DatabaseWhitelistApprovalsType, DatabaseWhitelistRequestsType } from '@modules/Database/databaseTypes';
 
 let tmpDir: string;
@@ -173,12 +174,35 @@ beforeAll(async () => {
                     actions.push({ id, type: 'warn', ids, author, reason, expiration: false, acked: false, playerName, timestamp: nowSec(), revocation: { timestamp: null, author: null } });
                     return id;
                 },
-                revoke: (id: string, author: string, allowed: string[] | true) => {
+                registerKick: (ids: string[], author: string, reason: string, playerName: string | false) => {
+                    const id = `KICK${++actionSeq}`;
+                    actions.push({ id, type: 'kick', ids, author, reason, expiration: false, playerName, timestamp: nowSec(), revocation: { timestamp: null, author: null } });
+                    return id;
+                },
+                revoke: (id: string, author: string, allowed: string[] | true, reason?: string) => {
                     const a = actions.find((x) => x.id === id);
                     if (!a) throw new Error('action not found');
                     if (allowed !== true && !allowed.includes(a.type)) throw new Error('not allowed');
-                    a.revocation = { timestamp: nowSec(), author };
+                    a.revocation = { timestamp: nowSec(), author, ...(reason ? { reason } : {}) };
                     return a;
+                },
+                addNote: (id: string, text: string, author: string) => {
+                    const a = actions.find((x) => x.id === id)!;
+                    const { history, note } = appendNote(a.notes, text, author, nowSec());
+                    a.notes = history;
+                    return note;
+                },
+                editNote: (id: string, noteId: string, text: string) => {
+                    const a = actions.find((x) => x.id === id)!;
+                    const { history, note } = editNote(a.notes, noteId, text, nowSec());
+                    a.notes = history;
+                    return note;
+                },
+                deleteNote: (id: string, noteId: string, author: string) => {
+                    const a = actions.find((x) => x.id === id)!;
+                    const { history, note } = softDeleteNote(a.notes, noteId, author, nowSec());
+                    a.notes = history;
+                    return note;
                 },
             },
             whitelist: {
@@ -277,9 +301,14 @@ describe('player moderation', () => {
         expect(warn.json.data.action).toMatchObject({ type: 'warn', acked: false, author: 'api:kicker' });
         expect(lastEvent('playerWarned')).toMatchObject({ targetNetId: null, targetName: 'Bob' });
 
-        const kick = await call('POST', `/api/v1/players/${LIC_ON}/kick`, { reason: 'afk' }, kickOnlyToken);
+        const kick = await call('POST', `/api/v1/players/${LIC_ON}/kick`, { reason: 'afk', note: 'third time' }, kickOnlyToken);
         expect(kick.status).toBe(200);
-        expect(lastEvent('playerKicked')).toMatchObject({ target: 3, reason: 'afk', author: 'api:kicker' });
+        expect(kick.json.data.ok).toBe(true);
+        expect(kick.json.data.action).toMatchObject({ type: 'kick', reason: 'afk', banStatus: null, notes: [{ text: 'third time' }] });
+        expect(lastEvent('playerKicked')).toMatchObject({ target: 3, reason: 'afk', author: 'api:kicker', actionId: kick.json.data.action.id });
+        expect(JSON.stringify(lastEvent('playerKicked'))).not.toContain('third time');
+        const revokeKick = await call('POST', `/api/v1/actions/${kick.json.data.action.id}/revoke`);
+        expect(revokeKick.status).toBe(409);
 
         const kickNoBody = await call('POST', `/api/v1/players/${LIC_ON}/kick`, undefined, kickOnlyToken);
         expect(kickNoBody.status).toBe(200);
@@ -371,6 +400,56 @@ describe('actions', () => {
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' });
         const revokeWarn = await call('POST', `/api/v1/actions/${warn.json.data.action.id}/revoke`, undefined, kickOnlyToken);
         expect(revokeWarn.status).toBe(200);
+    });
+});
+
+
+describe('action notes', () => {
+    const JULIAN = { 'X-TxAdmin-Actor-Id': 'discord:111111111111111111' };
+
+    it('adds notes with a sanction or later, and publishes action.noteAdded', async () => {
+        const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'cheating', duration: '1 day', note: 'clip: https://x.test/1' });
+        const banId = ban.json.data.action.id;
+        expect(ban.json.data.action.notes).toMatchObject([{ text: 'clip: https://x.test/1', editedAt: null }]);
+        expect(JSON.stringify(lastEvent('playerBanned'))).not.toContain('x.test');
+
+        const added = await call('POST', `/api/v1/actions/${banId}/notes`, { text: 'appeal denied' });
+        expect(added.status).toBe(201);
+        const page = apiServer.events.list({ limit: 50, types: ['action.noteAdded'] });
+        expect(page.events.at(-1)?.data).toMatchObject({ actionId: banId, note: { text: 'appeal denied' } });
+
+    });
+
+    it('needs players.note or the type scope, and lets only the author edit', async () => {
+        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' });
+        const warnId = warn.json.data.action.id;
+        const banOnly = (await apiServer.keyStore.create({ name: `banner${++keySeq}`, permissions: ['players.ban'] }, 'test')).token;
+        const denied = await call('POST', `/api/v1/actions/${warnId}/notes`, { text: 'x' }, banOnly);
+        expect(denied.status).toBe(403);
+
+        const actorToken = (await apiServer.keyStore.create({ name: `Tickets${++keySeq}`, permissions: ['api.actor', 'players.warn'] }, 'test')).token;
+        const mine = await call('POST', `/api/v1/actions/${warnId}/notes`, { text: 'mine' }, actorToken, JULIAN);
+        expect(mine.json.data.note.author).toMatch(/^JulianTx \(via api:Tickets\d+\)$/);
+        const noteId = mine.json.data.note.id;
+
+        //another key acting for the same admin owns it too; a different principal does not
+        expect((await call('PATCH', `/api/v1/actions/${warnId}/notes/${noteId}`, { text: 'not yours' }, kickOnlyToken)).status).toBe(403);
+        const edited = await call('PATCH', `/api/v1/actions/${warnId}/notes/${noteId}`, { text: 'mine, fixed' }, actorToken, JULIAN);
+        expect(edited.json.data.note).toMatchObject({ text: 'mine, fixed', editedAt: expect.any(Number) });
+
+        //deleting someone else's note needs manage.admins (the root key has all permissions)
+        expect((await call('DELETE', `/api/v1/actions/${warnId}/notes/${noteId}`, undefined, kickOnlyToken)).status).toBe(403);
+        expect((await call('DELETE', `/api/v1/actions/${warnId}/notes/${noteId}`)).status).toBe(200);
+        const after = await call('GET', `/api/v1/actions/${warnId}`);
+        expect(after.json.data.action.notes).toEqual([]);
+        expect(actions.find((a) => a.id === warnId)!.notes![0].deleted).toMatchObject({ author: expect.stringMatching(/^api:root/) });
+        expect((await call('DELETE', `/api/v1/actions/${warnId}/notes/${noteId}`)).status).toBe(404);
+    });
+
+    it('stores the revoke reason', async () => {
+        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' });
+        const r = await call('POST', `/api/v1/actions/${warn.json.data.action.id}/revoke`, { reason: 'appeal accepted' });
+        expect(r.json.data.action.revokeReason).toBe('appeal accepted');
     });
 });
 

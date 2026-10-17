@@ -1,8 +1,9 @@
 import { cloneDeep } from 'lodash-es';
 import { DbInstance, SavePriority } from "../instance";
-import { DatabaseActionBanType, DatabaseActionType, DatabaseActionWarnType } from "../databaseTypes";
+import { DatabaseActionBanType, DatabaseActionKickType, DatabaseActionType, DatabaseActionWarnType, DatabaseNoteType } from "../databaseTypes";
 import { genActionID } from "../dbUtils";
 import { now } from '@lib/misc';
+import { appendNote, editNote, softDeleteNote } from '@lib/notes';
 import consoleFactory from '@lib/console';
 const console = consoleFactory('DatabaseDao');
 
@@ -269,12 +270,107 @@ export default class ActionsDao {
 
 
     /**
-     * Revoke an action (ban, warn)
+     * Registers a kick action and returns its id. Kicks are a record only: never active, never revoked.
+     */
+    registerKick(
+        ids: string[],
+        author: string,
+        reason: string,
+        playerName: string | false = false,
+    ): string {
+        //Sanity check
+        if (!Array.isArray(ids) || !ids.length) throw new Error('Invalid ids array.');
+        if (typeof author !== 'string' || !author.length) throw new Error('Invalid author.');
+        if (typeof reason !== 'string' || !reason.length) throw new Error('Invalid reason.');
+        if (playerName !== false && (typeof playerName !== 'string' || !playerName.length)) throw new Error('Invalid playerName.');
+
+        //Saves it to the database
+        try {
+            const actionID = genActionID(this.dbo, 'kick');
+            const toDB: DatabaseActionKickType = {
+                id: actionID,
+                type: 'kick',
+                ids,
+                playerName,
+                reason,
+                author,
+                timestamp: now(),
+                expiration: false,
+                revocation: {
+                    timestamp: null,
+                    author: null,
+                },
+            };
+            this.chain.get('actions')
+                .push(toDB)
+                .value();
+            this.db.writeFlag(SavePriority.HIGH);
+            return actionID;
+        } catch (error) {
+            console.error(`Failed to register kick to database with message: ${(error as Error).message}`);
+            console.verbose.dir(error);
+            throw error;
+        }
+    }
+
+
+    /**
+     * Applies a change to the notes of an action and returns the changed note.
+     */
+    private changeNotes(
+        actionId: string,
+        change: (notes: DatabaseNoteType[] | undefined) => { history: DatabaseNoteType[]; note: DatabaseNoteType },
+    ): DatabaseNoteType {
+        const action = this.chain.get('actions')
+            .find({ id: actionId })
+            .value();
+        if (!action) throw new Error('action not found');
+        const { history, note } = change(action.notes);
+        action.notes = history;
+        this.db.writeFlag(SavePriority.HIGH);
+        return cloneDeep(note);
+    }
+
+    /**
+     * Adds a staff note to an action and returns it
+     */
+    addNote(actionId: string, text: string, author: string): DatabaseNoteType {
+        if (typeof text !== 'string' || !text.length) throw new Error('Invalid note.');
+        if (typeof author !== 'string' || !author.length) throw new Error('Invalid author.');
+        return this.changeNotes(actionId, (notes) => appendNote(notes, text, author, now()));
+    }
+
+    /**
+     * Attaches an existing note (moved from a player) keeping its author and time
+     */
+    attachNote(actionId: string, note: DatabaseNoteType): DatabaseNoteType {
+        return this.changeNotes(actionId, (notes) => appendNote(notes, note.text, note.author, note.ts, note.id));
+    }
+
+    /**
+     * Replaces the text of a visible note
+     */
+    editNote(actionId: string, noteId: string, text: string): DatabaseNoteType {
+        if (typeof text !== 'string' || !text.length) throw new Error('Invalid note.');
+        return this.changeNotes(actionId, (notes) => editNote(notes, noteId, text, now()));
+    }
+
+    /**
+     * Soft deletes a note: it stays in the database with who deleted it and when
+     */
+    deleteNote(actionId: string, noteId: string, author: string): DatabaseNoteType {
+        return this.changeNotes(actionId, (notes) => softDeleteNote(notes, noteId, author, now()));
+    }
+
+
+    /**
+     * Revoke an action (ban, warn). Kicks cannot be revoked.
      */
     revoke(
         actionId: string,
         author: string,
-        allowedTypes: string[] | true = true
+        allowedTypes: string[] | true = true,
+        reason?: string,
     ): DatabaseActionType {
         if (typeof actionId !== 'string' || !actionId.length) throw new Error('Invalid actionId.');
         if (typeof author !== 'string' || !author.length) throw new Error('Invalid author.');
@@ -286,6 +382,7 @@ export default class ActionsDao {
                 .value();
 
             if (!action) throw new Error(`action not found`);
+            if (action.type === 'kick') throw new Error(`kicks cannot be revoked`);
             if (allowedTypes !== true && !allowedTypes.includes(action.type)) {
                 throw new Error(`you do not have permission to revoke this action`);
             }
@@ -293,6 +390,7 @@ export default class ActionsDao {
             action.revocation = {
                 timestamp: now(),
                 author,
+                ...(reason ? { reason } : {}),
             };
             this.db.writeFlag(SavePriority.HIGH);
             return cloneDeep(action);

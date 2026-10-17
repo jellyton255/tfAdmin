@@ -58,6 +58,10 @@ const actions: DatabaseActionType[] = [
         id: 'WARN-BBBB', type: 'warn', ids: [`license:${LIC_B}`], playerName: 'Bob',
         reason: 'language', author: 'casey', timestamp: nowSec - 2000, expiration: false, acked: true,
         revocation: { timestamp: null, author: null },
+        notes: [
+            { id: 'N1', text: 'muted on discord too', author: 'casey', ts: nowSec - 1900 },
+            { id: 'N2', text: 'secret removed text', author: 'casey', ts: nowSec - 1800, deleted: { author: 'julian', ts: nowSec - 1700 } },
+        ],
     },
     {
         id: 'BAN2-CCCC', type: 'ban', ids: [`license:${LIC_C}`], playerName: 'Carol',
@@ -327,6 +331,29 @@ describe('actions', () => {
         expect((await get('/api/v1/actions?q=ban2&type=id')).json.data.actions[0].id).toBe('BAN2-CCCC');
         expect((await get('/api/v1/actions?q=carl&type=name')).json.data.actions.map((a: any) => a.id)).toEqual(['BAN2-CCCC']);
         expect((await get(`/api/v1/actions?q=license:${LIC_B}`)).json.data.actions[0].id).toBe('WARN-BBBB');
+    });
+
+    it('returns visible notes, searches them and filters by hasNotes', async () => {
+        const warn = (await get('/api/v1/actions/WARN-BBBB')).json.data.action;
+        expect(warn.notes).toEqual([{ id: 'N1', text: 'muted on discord too', author: 'casey', createdAt: (nowSec - 1900) * 1000, editedAt: null }]);
+        expect((await get('/api/v1/actions?q=muted%20on%20discord&type=reason')).json.data.actions.map((a: any) => a.id)).toEqual(['WARN-BBBB']);
+        expect((await get('/api/v1/actions?q=secret%20removed&type=reason')).json.data.actions).toEqual([]);
+        expect((await get('/api/v1/actions?hasNotes=true')).json.data.actions.map((a: any) => a.id)).toEqual(['WARN-BBBB']);
+        expect((await get('/api/v1/actions?hasNotes=false')).json.data.actions).toHaveLength(2);
+    });
+
+    it('lists kicks but never as active', async () => {
+        actions.push({
+            id: 'KICK-DDDD', type: 'kick', ids: [`license:${LIC_A}`], playerName: 'Alice',
+            reason: 'afk', author: 'julian', timestamp: nowSec - 10, expiration: false,
+            revocation: { timestamp: null, author: null },
+        });
+        try {
+            expect((await get('/api/v1/actions?kind=kick')).json.data.actions.map((a: any) => a.id)).toEqual(['KICK-DDDD']);
+            expect((await get('/api/v1/actions?status=active')).json.data.actions.map((a: any) => a.id)).not.toContain('KICK-DDDD');
+        } finally {
+            actions.pop();
+        }
     });
 
     it('paginates ascending with a cursor', async () => {

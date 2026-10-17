@@ -9,6 +9,8 @@ import { SYM_CURRENT_MUTEX } from '@lib/symbols';
 import { z } from 'zod';
 import { shortenId } from '@shared/utils';
 import { summarizeIdsArray } from '@lib/player/idUtils';
+import { addSanctionNote, recordKick } from '@modules/ApiServer/services/playerActions';
+import { movePlayerNoteToAction } from '@modules/ApiServer/services/actionNotes';
 const console = consoleFactory(modulename);
 
 
@@ -23,6 +25,25 @@ const saveNoteBodySchema = z.object({
 const deleteNoteBodySchema = z.object({
     noteId: z.string().min(1).max(32),
 });
+const moveNoteBodySchema = z.object({
+    noteId: z.string().min(1).max(32),
+    actionId: z.string().min(1).max(32),
+});
+export type ApiMovePlayerNoteReqSchema = z.infer<typeof moveNoteBodySchema>;
+const sanctionNoteSchema = z.string().trim().max(4096, 'The note is too long.').optional();
+
+/**
+ * Saves the optional staff note sent with a ban, warn or kick. Returns an error message on failure.
+ */
+const saveSanctionNote = (ctx: AuthedCtx, actionId: string) => {
+    const parsed = sanctionNoteSchema.safeParse(ctx.request.body?.note);
+    if (!parsed.success) return parsed.error.issues[0]?.message ?? 'Invalid note.';
+    try {
+        addSanctionNote(ctx.admin, actionId, parsed.data);
+    } catch (error) {
+        return (error as Error).message;
+    }
+};
 
 
 /**
@@ -51,6 +72,8 @@ export default async function PlayerActions(ctx: AuthedCtx) {
         return sendTypedResp(await handleSaveNote(ctx, player));
     } else if (action === 'delete_note') {
         return sendTypedResp(await handleDeleteNote(ctx, player));
+    } else if (action === 'move_note') {
+        return sendTypedResp(await handleMoveNote(ctx, player));
     } else if (action === 'warn') {
         return sendTypedResp(await handleWarning(ctx, player));
     } else if (action === 'ban') {
@@ -108,6 +131,24 @@ async function handleDeleteNote(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
 
 
 /**
+ * Handle Move Note: moves a player note onto one of the player's actions (its author or manage.admins)
+ */
+async function handleMoveNote(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+    const schemaRes = moveNoteBodySchema.safeParse(ctx.request.body);
+    if (!schemaRes.success) {
+        return { error: 'Invalid request.' };
+    }
+
+    try {
+        movePlayerNoteToAction(ctx.admin, player, schemaRes.data.noteId, schemaRes.data.actionId);
+        return { success: true };
+    } catch (error) {
+        return { error: `Failed to move note: ${(error as Error).message}` };
+    }
+}
+
+
+/**
  * Handle Send Warning
  */
 async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
@@ -144,6 +185,7 @@ async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
         return { error: `Failed to warn player: ${(error as Error).message}` };
     }
     ctx.admin.logAction(`Warned player "${player.displayName}": ${reason}`);
+    const warnNoteError = saveSanctionNote(ctx, actionId);
 
     // Dispatch `txAdmin:events:playerWarned`
     const eventSent = txCore.fxRunner.sendEvent('playerWarned', {
@@ -155,11 +197,12 @@ async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
         targetName: player.displayName,
     });
 
-    if (eventSent) {
-        return { success: true };
-    } else {
+    if (!eventSent) {
         return { error: `Warn saved, but likely failed to send the warn in game (stdin error).` };
+    } else if (warnNoteError) {
+        return { error: `Warn saved, but the note failed: ${warnNoteError}` };
     }
+    return { success: true };
 }
 
 
@@ -216,10 +259,12 @@ async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericAp
         return { error: `Failed to ban player: ${(error as Error).message}` };
     }
     ctx.admin.logAction(`Banned player "${player.displayName}": ${reason}`);
+    const banNoteError = saveSanctionNote(ctx, actionId);
+    const noteFailedResp = banNoteError ? { error: `Ban saved, but the note failed: ${banNoteError}` } : undefined;
 
     //No need to dispatch events if server is not online
     if (txCore.fxRunner.isIdle) {
-        return { success: true };
+        return noteFailedResp ?? { success: true };
     }
 
     //Prepare and send command
@@ -256,7 +301,7 @@ async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericAp
     });
 
     if (eventSent) {
-        return { success: true };
+        return noteFailedResp ?? { success: true };
     } else {
         return { error: `Player banned, but likely failed to kick player (stdin error).` };
     }
@@ -424,7 +469,10 @@ async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<GenericA
     }
 
     try {
+        //everfall: kicks are recorded in the player history, with an optional staff note
+        const actionId = recordKick(ctx.admin.name, player.allIdentifiers, kickReason, player.displayName);
         ctx.admin.logAction(`Kicked "${player.displayName}": ${kickReason}`);
+        const noteError = actionId ? saveSanctionNote(ctx, actionId) : undefined;
         const dropMessage = txCore.translator.t(
             'kick_messages.player',
             { reason: kickReason }
@@ -436,8 +484,13 @@ async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<GenericA
             author: ctx.admin.name,
             reason: kickReason,
             dropMessage,
+            actionId: actionId ?? null,
+            targetName: player.displayName,
         });
 
+        if (noteError) {
+            return { error: `Player kicked, but the note failed: ${noteError}` };
+        }
         return { success: true };
     } catch (error) {
         return { error: `Failed to save kick player: ${(error as Error).message}` };

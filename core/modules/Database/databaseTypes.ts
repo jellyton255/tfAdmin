@@ -11,12 +11,21 @@ export type DatabasePlayerType = {
     noteHistory?: DatabasePlayerNoteType[]; //oldest first, absent when empty
 };
 
-export type DatabasePlayerNoteType = {
+/**
+ * A staff note on a player or an action. Only action notes are edited or soft deleted.
+ */
+export type DatabaseNoteType = {
     id: string;
     text: string;
     author: string;
     ts: number;
+    editedTs?: number;
+    deleted?: {
+        author: string;
+        ts: number;
+    };
 };
+export type DatabasePlayerNoteType = DatabaseNoteType;
 
 /**
  * The single overwritable note of database v5 and older, migrated into `noteHistory` on v6.
@@ -39,7 +48,9 @@ export type DatabaseActionBaseType = {
     revocation: {
         timestamp: number | null;
         author: string | null;
+        reason?: string;
     };
+    notes?: DatabaseNoteType[]; //staff only, oldest first, absent when empty
 };
 export type DatabaseActionBanType = {
     type: 'ban';
@@ -52,7 +63,11 @@ export type DatabaseActionWarnType = {
     expiration: false; //FIXME: remove - BUT DO REMEMBER THE `'XXX' IN YYY` ISSUE!
     acked: boolean; //if the player has acknowledged the warning
 } & DatabaseActionBaseType;
-export type DatabaseActionType = DatabaseActionBanType | DatabaseActionWarnType;
+export type DatabaseActionKickType = {
+    type: 'kick';
+    expiration: false; //kicks never block joins and are never active
+} & DatabaseActionBaseType;
+export type DatabaseActionType = DatabaseActionBanType | DatabaseActionWarnType | DatabaseActionKickType;
 
 export type DatabaseWhitelistApprovalsType = {
     identifier: string;
@@ -78,4 +93,5 @@ export type DatabaseDataType = {
     actions: DatabaseActionType[],
     whitelistApprovals: DatabaseWhitelistApprovalsType[],
     whitelistRequests: DatabaseWhitelistRequestsType[],
+    tfMigrations?: string[], //one-time data passes that already ran, without a version bump
 };

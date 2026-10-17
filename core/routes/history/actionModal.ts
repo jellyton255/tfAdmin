@@ -3,6 +3,7 @@ import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { HistoryActionModalResp } from '@shared/historyApiTypes';
 import { now } from '@lib/misc';
+import { visibleNotes } from '@lib/notes';
 const console = consoleFactory(modulename);
 
 
@@ -30,6 +31,10 @@ export default async function HistoryActionModal(ctx: AuthedCtx) {
     } catch (error) {
         return sendTypedResp({ error: `Getting history action failed with error: ${(error as Error).message}` });
     }
+
+    //Deleted notes are only shown to admins who can manage everyone's notes
+    const notes = visibleNotes(actionData.notes, ctx.admin.hasPermission('manage.admins'));
+    actionData.notes = notes.length ? notes : undefined;
 
     //Sending the data
     return sendTypedResp({

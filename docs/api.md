@@ -40,7 +40,7 @@ Changing a key's scopes or revoking it takes effect immediately. Revoked keys st
 | `players.warn` | Warn players | Warn players, revoke warns |
 | `players.kick` | Kick players | Kick an online player |
 | `players.direct_message` | Message players | Direct message an online player |
-| `players.note` | Edit player notes | Add and delete staff notes on a player |
+| `players.note` | Edit player notes | Add and delete staff notes on players; add, edit and delete your own staff notes on bans, warns and kicks |
 | `players.whitelist` | Manage whitelist | Whitelist flag, approvals and requests |
 | `announcement` | Send announcements | Broadcast an announcement |
 | `control.server` | Control the server | Start, stop, restart, kick everyone |
@@ -142,7 +142,7 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/players` | any valid key | Database search, paginated. Query: `q` with `type=name\|ids\|notes`, `filter=isOnline,isAdmin,isWhitelisted,hasNote`, `sort=tsLastConnection\|tsJoined\|playTime`, `order=desc\|asc` |
 | `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history. `noteHistory` lists every note newest first; `notes`, `notesLastEditedBy` and `notesLastEditedAt` describe the newest one |
 | `GET /api/v1/players/{license}/linked` | any valid key | Up to 50 other players that share an identifier (never an IP) or a HWID, with what matched and their ban state. HWIDs shared by more than 25 players are skipped and listed in `ignoredHwids`; `truncated` flags a cut list |
-| `GET /api/v1/actions` | any valid key | Bans and warns, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`name` is a fuzzy player name search), `kind=ban\|warn`, `author`, `status=active\|revoked`, `order` |
+| `GET /api/v1/actions` | any valid key | Bans, warns and kicks, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`reason` also searches staff notes; `name` is a fuzzy player name search), `kind=ban\|warn\|kick`, `author`, `status=active\|revoked` (kicks are never active), `hasNotes=true\|false`, `order` |
 | `GET /api/v1/actions/stats` | any valid key | Totals for the last 7 days and all time, plus a per-admin count |
 | `GET /api/v1/actions/{id}` | any valid key | One action |
 | `GET /api/v1/whitelist/approvals` | any valid key | Approved identifiers, paginated, `q` searches identifier, name and approver |
@@ -150,9 +150,17 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/resources` | any valid key | Every resource with its status, path relative to the server data folder, version, author and description. 503 while the server is offline |
 | `GET /api/v1/admins` | `manage.admins` | Admin names, master flag, permissions and provider identifiers. Never includes password hashes or tokens |
 
-Action records carry `banStatus` (`active`, `expired`, `permanent`, or `null` for warns), `expiresAt`, `acked` for warns,
-and `revokedAt` / `revokedBy`. `externalRef` is the idempotency key of bans recorded through
+Action records carry `banStatus` (`active`, `expired`, `permanent`, or `null` for warns and kicks), `expiresAt`, `acked` for warns,
+and `revokedAt` / `revokedBy` / `revokeReason`. `externalRef` is the idempotency key of bans recorded through
 `POST /api/v1/actions/import-ban`, and `null` for every other action.
+
+Every kick is stored as a `kick` action (panel, API, in-game menu and the `KickPlayer` export). A kick is
+a record only: it never blocks joins, is never active and cannot be revoked. Kick-all and restarts are
+not recorded.
+
+`notes` lists the action's staff notes, newest first: `{ id, text, author, createdAt, editedAt }`.
+Players never see them. Deleted notes are left out of the API; the panel keeps them, with who deleted
+them and when, for admins with `manage.admins`.
 
 ## Endpoints (phase 3, writes)
 
@@ -163,17 +171,20 @@ Writes behave exactly like the matching panel buttons: same database records, sa
 
 | Method and path | Scope | Body and result |
 | --- | --- | --- |
-| `POST /api/v1/players/{license}/ban` | `players.ban` | `{ reason, duration }`. 201 with `{ action, eventSent }`; kicks the player if online |
-| `POST /api/v1/players/{license}/warn` | `players.warn` | `{ reason }`. 201 with `{ action, eventSent }` |
-| `POST /api/v1/players/{license}/kick` | `players.kick` | `{ reason? }`. Player must be online (409 `PLAYER_OFFLINE`) |
+| `POST /api/v1/players/{license}/ban` | `players.ban` | `{ reason, duration, note? }`. 201 with `{ action, eventSent }`; kicks the player if online |
+| `POST /api/v1/players/{license}/warn` | `players.warn` | `{ reason, note? }`. 201 with `{ action, eventSent }` |
+| `POST /api/v1/players/{license}/kick` | `players.kick` | `{ reason?, note? }`. Player must be online (409 `PLAYER_OFFLINE`). Returns `{ ok: true, action }`; `action` is the kick record, or `null` when the player had no identifiers |
 | `POST /api/v1/players/{license}/message` | `players.direct_message` | `{ message }`. Player must be online |
 | `PUT /api/v1/players/{license}/whitelist` | `players.whitelist` | `{ whitelisted: true\|false }` |
 | `POST /api/v1/players/{license}/notes` | `players.note` | `{ note }`. 201 with `{ note }`; earlier notes are kept |
 | `DELETE /api/v1/players/{license}/notes/{noteId}` | `players.note` | Deletes one note, returns it |
 | `PUT /api/v1/players/{license}/note` | `players.note` | Legacy: `{ note }` is appended like `POST .../notes`; an empty note is rejected |
-| `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
+| `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration, note? }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
 | `POST /api/v1/actions/import-ban` | `players.ban_import` | `{ externalRef, identifiers[], hwids?[], playerName?, reason, author, expiresAt?, notify? }`. Records a system or legacy ban. 201 with `{ action, created: true, dropped, eventSent }`; 200 with `created: false` on a replay |
-| `POST /api/v1/actions/{id}/revoke` | `players.ban` for bans, `players.warn` for warns | Revokes the action; 409 if already revoked. Returns `{ action }` |
+| `POST /api/v1/actions/{id}/revoke` | `players.ban` for bans, `players.warn` for warns | `{ reason? }`. Revokes the action; 409 if already revoked or a kick. Returns `{ action }` |
+| `POST /api/v1/actions/{id}/notes` | `players.note`, or the type's scope (`players.ban`, `players.warn`, `players.kick`) | `{ text }`. 201 with `{ note }`; publishes `action.noteAdded` |
+| `PATCH /api/v1/actions/{id}/notes/{noteId}` | same | `{ text }`. Only the note's author can edit it. Returns `{ note }` |
+| `DELETE /api/v1/actions/{id}/notes/{noteId}` | same | The author, or a key or staff member with `manage.admins`, can delete it. The note is hidden, not erased. Returns `{ note }` |
 | `POST /api/v1/whitelist/approvals` | `players.whitelist` | `{ identifier }`. 201 with `{ approval }`; 409 if already approved |
 | `DELETE /api/v1/whitelist/approvals/{identifier}` | `players.whitelist` | Removes the approval |
 | `POST /api/v1/whitelist/requests/{id}/approve` | `players.whitelist` | Approves the pending request (`R0001`), 201 with `{ approval }` |
@@ -228,6 +239,7 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 | `player.banned`, `player.warned`, `player.kicked`, `player.directMessage` | Same payload as `txAdmin:events:playerBanned` etc. `author` is `api:<key>` for API actions |
 | `whitelist.player`, `whitelist.preApproval`, `whitelist.request` | Whitelist changes |
 | `action.revoked` | `{ actionId, actionType, actionReason, actionAuthor, playerName, playerIds, playerHwids, revokedBy }` |
+| `action.noteAdded` | A staff note was added to a ban, warn or kick. `{ actionId, actionType, playerName, playerIds, note }` |
 | `admin.login` | A panel admin signed in. `{ name, method: 'password' \| 'citizenfx', ip }` |
 | `apiKey.firstUse` | First request made with a new key. `{ keyId, keyName, ip }` |
 | `webhook.test` | Sent by the test button / endpoint to that webhook only |

@@ -8,6 +8,9 @@ let events: { type: string; data: any }[];
 let adminLog: string[];
 let registerBan: ReturnType<typeof vi.fn>;
 let registerWarn: ReturnType<typeof vi.fn>;
+let registerKick: ReturnType<typeof vi.fn>;
+let addNote: ReturnType<typeof vi.fn>;
+let published: { type: string; data: any }[];
 
 const target = {
     netid: 7,
@@ -21,9 +24,21 @@ beforeEach(() => {
     adminLog = [];
     registerBan = vi.fn(() => 'BXXXX-XXXX');
     registerWarn = vi.fn(() => 'WXXXX-XXXX');
+    registerKick = vi.fn(() => 'KXXXX-XXXX');
+    addNote = vi.fn((actionId: string, text: string, author: string) => ({ id: 'N1', text, author, ts: 100 }));
+    published = [];
     vi.stubGlobal('txCore', {
         adminStore: { getAdminByName: (name: string) => (name === 'Julian' ? { name } : null) },
-        database: { actions: { registerBan, registerWarn } },
+        database: {
+            actions: {
+                registerBan,
+                registerWarn,
+                registerKick,
+                addNote,
+                findOne: (id: string) => ({ id, type: id.startsWith('B') ? 'ban' : 'kick', playerName: 'Cheater', ids: [] }),
+            },
+        },
+        apiServer: { publishEvent: (type: string, data: any) => published.push({ type, data }) },
         fxRunner: { sendEvent: (type: string, data: any) => { events.push({ type, data }); return true; } },
         logger: { admin: { write: (author: string, msg: string) => adminLog.push(`${author}: ${msg}`) } },
         translator: {
@@ -81,12 +96,35 @@ describe('handleGameModeration', () => {
         expect(events[0]).toMatchObject({ type: 'playerWarned', data: { targetNetId: 7, author: 'System' } });
     });
 
-    it('kicks without storing an action', () => {
+    it('records the kick with its staff note and fires playerKicked without the note', () => {
         const result = handleGameModeration({
-            action: 'kick', resource: 'ef_prime', author: 'System', reason: 'AFK', target,
+            action: 'kick', resource: 'ef_prime', author: 'System', reason: 'AFK', note: 'third time today', target,
         });
-        expect(result).toEqual({ success: true });
-        expect(events[0]).toMatchObject({ type: 'playerKicked', data: { target: 7, reason: 'AFK' } });
+        expect(result).toEqual({ success: true, actionId: 'KXXXX-XXXX' });
+        expect(registerKick).toHaveBeenCalledWith([`license:${LICENSE}`, 'fivem:42'], 'System', 'AFK', 'Cheater');
+        expect(addNote).toHaveBeenCalledWith('KXXXX-XXXX', 'third time today', 'System');
+        expect(events[0]).toMatchObject({ type: 'playerKicked', data: { target: 7, reason: 'AFK', actionId: 'KXXXX-XXXX' } });
+        expect(JSON.stringify(events[0].data)).not.toContain('third time today');
+        expect(published[0]).toMatchObject({ type: 'action.noteAdded', data: { actionId: 'KXXXX-XXXX' } });
+    });
+
+    it('still kicks a player with no valid identifiers, without a record', () => {
+        const result = handleGameModeration({
+            action: 'kick', resource: 'x', author: 'System', reason: 'AFK', target: { ...target, ids: ['ip:1.2.3.4'] },
+        });
+        expect(result).toEqual({ success: true, actionId: undefined });
+        expect(registerKick).not.toHaveBeenCalled();
+        expect(events[0]).toMatchObject({ type: 'playerKicked', data: { target: 7, actionId: null } });
+    });
+
+    it('adds a note to an existing action and refuses an admin name as author', () => {
+        expect(handleGameModeration({
+            action: 'note', resource: 'ef_ac', author: 'Anti-Cheat', actionId: 'babc-1234', text: 'Clip: https://x',
+        })).toEqual({ success: true, actionId: 'BABC-1234' });
+        expect(addNote).toHaveBeenCalledWith('BABC-1234', 'Clip: https://x', 'Anti-Cheat');
+        expect(handleGameModeration({
+            action: 'note', resource: 'x', author: 'Julian', actionId: 'BABC-1234', text: 't',
+        }).success).toBe(false);
     });
 
     it('rejects a malformed request', () => {

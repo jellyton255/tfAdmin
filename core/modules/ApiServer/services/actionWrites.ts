@@ -6,7 +6,7 @@ import type { DatabaseActionType } from '@modules/Database/databaseTypes';
 import type { AuthedAdmin } from '@modules/WebServer/authLogic';
 import { ApiError } from '../envelope';
 import { toApiAction } from '@routes/api/v1/actions';
-import { buildBanKickMessage, parseBanDuration, type ActionWriteResult } from './playerActions';
+import { addSanctionNote, buildBanKickMessage, parseBanDuration, type ActionWriteResult } from './playerActions';
 import type { ApiActionRecord } from '@shared/apiV1Types';
 
 /**
@@ -18,7 +18,7 @@ import type { ApiActionRecord } from '@shared/apiV1Types';
  * Bans a list of identifiers that may not belong to a known player ("legacy ban").
  * No HWIDs: only banning a resolved player carries hardware ids.
  */
-export const banIdentifiers = (admin: AuthedAdmin, identifiersInput: string[], reasonInput: string, durationInput: string): ActionWriteResult => {
+export const banIdentifiers = (admin: AuthedAdmin, identifiersInput: string[], reasonInput: string, durationInput: string, note?: string): ActionWriteResult => {
     const reason = reasonInput.trim();
     const normalized = identifiersInput.map((id) => id.trim().toLowerCase());
     const invalids = normalized.filter((id) => {
@@ -37,6 +37,7 @@ export const banIdentifiers = (admin: AuthedAdmin, identifiersInput: string[], r
         throw new ApiError(500, 'INTERNAL_ERROR', `Failed to ban identifiers: ${(error as Error).message}`);
     }
     admin.logAction(`Banned <${identifiers.join(';')}>: ${reason}`);
+    addSanctionNote(admin, actionId, note);
 
     let eventSent = false;
     try {
@@ -145,12 +146,16 @@ export const importBan = (admin: AuthedAdmin, input: ImportBanInput): ImportBanR
 
 
 /**
- * Revokes a ban or warn. The key needs players.ban to revoke bans and players.warn to revoke warns.
+ * Revokes a ban or warn, with an optional reason. The key needs players.ban to revoke bans and
+ * players.warn to revoke warns. Kicks cannot be revoked.
  */
-export const revokeAction = (admin: AuthedAdmin, actionId: string) => {
+export const revokeAction = (admin: AuthedAdmin, actionId: string, reasonInput?: string) => {
     const existing = txCore.database.actions.findOne(actionId);
     if (!existing) {
         throw new ApiError(404, 'NOT_FOUND', 'Action not found.', { id: actionId });
+    }
+    if (existing.type === 'kick') {
+        throw new ApiError(409, 'CONFLICT', 'Kicks cannot be revoked.', { id: actionId });
     }
     const neededPermission = existing.type === 'ban' ? 'players.ban' : 'players.warn';
     if (!admin.hasPermission(neededPermission)) {
@@ -162,11 +167,12 @@ export const revokeAction = (admin: AuthedAdmin, actionId: string) => {
 
     let action: DatabaseActionType;
     try {
-        action = txCore.database.actions.revoke(actionId, admin.name, [existing.type]);
+        action = txCore.database.actions.revoke(actionId, admin.name, [existing.type], reasonInput?.trim() || undefined);
     } catch (error) {
         throw new ApiError(500, 'INTERNAL_ERROR', `Failed to revoke action: ${(error as Error).message}`);
     }
-    admin.logAction(`Revoked ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}`);
+    const reasonSuffix = action.revocation.reason ? `: ${action.revocation.reason}` : '';
+    admin.logAction(`Revoked ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}${reasonSuffix}`);
 
     try {
         txCore.fxRunner.sendEvent('actionRevoked', {

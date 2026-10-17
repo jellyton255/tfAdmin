@@ -169,15 +169,21 @@ const schemas: Record<string, Schema> = {
         banCount: int({ description: 'Bans not revoked' }), warnCount: int({ description: 'Warns not revoked' }),
     }),
     PlayersStats: obj({ total: int(), playedLast24h: int(), joinedLast24h: int(), joinedLast7d: int(), onlineNow: int() }),
+    ActionNote: obj({
+        id: str(), text: str(), author: str(), createdAt: epochMs(), editedAt: nullable(epochMs('Last edit, null when never edited')),
+    }),
     Action: obj({
-        id: str(), type: enumOf(['ban', 'warn']), playerName: nullable(str()), ids: arr(str()), hwids: arr(str()),
+        id: str(), type: { ...enumOf(['ban', 'warn', 'kick']), description: 'Kicks are a record only: never active and never revoked' },
+        playerName: nullable(str()), ids: arr(str()), hwids: arr(str()),
         reason: str(), author: str(), createdAt: epochMs(), expiresAt: nullable(epochMs('Bans only, null = permanent')),
         banStatus: nullable(enumOf(['active', 'expired', 'permanent'])), acked: nullable(bool()),
         revokedAt: nullable(epochMs()), revokedBy: nullable(str()),
+        revokeReason: nullable(str({ description: 'Staff reason given when revoking, else null' })),
+        notes: { ...arr(ref('ActionNote')), description: 'Staff notes, newest first. Never shown to the player; deleted notes are left out' },
         externalRef: nullable(str({ description: 'Idempotency key of bans recorded via POST /actions/import-ban, else null' })),
     }),
     ActionsStats: obj({
-        totalWarns: int(), warnsLast7d: int(), totalBans: int(), bansLast7d: int(),
+        totalWarns: int(), warnsLast7d: int(), totalBans: int(), bansLast7d: int(), totalKicks: int(), kicksLast7d: int(),
         byAdmin: arr(obj({ name: str(), actions: int() })),
     }),
     ActionWrite: obj({ action: ref('Action'), eventSent: bool() }),
@@ -245,6 +251,8 @@ const schemas: Record<string, Schema> = {
 
 const licenseParam = paramPath('license', str({ pattern: '^[0-9a-f]{40}$' }), 'Player license (40 hex chars)');
 const reasonBody = (required: boolean) => obj({ reason: str({ maxLength: 2048 }) }, required ? ['reason'] : []);
+const sanctionNote = () => str({ maxLength: 4096, description: 'Optional staff note saved on the action. Never shown to the player' });
+const actionNoteScopes = 'Requires the `players.note` scope, or the scope of the action\'s type: `players.ban`, `players.warn` or `players.kick`.';
 
 //Created (201) or replayed (200) by externalRef
 const importBanOp = op({
@@ -350,20 +358,22 @@ const paths: Record<string, Schema> = {
     '/players/{license}/ban': {
         post: op({
             tag: 'Moderation', summary: 'Ban a player', permission: 'players.ban', params: [licenseParam],
-            body: obj({ reason: str({ maxLength: 2048 }), duration: ref('BanDuration') }),
+            body: obj({ reason: str({ maxLength: 2048 }), duration: ref('BanDuration'), note: sanctionNote() }, ['reason', 'duration']),
             response: ref('ActionWrite'), errors: [404],
         }),
     },
     '/players/{license}/warn': {
         post: op({
             tag: 'Moderation', summary: 'Warn a player', permission: 'players.warn', params: [licenseParam],
-            body: reasonBody(true), response: ref('ActionWrite'), errors: [404],
+            body: obj({ reason: str({ maxLength: 2048 }), note: sanctionNote() }, ['reason']), response: ref('ActionWrite'), errors: [404],
         }),
     },
     '/players/{license}/kick': {
         post: op({
             tag: 'Moderation', summary: 'Kick an online player', permission: 'players.kick', params: [licenseParam],
-            body: reasonBody(false), bodyOptional: true, response: ref('Ok'), errors: [404, 503],
+            description: 'The kick is recorded as a `kick` action in the player history. `action` is null when the player had no identifiers to record.',
+            body: obj({ reason: str({ maxLength: 2048 }), note: sanctionNote() }, []), bodyOptional: true,
+            response: obj({ ok: { type: 'boolean', const: true }, action: nullable(ref('Action')) }), errors: [404, 503],
         }),
     },
     '/players/{license}/message': {
@@ -402,13 +412,14 @@ const paths: Record<string, Schema> = {
     },
     '/actions': {
         get: op({
-            tag: 'Actions', summary: 'Search bans and warns',
+            tag: 'Actions', summary: 'Search bans, warns and kicks',
             params: [
                 paramQ('q', str({ maxLength: 256 })),
-                paramQ('type', enumOf(['id', 'reason', 'name', 'ids']), 'What `q` matches (default ids); `name` is a fuzzy player name search'),
-                paramQ('kind', enumOf(['ban', 'warn'])),
+                paramQ('type', enumOf(['id', 'reason', 'name', 'ids']), 'What `q` matches (default ids); `reason` also searches staff notes; `name` is a fuzzy player name search'),
+                paramQ('kind', enumOf(['ban', 'warn', 'kick'])),
                 paramQ('author', str()),
-                paramQ('status', enumOf(['active', 'revoked'])),
+                paramQ('status', enumOf(['active', 'revoked']), '`active` = not revoked; kicks are never active'),
+                paramQ('hasNotes', enumOf(['true', 'false']), 'Only actions with (true) or without (false) staff notes'),
                 ...paginationParams,
             ],
             response: obj({ actions: arr(ref('Action')) }), meta: ref('PageMeta'),
@@ -420,7 +431,7 @@ const paths: Record<string, Schema> = {
     '/actions/ban-identifiers': {
         post: op({
             tag: 'Moderation', summary: 'Ban raw identifiers', permission: 'players.ban',
-            body: obj({ identifiers: arr(str()), reason: str({ maxLength: 2048 }), duration: ref('BanDuration') }),
+            body: obj({ identifiers: arr(str()), reason: str({ maxLength: 2048 }), duration: ref('BanDuration'), note: sanctionNote() }, ['identifiers', 'reason', 'duration']),
             response: ref('ActionWrite'),
         }),
     },
@@ -433,8 +444,33 @@ const paths: Record<string, Schema> = {
     '/actions/{id}/revoke': {
         post: op({
             tag: 'Moderation', summary: 'Revoke a ban or warn', params: [paramPath('id', str())],
+            body: obj({ reason: str({ maxLength: 2048, description: 'Optional staff reason, shown in the panel and stored as revokeReason' }) }, []), bodyOptional: true,
             response: obj({ action: ref('Action') }), errors: [403, 404, 409],
-            permissionNote: 'Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected.',
+            permissionNote: 'Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected. Kicks cannot be revoked (409).',
+        }),
+    },
+    '/actions/{id}/notes': {
+        post: op({
+            tag: 'Actions', summary: 'Add a staff note to an action', params: [paramPath('id', str())],
+            body: obj({ text: str({ minLength: 1, maxLength: 4096 }) }),
+            response: obj({ note: ref('ActionNote') }), status: 201, errors: [403, 404],
+            description: 'Publishes the `action.noteAdded` event.',
+            permissionNote: actionNoteScopes,
+        }),
+    },
+    '/actions/{id}/notes/{noteId}': {
+        patch: op({
+            tag: 'Actions', summary: 'Edit a staff note', params: [paramPath('id', str()), paramPath('noteId', str())],
+            body: obj({ text: str({ minLength: 1, maxLength: 4096 }) }),
+            response: obj({ note: ref('ActionNote') }), errors: [403, 404],
+            description: 'Only the note\'s author can edit it. A note written through a key acting for a staff member belongs to that staff member.',
+            permissionNote: actionNoteScopes,
+        }),
+        delete: op({
+            tag: 'Actions', summary: 'Delete a staff note', params: [paramPath('id', str()), paramPath('noteId', str())],
+            response: obj({ note: ref('ActionNote') }), errors: [403, 404],
+            description: 'The note\'s author can delete it, and so can a key or staff member with `manage.admins`. The note is hidden, not erased.',
+            permissionNote: actionNoteScopes,
         }),
     },
     '/whitelist/approvals': {

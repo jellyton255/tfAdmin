@@ -5,7 +5,7 @@ import { DATABASE_VERSION, defaultDatabase } from './instance.js'; //FIXME: circ
 import { now } from '@lib/misc.js';
 import consoleFactory from '@lib/console.js';
 import fatalError from '@lib/fatalError.js';
-import { migrateLegacyNote } from '@lib/player/playerNotes.js';
+import { migrateLegacyNote } from '@lib/notes.js';
 const console = consoleFactory(modulename);
 
 

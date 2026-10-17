@@ -11,7 +11,7 @@ import { decodeCursor, limitSchema, paginate, secToMs } from '@modules/ApiServer
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { ApiPlayerDetail, ApiPlayerSummary } from '@shared/apiV1Types';
 import { toApiAction } from './actions';
-import { newestNote, notesNewestFirst } from '@lib/player/playerNotes';
+import { newestNote, notesNewestFirst } from '@lib/notes';
 import { getLinkedAccounts } from '@lib/player/linkedAccounts';
 import type { DatabasePlayerNoteType } from '@modules/Database/databaseTypes';
 import type { ApiLinkedPlayer, ApiPlayerNote } from '@shared/apiV1Types';

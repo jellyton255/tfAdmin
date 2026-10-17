@@ -4,7 +4,7 @@ import { DatabaseActionWarnType, DatabasePlayerType, DatabaseWhitelistApprovalsT
 import { cloneDeep, union } from 'lodash-es';
 import { now } from '@lib/misc';
 import { parsePlayerIds } from '@lib/player/idUtils';
-import { appendNote } from '@lib/player/playerNotes';
+import { appendNote } from '@lib/notes';
 import consoleFactory from '@lib/console';
 import consts from '@shared/consts';
 import type FxPlayerlist from '@modules/FxPlayerlist';

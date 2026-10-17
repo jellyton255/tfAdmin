@@ -7,6 +7,7 @@ import { ApiError } from '../envelope';
 import { toApiAction } from '@routes/api/v1/actions';
 import { toApiNote } from '@routes/api/v1/players';
 import type { ApiActionRecord } from '@shared/apiV1Types';
+import { addActionNote, type NoteWriter } from './actionNotes';
 
 /**
  * Player moderation service used by the public API.
@@ -32,6 +33,22 @@ export const resolvePlayer = (license: string): PlayerClass => {
     } catch (error) {
         throw new ApiError(404, 'NOT_FOUND', 'Player not found.', { license });
     }
+};
+
+/**
+ * Saves the optional staff note given with a sanction. Blank notes are ignored.
+ */
+export const addSanctionNote = (writer: NoteWriter, actionId: string, note: string | undefined) => {
+    if (note?.trim()) addActionNote(writer, actionId, note);
+};
+
+/**
+ * Records a moderation kick and returns its id, or undefined when there is no identifier to record.
+ * Kick-all, restarts and ban drops are not recorded.
+ */
+export const recordKick = (author: string, ids: string[], reason: string, playerName: string) => {
+    if (!ids.length) return undefined;
+    return txCore.database.actions.registerKick(ids, author, reason, playerName);
 };
 
 const requireOnline = (player: PlayerClass): ServerPlayer => {
@@ -75,7 +92,7 @@ export const buildBanKickMessage = (
 };
 
 
-export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string, durationInput: string): ActionWriteResult => {
+export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string, durationInput: string, note?: string): ActionWriteResult => {
     const reason = reasonInput.trim() || 'no reason provided';
     const { expiration, duration } = parseBanDuration(durationInput);
     const allIds = player.allIdentifiers;
@@ -91,6 +108,7 @@ export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: 
         throw new ApiError(500, 'INTERNAL_ERROR', `Failed to ban player: ${(error as Error).message}`);
     }
     admin.logAction(`Banned player "${player.displayName}": ${reason}`);
+    addSanctionNote(admin, actionId, note);
 
     let eventSent = false;
     if (!txCore.fxRunner.isIdle) {
@@ -114,7 +132,7 @@ export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: 
 };
 
 
-export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string): ActionWriteResult => {
+export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string, note?: string): ActionWriteResult => {
     const reason = reasonInput.trim() || 'no reason provided';
     const allIds = player.allIdentifiers;
     if (!allIds.length) {
@@ -128,6 +146,7 @@ export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput:
         throw new ApiError(500, 'INTERNAL_ERROR', `Failed to warn player: ${(error as Error).message}`);
     }
     admin.logAction(`Warned player "${player.displayName}": ${reason}`);
+    addSanctionNote(admin, actionId, note);
 
     const eventSent = !!txCore.fxRunner.sendEvent('playerWarned', {
         author: admin.name,
@@ -141,17 +160,27 @@ export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput:
 };
 
 
-export const kickPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput?: string) => {
+export const kickPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput?: string, note?: string) => {
     const online = requireOnline(player);
     const kickReason = (reasonInput ?? '').trim() || txCore.translator.t('kick_messages.unknown_reason');
+    let actionId: string | undefined;
+    try {
+        actionId = recordKick(admin.name, online.allIdentifiers, kickReason, online.displayName);
+    } catch (error) {
+        throw new ApiError(500, 'INTERNAL_ERROR', `Failed to record kick: ${(error as Error).message}`);
+    }
     admin.logAction(`Kicked "${online.displayName}": ${kickReason}`);
+    if (actionId) addSanctionNote(admin, actionId, note);
     const dropMessage = txCore.translator.t('kick_messages.player', { reason: kickReason });
     txCore.fxRunner.sendEvent('playerKicked', {
         target: online.netid,
         author: admin.name,
         reason: kickReason,
         dropMessage,
+        actionId: actionId ?? null,
+        targetName: online.displayName,
     });
+    return actionId ? loadAction(actionId) : null;
 };
 
 

@@ -99,6 +99,8 @@ Event Data:
 - `author`: The name of the admin.
 - `reason`: The reason of the kick.
 - `dropMessage`: The translated message the players will see when kicked.
+- `actionId`: (tfAdmin) The id of the stored kick action, or `null` for kick-all and unrecorded kicks.
+- `targetName`: (tfAdmin) The player's name, absent when kicking everyone.
 
 ### txAdmin:events:playerWarned
 Broadcasted when a player is warned using txAdmin.  

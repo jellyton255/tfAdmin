@@ -1,7 +1,7 @@
 const modulename = 'DiscordBot:cmd:info';
 import { APIEmbedField, CommandInteraction, EmbedBuilder, EmbedData } from 'discord.js';
 import { parsePlayerId } from '@lib/player/idUtils';
-import { newestNote } from '@lib/player/playerNotes';
+import { newestNote } from '@lib/notes';
 import { embedder } from '../discordHelpers';
 import { findPlayersByIdentifier } from '@lib/player/playerFinder';
 import { txEnv } from '@core/globalData';
@@ -104,15 +104,16 @@ export default async (interaction: CommandInteraction) => {
         //If admin query
         let fields: APIEmbedField[] | undefined;
         if (includeAdminInfo) {
-            //Counting bans/warns
+            //Counting bans/warns/kicks
             const actionHistory = player.getHistory();
-            const actionCount = { ban: 0, warn: 0 };
+            const actionCount = { ban: 0, warn: 0, kick: 0 };
             for (const log of actionHistory) {
                 actionCount[log.type]++;
             }
             const banText = (actionCount.ban === 1) ? '1 ban' : `${actionCount.ban} bans`;
             const warnText = (actionCount.warn === 1) ? '1 warn' : `${actionCount.warn} warns`;
-            bodyText['Log'] = `${banText}, ${warnText}`;
+            const kickText = (actionCount.kick === 1) ? '1 kick' : `${actionCount.kick} kicks`;
+            bodyText['Log'] = `${banText}, ${warnText}, ${kickText}`;
 
             //Filling notes + identifiers
             const notesText = newestNote(dbData.noteHistory)?.text ?? 'nothing here';
