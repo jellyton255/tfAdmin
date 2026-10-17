@@ -5,6 +5,8 @@
  */
 import type {
     ApiActionDetailResp,
+    ApiActionNoteReq,
+    ApiActionNoteResp,
     ApiActionWriteResp,
     ApiActionsSearchResp,
     ApiActionsStatsResp,
@@ -27,6 +29,7 @@ import type {
     ApiKeyUpdateScopesResp,
     ApiKickAllReq,
     ApiKickPlayerReq,
+    ApiKickPlayerResp,
     ApiMeResp,
     ApiMessagePlayerReq,
     ApiOkResp,
@@ -39,6 +42,7 @@ import type {
     ApiResourceCommandResp,
     ApiResourcesResp,
     ApiResp,
+    ApiRevokeActionReq,
     ApiServerCommandReq,
     ApiServerControlResp,
     ApiSetNoteReq,
@@ -110,9 +114,11 @@ export type PlayerSearchQuery = {
 export type ActionSearchQuery = {
     q?: string;
     type?: 'id' | 'reason' | 'name' | 'ids';
-    kind?: 'ban' | 'warn';
+    kind?: 'ban' | 'warn' | 'kick';
     author?: string;
+    /** `active` = not revoked; kicks are never active. */
     status?: 'active' | 'revoked';
+    hasNotes?: boolean;
     order?: 'asc' | 'desc';
     limit?: number;
     cursor?: string;
@@ -243,7 +249,7 @@ export class TxAdminClient {
         linked: (license: string) => this.get<ApiPlayerLinkedResp>(`/players/${encodeURIComponent(license)}/linked`),
         ban: (license: string, input: ApiBanPlayerReq) => this.post<ApiActionWriteResp>(`/players/${encodeURIComponent(license)}/ban`, input),
         warn: (license: string, input: ApiWarnPlayerReq) => this.post<ApiActionWriteResp>(`/players/${encodeURIComponent(license)}/warn`, input),
-        kick: (license: string, input: ApiKickPlayerReq = {}) => this.post<ApiOkResp>(`/players/${encodeURIComponent(license)}/kick`, input),
+        kick: (license: string, input: ApiKickPlayerReq = {}) => this.post<ApiKickPlayerResp>(`/players/${encodeURIComponent(license)}/kick`, input),
         message: (license: string, input: ApiMessagePlayerReq) => this.post<ApiOkResp>(`/players/${encodeURIComponent(license)}/message`, input),
         setWhitelist: (license: string, input: ApiSetWhitelistReq) => this.put<ApiOkResp>(`/players/${encodeURIComponent(license)}/whitelist`, input),
         /** Legacy: appends like addNote. */
@@ -259,7 +265,13 @@ export class TxAdminClient {
         get: (id: string) => this.get<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}`),
         banIdentifiers: (input: ApiBanIdsReq) => this.post<ApiActionWriteResp>('/actions/ban-identifiers', input),
         importBan: (input: ApiImportBanReq) => this.post<ApiImportBanResp>('/actions/import-ban', input),
-        revoke: (id: string) => this.post<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}/revoke`),
+        revoke: (id: string, input: ApiRevokeActionReq = {}) => this.post<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}/revoke`, input),
+        /** Staff notes: never shown to the player. Only the author edits a note; the author or manage.admins deletes it. */
+        addNote: (id: string, input: ApiActionNoteReq) => this.post<ApiActionNoteResp>(`/actions/${encodeURIComponent(id)}/notes`, input),
+        editNote: (id: string, noteId: string, input: ApiActionNoteReq) =>
+            this.patch<ApiActionNoteResp>(`/actions/${encodeURIComponent(id)}/notes/${encodeURIComponent(noteId)}`, input),
+        deleteNote: (id: string, noteId: string) =>
+            this.delete<ApiActionNoteResp>(`/actions/${encodeURIComponent(id)}/notes/${encodeURIComponent(noteId)}`),
     };
 
     //MARK: Whitelist
