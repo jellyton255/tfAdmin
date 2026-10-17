@@ -8,6 +8,7 @@ import WhitelistDao from './dao/whitelist';
 import StatsDao from './dao/stats';
 import CleanupDao from './dao/cleanup';
 import { TxConfigState } from '@shared/enums';
+import { runNoteMovePass } from './noteMove';
 const console = consoleFactory(modulename);
 
 
@@ -31,6 +32,15 @@ export default class Database {
         this.whitelist = new WhitelistDao(this.#db);
         this.stats = new StatsDao(this.#db);
         this.cleanup = new CleanupDao(this.#db);
+
+        //everfall: one-time move of player notes onto their sanctions, once the whole core has booted
+        //(setupDone settles after the synchronous module startup, so txCore.logger exists)
+        this.#db.setupDone.then(() => {
+            if (!this.#db.obj) return;
+            return runNoteMovePass(this.#db.obj, this.#db.dbPath);
+        }).catch((error) => {
+            console.error(`Failed to move player notes onto actions: ${(error as Error).message}`);
+        });
 
         //Database optimization cron function
         const optimizerTask = () => {

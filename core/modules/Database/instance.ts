@@ -95,13 +95,14 @@ export class DbInstance {
     #writePending: SavePriority = SavePriority.STANDBY;
     lastWrite: number = 0;
     isReady: boolean = false;
+    readonly setupDone: Promise<void>;
 
     constructor() {
         this.dbPath = `${txEnv.profilePath}/data/playersDB.json`;
         this.backupPath = `${txEnv.profilePath}/data/playersDB.backup.json`;
 
         //Start database instance
-        this.setupDatabase();
+        this.setupDone = this.setupDatabase();
 
         //Cron functions
         setInterval(() => {
