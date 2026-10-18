@@ -364,6 +364,10 @@ export type ApiKickPlayerResp = ApiResp<{
 }>;
 export type ApiActionNoteReq = { text: string };
 export type ApiRevokeActionReq = { reason?: string };
+/** The new length counts from when the ban was issued. */
+export type ApiChangeBanLengthReq = { duration: string; reason: string };
+/** null clears the appeal. Accepting does not lift the ban by itself. */
+export type ApiSetBanAppealReq = { status: ApiBanAppeal['status'] | null; ticket?: string | null };
 export type ApiMessagePlayerReq = { message: string };
 export type ApiSetWhitelistReq = { whitelisted: boolean };
 export type ApiSetNoteReq = { note: string };

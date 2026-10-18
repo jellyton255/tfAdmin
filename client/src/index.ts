@@ -65,6 +65,8 @@ import type {
     ApiWhitelistApprovalsResp,
     ApiWhitelistRequestsResolvedResp,
     ApiWhitelistRequestsResp,
+    ApiChangeBanLengthReq,
+    ApiSetBanAppealReq,
 } from '../../shared/apiV1Types';
 
 export type * from '../../shared/apiV1Types';
@@ -118,9 +120,9 @@ export type PlayerSearchQuery = {
 export type ActionSearchQuery = {
     q?: string;
     type?: 'id' | 'reason' | 'name' | 'ids';
-    kind?: 'ban' | 'warn' | 'kick';
+    kind?: 'ban' | 'warn' | 'kick' | 'sanction';
     author?: string;
-    /** `active` = not revoked; kicks are never active. */
+    /** `active` = not revoked; kicks and game sanctions are never active. */
     status?: 'active' | 'revoked';
     hasNotes?: boolean;
     order?: 'asc' | 'desc';
@@ -274,6 +276,8 @@ export class TxAdminClient {
         banIdentifiers: (input: ApiBanIdsReq) => this.post<ApiActionWriteResp>('/actions/ban-identifiers', input),
         importBan: (input: ApiImportBanReq) => this.post<ApiImportBanResp>('/actions/import-ban', input),
         revoke: (id: string, input: ApiRevokeActionReq = {}) => this.post<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}/revoke`, input),
+        changeBanLength: (id: string, input: ApiChangeBanLengthReq) => this.post<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}/length`, input),
+        setAppeal: (id: string, input: ApiSetBanAppealReq) => this.put<ApiActionDetailResp>(`/actions/${encodeURIComponent(id)}/appeal`, input),
         /** Staff notes: never shown to the player. Only the author edits a note; the author or manage.admins deletes it. */
         addNote: (id: string, input: ApiActionNoteReq) => this.post<ApiActionNoteResp>(`/actions/${encodeURIComponent(id)}/notes`, input),
         editNote: (id: string, noteId: string, input: ApiActionNoteReq) =>
