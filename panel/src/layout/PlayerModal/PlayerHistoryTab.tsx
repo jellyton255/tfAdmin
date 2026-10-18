@@ -27,6 +27,9 @@ function HistoryItem({ action, serverTime, preset, modalOpener }: HistoryItemPro
     } else if (action.type === 'kick') {
         borderColorClass = 'border-muted-foreground/40';
         actionMessage = `KICKED by ${action.author}`;
+    } else if (action.type === 'sanction') {
+        borderColorClass = 'border-muted-foreground/40';
+        actionMessage = `${action.sanction?.toUpperCase()} by ${action.author}`;
     }
     if (action.revokedBy) {
         borderColorClass = '';
@@ -94,7 +97,7 @@ export default function PlayerHistoryTab({ actionHistory, banTemplates, serverTi
 
     if (!actionHistory.length) {
         return <ModalTabMessage>
-            No bans, warns or kicks found.
+            No bans, warns, kicks or game sanctions found.
         </ModalTabMessage>;
     }
 

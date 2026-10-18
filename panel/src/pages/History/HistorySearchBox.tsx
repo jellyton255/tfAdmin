@@ -230,6 +230,9 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
                             <SelectItem value={'kick'} className="cursor-pointer">
                                 Kicks
                             </SelectItem>
+                            <SelectItem value={'sanction'} className="cursor-pointer">
+                                Game Sanctions
+                            </SelectItem>
                         </SelectContent>
                     </Select>
 

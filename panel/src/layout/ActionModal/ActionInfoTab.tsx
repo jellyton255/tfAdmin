@@ -140,7 +140,15 @@ export default function ActionInfoTab({ action, serverTime, tsFetch, setSelected
                         <dd className="text-sm leading-6 col-span-2 mt-0">{warnAckedText}</dd>
                     </div>
                 )}
-                {action.type !== 'kick' && (
+                {action.type === 'sanction' && (
+                    <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                        <dt className="text-sm font-medium leading-6 text-muted-foreground">Sanction</dt>
+                        <dd className="text-sm leading-6 col-span-2 mt-0">
+                            {action.kind}{action.length && <span className="opacity-75"> · {action.length}</span>}
+                        </dd>
+                    </div>
+                )}
+                {action.type !== 'kick' && action.type !== 'sanction' && (
                     <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
                         <dt className="text-sm font-medium leading-6 text-muted-foreground">Revoked</dt>
                         <dd className="text-sm leading-6 col-span-2 mt-0">{revokedText}</dd>

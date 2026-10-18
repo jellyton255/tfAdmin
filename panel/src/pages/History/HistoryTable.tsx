@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { convertRowDateTime } from '@/lib/dateTime';
 import { TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2Icon, GavelIcon, AlertTriangleIcon, Undo2Icon, TimerOffIcon, TimerIcon, HourglassIcon, DoorOpenIcon, StickyNoteIcon } from 'lucide-react';
+import { Loader2Icon, GavelIcon, AlertTriangleIcon, Undo2Icon, TimerOffIcon, TimerIcon, HourglassIcon, DoorOpenIcon, StickyNoteIcon, ScaleIcon } from 'lucide-react';
 import { useBackendApi } from '@/hooks/fetch';
 import { HistoryTableActionType, HistoryTableSearchResp, HistoryTableSearchType, HistoryTableSortingType } from '@shared/historyApiTypes';
 import { useOpenActionModal } from '@/hooks/actionModal';
@@ -40,6 +40,11 @@ function HistoryRow({ action, modalOpener }: HistoryRowProps) {
     } else if (action.type === 'kick') {
         rowPrefix = <div className='flex items-center px-1 bg-secondary text-muted-foreground'>
             <DoorOpenIcon className='size-5' />
+        </div>
+        rowId = <span className='tracking-wider text-muted-foreground'>{action.id}</span>
+    } else if (action.type === 'sanction') {
+        rowPrefix = <div className='flex items-center px-1 bg-secondary text-muted-foreground'>
+            <ScaleIcon className='size-5' />
         </div>
         rowId = <span className='tracking-wider text-muted-foreground'>{action.id}</span>
     } else {
@@ -94,6 +99,7 @@ function HistoryRow({ action, modalOpener }: HistoryRowProps) {
             </TableCell>
             <TableCell className='px-4 py-2 border-r'>
                 <span className='text-ellipsis overflow-hidden line-clamp-1 break-all'>
+                    {action.sanction && <strong className='pr-1'>[{action.sanction}]</strong>}
                     {action.reason}
                 </span>
             </TableCell>

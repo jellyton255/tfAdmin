@@ -78,10 +78,11 @@ export default function ActionModal() {
         }
     }, [isModalOpen]);
 
-    //Kicks are a record only, so they have nothing to modify
+    //Kicks and game sanctions are a record only, so they have nothing to modify
     const visibleNoteCount = modalData?.action.notes?.filter((note: DatabaseNoteType) => !note.deleted).length ?? 0;
     const notesTab: ModalTabInfo = { title: 'Notes', icon: notesIcon };
-    const modalTabs = modalData?.action.type === 'kick'
+    const isRecordOnly = modalData?.action.type === 'kick' || modalData?.action.type === 'sanction';
+    const modalTabs = isRecordOnly
         ? [infoTab, notesTab, idsTab]
         : [infoTab, notesTab, idsTab, modifyTab];
 
@@ -127,6 +128,11 @@ export default function ActionModal() {
             pageTitle = <>
                 <span className="text-muted-foreground font-mono mr-2">[{modalData.action.id}]</span>
                 Kicked {displayName}
+            </>;
+        } else if (modalData.action.type === 'sanction') {
+            pageTitle = <>
+                <span className="text-muted-foreground font-mono mr-2">[{modalData.action.id}]</span>
+                {modalData.action.kind}: {displayName}
             </>;
         } else {
             throw new Error(`Unknown action type: ${modalData.action.type}`);
@@ -195,7 +201,7 @@ export default function ActionModal() {
                                 {selectedTab === 'IDs' && <ActionIdsTab
                                     action={modalData.action}
                                 />}
-                                {selectedTab === 'Modify' && modalData.action.type !== 'kick' && <ActionModifyTab
+                                {selectedTab === 'Modify' && modalData.action.type !== 'kick' && modalData.action.type !== 'sanction' && <ActionModifyTab
                                     action={modalData.action}
                                     refreshModalData={refreshModalData}
                                 />}
