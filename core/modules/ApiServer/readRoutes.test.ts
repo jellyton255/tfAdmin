@@ -157,7 +157,7 @@ beforeAll(async () => {
             ],
         },
         cacheStore: { get: () => undefined },
-        logger: { admin: { write: () => { } } },
+        logger: { admin: { write: () => { }, basePath: tmpDir } },
         fxRunner,
         fxResources: { resourceReport },
         fxPlayerlist: {
@@ -395,6 +395,23 @@ describe('admins and resources', () => {
         expect(r.json.data.admins[0]).toEqual({ name: 'julian', master: true, permissions: [], identifiers: ['discord:11111111111111111', 'fivem:1001'] });
         expect(JSON.stringify(r.json)).not.toContain('secret');
         expect((await get('/api/v1/admins', limitedToken)).status).toBe(403);
+    });
+
+    it('returns staff activity and the audit log, only for manage.admins', async () => {
+        const activity = await get('/api/v1/staff/activity?weeks=2');
+        expect(activity.status).toBe(200);
+        expect(activity.json.data.weekStarts).toHaveLength(2);
+        const byName = Object.fromEntries(activity.json.data.staff.map((m: any) => [m.name, m.total]));
+        expect(byName.julian).toMatchObject({ bans: 2, notes: 1 });
+        expect(byName.casey).toMatchObject({ warns: 1, notes: 2 });
+
+        const log = await get('/api/v1/audit-log?categories=ban,kick');
+        expect(log.status).toBe(200);
+        expect(log.json.data).toEqual({ entries: [], truncated: false, cursor: null });
+        expect((await get('/api/v1/audit-log?categories=nope')).status).toBe(400);
+
+        expect((await get('/api/v1/staff/activity', limitedToken)).status).toBe(403);
+        expect((await get('/api/v1/audit-log', limitedToken)).status).toBe(403);
     });
 
     it('other reads work with any valid key', async () => {

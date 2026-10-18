@@ -3,6 +3,10 @@
  * Shared between core (routes + ApiServer module) and the panel (API Keys page).
  */
 import type { ApiScopeInfo } from './apiScopes';
+import type { AdminLogCategory, AdminLogEntry } from './adminLogApiTypes';
+import type { StaffActivityData } from './staffActivityApiTypes';
+export type { AdminLogCategory, AdminLogEntry } from './adminLogApiTypes';
+export type { StaffActivityCounts, StaffActivityData, StaffActivityMember } from './staffActivityApiTypes';
 
 //Error codes returned inside the `error.code` field of the envelope
 export const API_ERROR_CODES = [
@@ -333,6 +337,23 @@ export type ApiAdminRecord = {
     identifiers: string[]; //citizenfx / discord identifiers
 };
 export type ApiAdminsResp = ApiResp<{ admins: ApiAdminRecord[] }>;
+
+/**
+ * Audit log (GET /audit-log) and staff activity (GET /staff/activity), both need manage.admins
+ */
+export type ApiAuditLogQuery = {
+    text?: string;
+    admin?: string; //part of the author name
+    categories?: AdminLogCategory[];
+    from?: number; //epoch ms
+    to?: number; //epoch ms, inclusive; pass `cursor` for the next older page
+};
+export type ApiAuditLogResp = ApiResp<{
+    entries: AdminLogEntry[]; //oldest first
+    truncated: boolean;
+    cursor: number | null;
+}>;
+export type ApiStaffActivityResp = ApiResp<StaffActivityData>;
 
 
 /**

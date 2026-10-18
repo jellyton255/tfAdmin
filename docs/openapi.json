@@ -3405,6 +3405,206 @@
         }
       }
     },
+    "/audit-log": {
+      "get": {
+        "summary": "Search the admin log",
+        "description": "Who did what in tfAdmin, oldest first within the newest page of up to 500 entries. Entries include login IPs and console commands.\n\nRequires the `manage.admins` scope.",
+        "tags": [
+          "Admins"
+        ],
+        "parameters": [
+          {
+            "name": "text",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Text in the message (case-insensitive)"
+          },
+          {
+            "name": "admin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Part of the author name (case-insensitive)"
+          },
+          {
+            "name": "categories",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated: ban, warn, kick, sanction, revoke, note, player, whitelist, command, resource, server, login, admins, settings, api, system, other"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Unix epoch milliseconds"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Inclusive; pass `cursor` here for the next older page"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "entries": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AuditLogEntry"
+                          }
+                        },
+                        "truncated": {
+                          "type": "boolean"
+                        },
+                        "cursor": {
+                          "oneOf": [
+                            {
+                              "type": "integer",
+                              "description": "Pass as `to` for older entries"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "entries",
+                        "truncated",
+                        "cursor"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/staff/activity": {
+      "get": {
+        "summary": "Staff activity per week",
+        "description": "Each admin's bans, warns, kicks, revokes, notes and time in game per UTC week (Monday start). Authors that are not on the admin roster (API keys, game scripts) are left out, so game sanctions are not counted.\n\nRequires the `manage.admins` scope.",
+        "tags": [
+          "Admins"
+        ],
+        "parameters": [
+          {
+            "name": "weeks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 26,
+              "default": 8
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "weekStarts": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "description": "Monday 00:00 UTC"
+                          }
+                        },
+                        "staff": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/StaffActivityMember"
+                          }
+                        }
+                      },
+                      "required": [
+                        "weekStarts",
+                        "staff"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
     "/resources": {
       "get": {
         "summary": "Resource list from the running server",
@@ -5970,6 +6170,131 @@
           "master",
           "permissions",
           "identifiers"
+        ],
+        "additionalProperties": false
+      },
+      "AuditLogEntry": {
+        "type": "object",
+        "properties": {
+          "ts": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "author": {
+            "type": "string",
+            "description": "Admin name, API key (`api:<name>`), game script label or a system source such as MONITOR"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "ban",
+              "warn",
+              "kick",
+              "sanction",
+              "revoke",
+              "note",
+              "player",
+              "whitelist",
+              "command",
+              "resource",
+              "server",
+              "login",
+              "admins",
+              "settings",
+              "api",
+              "system",
+              "other"
+            ]
+          },
+          "msg": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts",
+          "author",
+          "category",
+          "msg"
+        ],
+        "additionalProperties": false
+      },
+      "StaffActivityCounts": {
+        "type": "object",
+        "properties": {
+          "bans": {
+            "type": "integer"
+          },
+          "warns": {
+            "type": "integer"
+          },
+          "kicks": {
+            "type": "integer"
+          },
+          "revokes": {
+            "type": "integer"
+          },
+          "notes": {
+            "type": "integer"
+          },
+          "minutesOnline": {
+            "type": "integer",
+            "description": "Minutes in game, counted since tfAdmin started tracking staff time"
+          }
+        },
+        "required": [
+          "bans",
+          "warns",
+          "kicks",
+          "revokes",
+          "notes",
+          "minutesOnline"
+        ],
+        "additionalProperties": false
+      },
+      "StaffActivityMember": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffActivityCounts"
+            }
+          },
+          "total": {
+            "$ref": "#/components/schemas/StaffActivityCounts"
+          },
+          "lastActionTs": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Last action, revoke or note over all history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastInGameTs": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "Last connection of a player linked to the admin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "weeks",
+          "total",
+          "lastActionTs",
+          "lastInGameTs"
         ],
         "additionalProperties": false
       },

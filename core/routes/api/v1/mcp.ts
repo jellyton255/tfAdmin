@@ -10,6 +10,8 @@ import { idParamSchema as actionIdParamSchema, searchQuerySchema as actionsQuery
 import { listQuerySchema as whitelistQuerySchema } from './whitelist';
 import { querySchema as eventsQuerySchema } from './events';
 import { idParamSchema as webhookIdParamSchema } from './webhooks';
+import { adminLogQueryShape } from '@routes/adminLogSearch';
+import { staffActivityQuerySchema } from '@routes/staffActivity';
 import { actionNoteBodySchema, actionNoteParamSchema, banIdsBodySchema, banAppealBodySchema, banLengthBodySchema, revokeBodySchema } from './actionWrites';
 import { identifierBodySchema, reqIdParamSchema, denyAllBodySchema } from './whitelistWrites';
 import {
@@ -435,6 +437,24 @@ export const MCP_TOOLS: ToolDefinition[] = [
         scopes: ['manage.admins'],
         annotations: readOnly,
         request: () => ({ method: 'GET', path: '/admins' }),
+    },
+    {
+        name: 'tfadmin_audit_log_search',
+        title: 'Search the Admin Log',
+        description: 'Who did what in tfAdmin (bans, kicks, console commands, resource restarts, logins, settings), newest page of up to 500 entries, oldest first. Filter by text, admin name, categories (comma-separated, such as ban,kick,command) and from/to (epoch milliseconds). Pass cursor back as to for older entries.',
+        scopes: ['manage.admins'],
+        input: adminLogQueryShape.shape,
+        annotations: readOnly,
+        request: (query) => ({ method: 'GET', path: '/audit-log', query }),
+    },
+    {
+        name: 'tfadmin_staff_activity',
+        title: 'Staff Activity',
+        description: 'Each admin\'s bans, warns, kicks, revokes, notes and minutes in game per UTC week (Monday start), for the last `weeks` weeks (default 8, max 26).',
+        scopes: ['manage.admins'],
+        input: staffActivityQuerySchema.shape,
+        annotations: readOnly,
+        request: (query) => ({ method: 'GET', path: '/staff/activity', query }),
     },
     {
         name: 'tfadmin_webhooks_list',

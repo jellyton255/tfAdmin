@@ -43,8 +43,10 @@ export default () => {
     router.get('/whitelist/requests', apiKeyAuthMw(), v1.whitelist_requests as any);
     router.get('/resources', apiKeyAuthMw(), v1.resources as any);
 
-    //Admin roster (needs manage.admins)
+    //Admin roster, audit log and staff activity (need manage.admins)
     router.get('/admins', apiKeyAuthMw('manage.admins'), v1.admins as any);
+    router.get('/audit-log', apiKeyAuthMw('manage.admins'), v1.auditLog as any);
+    router.get('/staff/activity', apiKeyAuthMw('manage.admins'), v1.staff_activity as any);
 
     //Events (polling fallback) and webhooks
     router.get('/events', apiKeyAuthMw(), v1.events_list as any);

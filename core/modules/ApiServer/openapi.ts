@@ -3,6 +3,7 @@
  * shared/apiV1Types.ts. docs/openapi.json is the committed copy; openapi.test.ts fails when
  * they drift so a contract change is always visible in the PR diff.
  */
+import { ADMIN_LOG_CATEGORIES } from '@shared/adminLogApiTypes';
 import { API_ERROR_CODES, API_EVENT_TYPES, API_PAGE_DEFAULT_LIMIT, API_PAGE_MAX_LIMIT, API_WEBHOOKS_MAX } from '@shared/apiV1Types';
 
 export const OPENAPI_INFO_VERSION = '1.0.0';
@@ -231,6 +232,21 @@ const schemas: Record<string, Schema> = {
         discordTag: nullable(str()), discordAvatar: nullable(str()), lastAttemptAt: epochMs(),
     }),
     Admin: obj({ name: str(), master: bool(), permissions: arr(str()), identifiers: arr(str()) }),
+    AuditLogEntry: obj({
+        ts: epochMs(), author: str({ description: 'Admin name, API key (`api:<name>`), game script label or a system source such as MONITOR' }),
+        category: enumOf(ADMIN_LOG_CATEGORIES.map((c) => c.key)), msg: str(),
+    }),
+    StaffActivityCounts: obj({
+        bans: int(), warns: int(), kicks: int(), revokes: int(), notes: int(),
+        minutesOnline: int({ description: 'Minutes in game, counted since tfAdmin started tracking staff time' }),
+    }),
+    StaffActivityMember: obj({
+        name: str(),
+        weeks: arr(ref('StaffActivityCounts')),
+        total: ref('StaffActivityCounts'),
+        lastActionTs: nullable(epochMs('Last action, revoke or note over all history')),
+        lastInGameTs: nullable(epochMs('Last connection of a player linked to the admin')),
+    }),
     Resource: obj({ name: str(), status: str(), path: str(), version: nullable(str()), author: nullable(str()), description: nullable(str()) }),
     ServerControl: obj({
         action: enumOf(['start', 'stop', 'restart']),
@@ -577,6 +593,35 @@ const paths: Record<string, Schema> = {
     },
     '/admins': {
         get: op({ tag: 'Admins', summary: 'Admin roster', permission: 'manage.admins', response: obj({ admins: arr(ref('Admin')) }) }),
+    },
+    '/audit-log': {
+        get: op({
+            tag: 'Admins', summary: 'Search the admin log', permission: 'manage.admins',
+            description: 'Who did what in tfAdmin, oldest first within the newest page of up to 500 entries. Entries include login IPs and console commands.',
+            params: [
+                paramQ('text', str({ maxLength: 128 }), 'Text in the message (case-insensitive)'),
+                paramQ('admin', str({ maxLength: 128 }), 'Part of the author name (case-insensitive)'),
+                paramQ('categories', str(), `Comma-separated: ${ADMIN_LOG_CATEGORIES.map((c) => c.key).join(', ')}`),
+                paramQ('from', epochMs()),
+                paramQ('to', epochMs('Inclusive; pass `cursor` here for the next older page')),
+            ],
+            response: obj({
+                entries: arr(ref('AuditLogEntry')),
+                truncated: bool(),
+                cursor: nullable(epochMs('Pass as `to` for older entries')),
+            }),
+        }),
+    },
+    '/staff/activity': {
+        get: op({
+            tag: 'Admins', summary: 'Staff activity per week', permission: 'manage.admins',
+            description: 'Each admin\'s bans, warns, kicks, revokes, notes and time in game per UTC week (Monday start). Authors that are not on the admin roster (API keys, game scripts) are left out, so game sanctions are not counted.',
+            params: [paramQ('weeks', int({ minimum: 1, maximum: 26, default: 8 }))],
+            response: obj({
+                weekStarts: arr(epochMs('Monday 00:00 UTC')),
+                staff: arr(ref('StaffActivityMember')),
+            }),
+        }),
     },
     '/resources': {
         get: op({ tag: 'Resources', summary: 'Resource list from the running server', response: obj({ resources: arr(ref('Resource')) }), errors: [503] }),

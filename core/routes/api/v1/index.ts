@@ -5,6 +5,7 @@ export { online as players_online, search as players_search, stats as players_st
 export { search as actions_search, stats as actions_stats, get as actions_get } from './actions';
 export { approvals as whitelist_approvals, requests as whitelist_requests } from './whitelist';
 export { default as admins } from './admins';
+export { auditLog, activity as staff_activity } from './staff';
 export { default as resources } from './resources';
 export { ban as players_ban, warn as players_warn, kick as players_kick, message as players_message, whitelist as players_whitelist, note as players_note, addNote as players_addNote, deleteNote as players_deleteNote, watch as players_watch, unwatch as players_unwatch, tags as players_tags } from './playerWrites';
 export {
