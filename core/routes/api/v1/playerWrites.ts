@@ -13,6 +13,8 @@ export const messageBodySchema = z.object({ message: z.string().trim().min(1).ma
 export const whitelistBodySchema = z.object({ whitelisted: z.boolean() });
 export const noteBodySchema = z.object({ note: z.string().trim().min(1).max(4096) });
 export const noteIdParamSchema = z.object({ noteId: z.string().min(1).max(32) });
+export const watchBodySchema = z.object({ reason: z.string().trim().min(1).max(512) });
+export const tagsBodySchema = z.object({ tags: z.array(z.string().max(64)).max(32) });
 
 const target = (ctx: ApiKeyCtx) => svc.resolvePlayer(licenseParamSchema.parse(ctx.params).license);
 
@@ -74,4 +76,25 @@ export async function deleteNote(ctx: ApiKeyCtx) {
     const player = target(ctx);
     const { noteId } = noteIdParamSchema.parse(ctx.params);
     return sendData(ctx, { note: svc.deletePlayerNote(ctx.admin, player, noteId) });
+};
+
+/** PUT /api/v1/players/:license/watch  (players.note) */
+export async function watch(ctx: ApiKeyCtx) {
+    const player = target(ctx);
+    const body = watchBodySchema.parse(ctx.request.body);
+    return sendData(ctx, { watch: svc.watchPlayer(ctx.admin, player, body.reason) });
+};
+
+/** DELETE /api/v1/players/:license/watch  (players.note) */
+export async function unwatch(ctx: ApiKeyCtx) {
+    const player = target(ctx);
+    svc.unwatchPlayer(ctx.admin, player);
+    return sendData(ctx, { ok: true as const });
+};
+
+/** PUT /api/v1/players/:license/tags  (players.note) */
+export async function tags(ctx: ApiKeyCtx) {
+    const player = target(ctx);
+    const body = tagsBodySchema.parse(ctx.request.body);
+    return sendData(ctx, { tags: svc.setPlayerTags(ctx.admin, player, body.tags) });
 };

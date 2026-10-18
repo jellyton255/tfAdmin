@@ -40,7 +40,7 @@ Changing a key's scopes or revoking it takes effect immediately. Revoked keys st
 | `players.warn` | Warn players | Warn players, revoke warns |
 | `players.kick` | Kick players | Kick an online player |
 | `players.direct_message` | Message players | Direct message an online player |
-| `players.note` | Edit player notes | Add and delete staff notes on players; add, edit and delete your own staff notes on bans, warns and kicks |
+| `players.note` | Edit player notes | Add and delete staff notes on players; add, edit and delete your own staff notes on bans, warns and kicks; set player tags; put players on the watchlist or take them off |
 | `players.whitelist` | Manage whitelist | Whitelist flag, approvals and requests |
 | `announcement` | Send announcements | Broadcast an announcement |
 | `control.server` | Control the server | Start, stop, restart, kick everyone |
@@ -139,8 +139,8 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/status` | any valid key | txAdmin and FXServer state: health, uptime, player count and slots, project name, cfx.re join link, whitelist mode, next scheduled restart, Discord bot status |
 | `GET /api/v1/players/online` | any valid key | Connected players: `netid`, `displayName`, `pureName`, `license` |
 | `GET /api/v1/players/stats` | any valid key | Totals: `total`, `playedLast24h`, `joinedLast24h`, `joinedLast7d`, `onlineNow` |
-| `GET /api/v1/players` | any valid key | Database search, paginated. Query: `q` with `type=name\|ids\|notes`, `filter=isOnline,isAdmin,isWhitelisted,hasNote`, `sort=tsLastConnection\|tsJoined\|playTime`, `order=desc\|asc` |
-| `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history. `noteHistory` lists every note newest first; `notes`, `notesLastEditedBy` and `notesLastEditedAt` describe the newest one |
+| `GET /api/v1/players` | any valid key | Database search, paginated. Query: `q` with `type=name\|ids\|notes\|tag` (`tag` matches one whole tag, any case), `filter=isOnline,isAdmin,isWhitelisted,hasNote,isWatched`, `sort=tsLastConnection\|tsJoined\|playTime`, `order=desc\|asc` |
+| `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history. `noteHistory` lists every note newest first; `notes`, `notesLastEditedBy` and `notesLastEditedAt` describe the newest one. Every player record also has `tags` (staff labels as typed) and `watch` (`{ reason, author, createdAt }` while on the watchlist, else `null`) |
 | `GET /api/v1/players/{license}/linked` | any valid key | Up to 50 other players that share an identifier (never an IP) or a HWID, with what matched and their ban state. HWIDs shared by more than 25 players are skipped and listed in `ignoredHwids`; `truncated` flags a cut list |
 | `GET /api/v1/actions` | any valid key | Bans, warns and kicks, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`reason` also searches staff notes; `name` is a fuzzy player name search), `kind=ban\|warn\|kick`, `author`, `status=active\|revoked` (kicks are never active), `hasNotes=true\|false`, `order` |
 | `GET /api/v1/actions/stats` | any valid key | Totals for the last 7 days and all time, plus a per-admin count |
@@ -178,6 +178,9 @@ Writes behave exactly like the matching panel buttons: same database records, sa
 | `PUT /api/v1/players/{license}/whitelist` | `players.whitelist` | `{ whitelisted: true\|false }` |
 | `POST /api/v1/players/{license}/notes` | `players.note` | `{ note }`. 201 with `{ note }`; earlier notes are kept |
 | `DELETE /api/v1/players/{license}/notes/{noteId}` | `players.note` | Deletes one note, returns it |
+| `PUT /api/v1/players/{license}/watch` | `players.note` | `{ reason }`. Puts the player on the watchlist (or replaces the reason) and returns `{ watch }`. Staff are alerted when they join |
+| `DELETE /api/v1/players/{license}/watch` | `players.note` | Takes the player off the watchlist; 404 if not watched |
+| `PUT /api/v1/players/{license}/tags` | `players.note` | `{ tags[] }`. Replaces every tag (at most 12, each up to 32 characters). Tags are trimmed and case-insensitive duplicates dropped; returns `{ tags }` as saved |
 | `PUT /api/v1/players/{license}/note` | `players.note` | Legacy: `{ note }` is appended like `POST .../notes`; an empty note is rejected |
 | `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration, note? }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
 | `POST /api/v1/actions/import-ban` | `players.ban_import` | `{ externalRef, identifiers[], hwids?[], playerName?, reason, author, expiresAt?, notify? }`. Records a system or legacy ban. 201 with `{ action, created: true, dropped, eventSent }`; 200 with `created: false` on a replay |

@@ -148,7 +148,12 @@ const schemas: Record<string, Schema> = {
     PlayerSummary: obj({
         license: str(), displayName: str(), pureName: str(), playTime: int({ description: 'minutes' }),
         joinedAt: epochMs(), lastConnectionAt: epochMs(), whitelistedAt: nullable(epochMs()), notes: nullable(str()),
+        tags: arr(str({ description: 'Staff label such as VIP, as typed' })),
+        watch: nullable(ref('PlayerWatch')),
         isAdmin: bool(), isOnline: bool(),
+    }),
+    PlayerWatch: obj({
+        reason: str(), author: str(), createdAt: epochMs('When the player was put on the watchlist'),
     }),
     PlayerDetail: {
         allOf: [ref('PlayerSummary'), obj({
@@ -327,8 +332,8 @@ const paths: Record<string, Schema> = {
             tag: 'Players', summary: 'Search players',
             params: [
                 paramQ('q', str({ maxLength: 256 })),
-                paramQ('type', enumOf(['name', 'ids', 'notes']), 'What `q` matches (default name)'),
-                paramQ('filter', str(), 'Comma separated: isAdmin, isOnline, isWhitelisted, hasNote'),
+                paramQ('type', enumOf(['name', 'ids', 'notes', 'tag']), 'What `q` matches (default name); `tag` is one whole tag, any case'),
+                paramQ('filter', str(), 'Comma separated: isAdmin, isOnline, isWhitelisted, hasNote, isWatched'),
                 paramQ('sort', enumOf(['playTime', 'tsJoined', 'tsLastConnection'])),
                 ...paginationParams,
             ],
@@ -401,6 +406,26 @@ const paths: Record<string, Schema> = {
             tag: 'Players', summary: 'Add player note', permission: 'players.note', params: [licenseParam],
             body: obj({ note: str({ minLength: 1, maxLength: 4096 }) }),
             response: obj({ note: ref('PlayerNote') }), status: 201, errors: [404, 409],
+        }),
+    },
+    '/players/{license}/watch': {
+        put: op({
+            tag: 'Players', summary: 'Put a player on the watchlist', permission: 'players.note', params: [licenseParam],
+            body: obj({ reason: str({ minLength: 1, maxLength: 512 }) }),
+            response: obj({ watch: ref('PlayerWatch') }), errors: [404, 409],
+            description: 'Replaces the reason when the player is already watched. Staff are alerted (`player.watchJoined`) when a watched player joins.',
+        }),
+        delete: op({
+            tag: 'Players', summary: 'Take a player off the watchlist', permission: 'players.note', params: [licenseParam],
+            response: ref('Ok'), errors: [404],
+        }),
+    },
+    '/players/{license}/tags': {
+        put: op({
+            tag: 'Players', summary: 'Set player tags', permission: 'players.note', params: [licenseParam],
+            body: obj({ tags: { ...arr(str({ maxLength: 32 })), maxItems: 12 } }),
+            response: obj({ tags: arr(str()) }), errors: [404, 409],
+            description: 'Replaces every tag. Tags are trimmed and case-insensitive duplicates dropped; the saved list is returned.',
         }),
     },
     '/players/{license}/notes/{noteId}': {

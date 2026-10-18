@@ -5,7 +5,8 @@ import { ServerPlayer, type PlayerClass } from '@lib/player/playerClasses';
 import type { AuthedAdmin } from '@modules/WebServer/authLogic';
 import { ApiError } from '../envelope';
 import { toApiAction } from '@routes/api/v1/actions';
-import { toApiNote } from '@routes/api/v1/players';
+import { toApiNote, toApiWatch } from '@routes/api/v1/players';
+import { normalizeTags } from '@lib/player/playerTags';
 import type { ApiActionRecord } from '@shared/apiV1Types';
 import { addActionNote, type NoteWriter } from './actionNotes';
 
@@ -244,4 +245,53 @@ export const deletePlayerNote = (admin: AuthedAdmin, player: PlayerClass, noteId
     const note = player.deleteNote(noteId);
     admin.logAction(`Deleted note ${noteId} from ${player.license}`);
     return toApiNote(note);
+};
+
+
+/**
+ * Puts the player on the watchlist, or replaces the reason when already watched.
+ */
+export const watchPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string) => {
+    const reason = reasonInput.trim();
+    if (!reason.length) {
+        throw new ApiError(400, 'VALIDATION_ERROR', 'Say why this player is being watched.', { field: 'reason' });
+    }
+    let watch;
+    try {
+        watch = player.setWatch(reason, admin.name);
+    } catch (error) {
+        throw new ApiError(409, 'CONFLICT', `Failed to watch player: ${(error as Error).message}`);
+    }
+    admin.logAction(`Added ${player.license} to the watchlist: ${reason}`);
+    return toApiWatch(watch);
+};
+
+
+export const unwatchPlayer = (admin: AuthedAdmin, player: PlayerClass) => {
+    const dbData = player.getDbData();
+    if (!dbData || !dbData.watch) {
+        throw new ApiError(404, 'NOT_FOUND', 'This player is not on the watchlist.');
+    }
+    player.clearWatch();
+    admin.logAction(`Removed ${player.license} from the watchlist.`);
+};
+
+
+/**
+ * Replaces the player's tags and returns them as saved.
+ */
+export const setPlayerTags = (admin: AuthedAdmin, player: PlayerClass, tagsInput: string[]) => {
+    let tags;
+    try {
+        tags = normalizeTags(tagsInput);
+    } catch (error) {
+        throw new ApiError(400, 'VALIDATION_ERROR', (error as Error).message, { field: 'tags' });
+    }
+    try {
+        player.setTags(tags);
+    } catch (error) {
+        throw new ApiError(409, 'CONFLICT', `Failed to save tags: ${(error as Error).message}`);
+    }
+    admin.logAction(`Set tags for ${player.license}: ${tags.join(', ') || 'none'}`);
+    return tags;
 };

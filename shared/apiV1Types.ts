@@ -158,8 +158,17 @@ export type ApiPlayerSummary = {
     lastConnectionAt: number; //epoch ms
     whitelistedAt: number | null; //epoch ms
     notes: string | null;
+    /** Staff labels such as VIP, as typed. */
+    tags: string[];
+    /** Set while the player is on the watchlist. */
+    watch: ApiPlayerWatch | null;
     isAdmin: boolean;
     isOnline: boolean;
+};
+export type ApiPlayerWatch = {
+    reason: string;
+    author: string;
+    createdAt: number; //epoch ms
 };
 export type ApiPlayerSearchResp = ApiResp<{ players: ApiPlayerSummary[] }, ApiPageMeta>;
 
@@ -338,6 +347,10 @@ export type ApiMessagePlayerReq = { message: string };
 export type ApiSetWhitelistReq = { whitelisted: boolean };
 export type ApiSetNoteReq = { note: string };
 export type ApiPlayerNoteResp = ApiResp<{ note: ApiPlayerNote }>;
+export type ApiWatchPlayerReq = { reason: string };
+export type ApiWatchPlayerResp = ApiResp<{ watch: ApiPlayerWatch }>;
+export type ApiSetTagsReq = { tags: string[] };
+export type ApiSetTagsResp = ApiResp<{ tags: string[] }>;
 export type ApiBanIdsReq = { identifiers: string[]; reason: string; duration: ApiBanDuration; note?: string };
 
 export type ApiActionWriteResp = ApiResp<{

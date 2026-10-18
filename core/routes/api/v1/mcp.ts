@@ -14,6 +14,7 @@ import { actionNoteBodySchema, actionNoteParamSchema, banIdsBodySchema, revokeBo
 import { identifierBodySchema, reqIdParamSchema, denyAllBodySchema } from './whitelistWrites';
 import {
     banBodySchema, warnBodySchema, kickBodySchema, messageBodySchema, whitelistBodySchema, noteBodySchema, noteIdParamSchema,
+    watchBodySchema, tagsBodySchema,
 } from './playerWrites';
 import {
     controlParamSchema, announceBodySchema, kickAllBodySchema, commandBodySchema, resourceParamSchema,
@@ -79,7 +80,7 @@ export const MCP_TOOLS: ToolDefinition[] = [
     {
         name: 'tfadmin_players_search',
         title: 'Search Players',
-        description: `Search the player database by name, identifiers (license:, discord:, fivem:, hwid...), or note text. filter is a comma list of isAdmin, isOnline, isWhitelisted, hasNote. ${paging}`,
+        description: `Search the player database by name, identifiers (license:, discord:, fivem:, hwid...), note text, or one tag (type=tag). filter is a comma list of isAdmin, isOnline, isWhitelisted, hasNote, isWatched. ${paging}`,
         input: playersQuerySchema.shape,
         annotations: readOnly,
         request: (query) => ({ method: 'GET', path: '/players', query }),
@@ -176,6 +177,33 @@ export const MCP_TOOLS: ToolDefinition[] = [
         input: { ...licenseParamSchema.shape, ...noteIdParamSchema.shape },
         annotations: destructive,
         request: ({ license, noteId }) => ({ method: 'DELETE', path: `/players/${enc(license)}/notes/${enc(noteId)}` }),
+    },
+    {
+        name: 'tfadmin_players_watch',
+        title: 'Watch Player',
+        description: 'Put a player on the watchlist by license, with the reason. Online staff are alerted when they join. Replaces the reason if already watched.',
+        scopes: ['players.note'],
+        input: { ...licenseParamSchema.shape, ...watchBodySchema.shape },
+        annotations: write,
+        request: ({ license, ...body }) => ({ method: 'PUT', path: `/players/${enc(license)}/watch`, body }),
+    },
+    {
+        name: 'tfadmin_players_unwatch',
+        title: 'Unwatch Player',
+        description: 'Take a player off the watchlist by license.',
+        scopes: ['players.note'],
+        input: { ...licenseParamSchema.shape },
+        annotations: write,
+        request: ({ license }) => ({ method: 'DELETE', path: `/players/${enc(license)}/watch` }),
+    },
+    {
+        name: 'tfadmin_players_set_tags',
+        title: 'Set Player Tags',
+        description: 'Replace all tags on a player by license (for example ["VIP", "Content Creator"]). Pass the current tags from tfadmin_players_get plus or minus the change.',
+        scopes: ['players.note'],
+        input: { ...licenseParamSchema.shape, ...tagsBodySchema.shape },
+        annotations: write,
+        request: ({ license, ...body }) => ({ method: 'PUT', path: `/players/${enc(license)}/tags`, body }),
     },
 
     //Bans, warnings and kicks

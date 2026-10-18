@@ -6,7 +6,7 @@ export { search as actions_search, stats as actions_stats, get as actions_get } 
 export { approvals as whitelist_approvals, requests as whitelist_requests } from './whitelist';
 export { default as admins } from './admins';
 export { default as resources } from './resources';
-export { ban as players_ban, warn as players_warn, kick as players_kick, message as players_message, whitelist as players_whitelist, note as players_note, addNote as players_addNote, deleteNote as players_deleteNote } from './playerWrites';
+export { ban as players_ban, warn as players_warn, kick as players_kick, message as players_message, whitelist as players_whitelist, note as players_note, addNote as players_addNote, deleteNote as players_deleteNote, watch as players_watch, unwatch as players_unwatch, tags as players_tags } from './playerWrites';
 export {
     banIds as actions_banIds, importBan as actions_importBan, revoke as actions_revoke,
     addNote as actions_addNote, editNote as actions_editNote, deleteNote as actions_deleteNote,

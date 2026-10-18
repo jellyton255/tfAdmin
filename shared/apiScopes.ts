@@ -51,7 +51,7 @@ export const API_SCOPES: readonly ApiScopeInfo[] = [
     {
         id: 'players.note',
         label: 'Edit player notes',
-        description: 'Add staff notes to players and to bans, warns and kicks.',
+        description: 'Add staff notes to players and to bans, warns and kicks, tag players, and manage the watchlist.',
         grantRequires: null,
     },
     {

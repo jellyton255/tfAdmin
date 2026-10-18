@@ -13,17 +13,18 @@ import type { ApiPlayerDetail, ApiPlayerSummary } from '@shared/apiV1Types';
 import { toApiAction } from './actions';
 import { newestNote, notesNewestFirst } from '@lib/notes';
 import { getLinkedAccounts } from '@lib/player/linkedAccounts';
-import type { DatabasePlayerNoteType } from '@modules/Database/databaseTypes';
-import type { ApiLinkedPlayer, ApiPlayerNote } from '@shared/apiV1Types';
+import type { DatabasePlayerNoteType, DatabasePlayerWatchType } from '@modules/Database/databaseTypes';
+import type { ApiLinkedPlayer, ApiPlayerNote, ApiPlayerWatch } from '@shared/apiV1Types';
+import { hasTag } from '@lib/player/playerTags';
 
 const licenseSchema = z.string().regex(/^[0-9a-f]{40}$/i, 'license must be 40 hex characters');
 export const licenseParamSchema = z.object({ license: licenseSchema });
 
 const SORT_KEYS = ['playTime', 'tsJoined', 'tsLastConnection'] as const;
-const FILTERS = ['isAdmin', 'isOnline', 'isWhitelisted', 'hasNote'] as const;
+const FILTERS = ['isAdmin', 'isOnline', 'isWhitelisted', 'hasNote', 'isWatched'] as const;
 export const searchQuerySchema = z.object({
     q: z.string().trim().min(1).max(256).optional(),
-    type: z.enum(['name', 'ids', 'notes']).default('name'),
+    type: z.enum(['name', 'ids', 'notes', 'tag']).default('name'),
     filter: z.string().max(128).optional(),
     sort: z.enum(SORT_KEYS).default('tsLastConnection'),
     order: z.enum(['asc', 'desc']).default('desc'),
@@ -48,6 +49,8 @@ const toSummary = (
     lastConnectionAt: secToMs(p.tsLastConnection) ?? 0,
     whitelistedAt: secToMs(p.tsWhitelisted),
     notes: newestNote(p.noteHistory)?.text ?? null,
+    tags: p.tags ?? [],
+    watch: p.watch ? toApiWatch(p.watch) : null,
     isAdmin: p.ids.some((id) => adminIds.includes(id)),
     isOnline: onlineLicenses.has(p.license),
 });
@@ -58,6 +61,13 @@ export const toApiNote = (note: DatabasePlayerNoteType): ApiPlayerNote => ({
     text: note.text,
     author: note.author,
     createdAt: secToMs(note.ts) ?? 0,
+});
+
+
+export const toApiWatch = (watch: DatabasePlayerWatchType): ApiPlayerWatch => ({
+    reason: watch.reason,
+    author: watch.author,
+    createdAt: secToMs(watch.ts) ?? 0,
 });
 
 
@@ -81,7 +91,7 @@ export async function stats(ctx: ApiKeyCtx) {
 
 
 /**
- * GET /api/v1/players?q=&type=name|ids|notes&filter=isOnline,isAdmin,isWhitelisted,hasNote
+ * GET /api/v1/players?q=&type=name|ids|notes|tag&filter=isOnline,isAdmin,isWhitelisted,hasNote,isWatched
  *     &sort=playTime|tsJoined|tsLastConnection&order=desc|asc&limit=50&cursor=
  * Mirrors the panel's Players table search, with cursor pagination.
  */
@@ -103,6 +113,7 @@ export async function search(ctx: ApiKeyCtx) {
         isOnline: (p) => onlineLicenses.has(p.license),
         isWhitelisted: (p) => !!p.tsWhitelisted,
         hasNote: (p) => !!p.noteHistory?.length,
+        isWatched: (p) => !!p.watch,
     };
 
     let players = txCore.database.players.findMany((p: DatabasePlayerType) => {
@@ -124,6 +135,9 @@ export async function search(ctx: ApiKeyCtx) {
         } else if (query.type === 'notes') {
             const fuse = new Fuse(players, { keys: ['noteHistory.text'], threshold: 0.3 });
             players = fuse.search(query.q).map((x) => x.item);
+        } else if (query.type === 'tag') {
+            const tag = query.q;
+            players = players.filter((p) => hasTag(p, tag));
         } else {
             const { validIds, validHwids, invalids } = parseLaxIdsArrayInput(query.q);
             if (invalids.length) {

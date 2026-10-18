@@ -366,6 +366,30 @@ describe('player moderation', () => {
         expect(players[1].noteHistory?.map((n) => n.text)).toEqual(['second']);
         expect(adminLog.some((l) => l.endsWith(`: Deleted note ${firstId} from ${LIC_OFF}`))).toBe(true);
     });
+
+    it('watches, unwatches and tags players', async () => {
+        const watched = await call('PUT', `/api/v1/players/${LIC_OFF}/watch`, { reason: ' possible alt ' }, kickOnlyToken);
+        expect(watched.status).toBe(200);
+        expect(watched.json.data.watch).toMatchObject({ reason: 'possible alt', author: 'api:kicker' });
+        expect(players[1].watch).toMatchObject({ reason: 'possible alt', author: 'api:kicker' });
+        expect((await call('PUT', `/api/v1/players/${LIC_OFF}/watch`, { reason: '  ' }, kickOnlyToken)).status).toBe(400);
+
+        const tagged = await call('PUT', `/api/v1/players/${LIC_OFF}/tags`, { tags: [' VIP ', 'vip', 'Donor'] }, kickOnlyToken);
+        expect(tagged.status).toBe(200);
+        expect(tagged.json.data.tags).toEqual(['VIP', 'Donor']);
+        expect(players[1].tags).toEqual(['VIP', 'Donor']);
+        expect((await call('PUT', `/api/v1/players/${LIC_OFF}/tags`, { tags: ['x'.repeat(33)] }, kickOnlyToken)).status).toBe(400);
+
+        const found = await call('GET', `/api/v1/players?type=tag&q=vip&filter=isWatched`);
+        expect(found.json.data.players.map((p: any) => p.license)).toEqual([LIC_OFF]);
+        expect(found.json.data.players[0]).toMatchObject({ tags: ['VIP', 'Donor'], watch: { reason: 'possible alt' } });
+
+        expect((await call('DELETE', `/api/v1/players/${LIC_OFF}/watch`, undefined, kickOnlyToken)).status).toBe(200);
+        expect(players[1].watch).toBeUndefined();
+        expect((await call('DELETE', `/api/v1/players/${LIC_OFF}/watch`, undefined, kickOnlyToken)).status).toBe(404);
+        expect((await call('PUT', `/api/v1/players/${LIC_OFF}/tags`, { tags: [] }, kickOnlyToken)).json.data.tags).toEqual([]);
+        expect(players[1].tags).toBeUndefined();
+    });
 });
 
 

@@ -562,10 +562,11 @@
               "enum": [
                 "name",
                 "ids",
-                "notes"
+                "notes",
+                "tag"
               ]
             },
-            "description": "What `q` matches (default name)"
+            "description": "What `q` matches (default name); `tag` is one whole tag, any case"
           },
           {
             "name": "filter",
@@ -574,7 +575,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Comma separated: isAdmin, isOnline, isWhitelisted, hasNote"
+            "description": "Comma separated: isAdmin, isOnline, isWhitelisted, hasNote, isWatched"
           },
           {
             "name": "sort",
@@ -1481,6 +1482,256 @@
                       },
                       "required": [
                         "note"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/watch": {
+      "put": {
+        "summary": "Put a player on the watchlist",
+        "description": "Replaces the reason when the player is already watched. Staff are alerted (`player.watchJoined`) when a watched player joins.\n\nRequires the `players.note` scope.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "watch": {
+                          "$ref": "#/components/schemas/PlayerWatch"
+                        }
+                      },
+                      "required": [
+                        "watch"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Take a player off the watchlist",
+        "description": "Requires the `players.note` scope.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Ok"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/players/{license}/tags": {
+      "put": {
+        "summary": "Set player tags",
+        "description": "Replaces every tag. Tags are trimmed and case-insensitive duplicates dropped; the saved list is returned.\n\nRequires the `players.note` scope.",
+        "tags": [
+          "Players"
+        ],
+        "parameters": [
+          {
+            "name": "license",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "description": "Player license (40 hex chars)"
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 32
+                    },
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "tags"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "tags"
                       ],
                       "additionalProperties": false
                     }
@@ -4579,6 +4830,23 @@
               }
             ]
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Staff label such as VIP, as typed"
+            }
+          },
+          "watch": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlayerWatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "isAdmin": {
             "type": "boolean"
           },
@@ -4595,8 +4863,31 @@
           "lastConnectionAt",
           "whitelistedAt",
           "notes",
+          "tags",
+          "watch",
           "isAdmin",
           "isOnline"
+        ],
+        "additionalProperties": false
+      },
+      "PlayerWatch": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "When the player was put on the watchlist"
+          }
+        },
+        "required": [
+          "reason",
+          "author",
+          "createdAt"
         ],
         "additionalProperties": false
       },
