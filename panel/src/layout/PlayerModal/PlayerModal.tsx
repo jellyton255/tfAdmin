@@ -192,6 +192,7 @@ export default function PlayerModal() {
                                 />}
                                 {selectedTab === 'History' && <PlayerHistoryTab
                                     actionHistory={modalData.player.actionHistory}
+                                    banTemplates={modalData.banTemplates}
                                     serverTime={modalData.serverTime}
                                     refreshModalData={refreshModalData}
                                 />}
@@ -210,6 +211,9 @@ export default function PlayerModal() {
                                 {selectedTab === 'Ban' && <PlayerBanTab
                                     banTemplates={modalData.banTemplates}
                                     playerRef={playerRef!}
+                                    history={modalData.player.actionHistory}
+                                    serverTime={modalData.serverTime}
+                                    windowDays={modalData.offenseWindowDays}
                                 />}
                             </>
                         )}

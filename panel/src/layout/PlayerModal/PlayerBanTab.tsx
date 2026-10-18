@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { useBackendApi } from "@/hooks/fetch";
 import { GenericApiOkResp } from "@shared/genericApiTypes";
 import type { BanTemplatesDataType } from "@shared/otherTypes";
+import type { PlayerHistoryItem } from "@shared/playerApiTypes";
 import BanForm, { BanFormType } from "@/components/BanForm";
 import { txToast } from "@/components/TxToaster";
 import { ModalTabInner, ModalTabMessage } from "@/components/modal-tabs";
@@ -17,17 +18,26 @@ import { STAFF_NOTE_LABEL } from "@/components/StaffNoteText";
 type PlayerBanTabProps = {
     banTemplates: BanTemplatesDataType[];
     playerRef: PlayerModalRefType;
+    history: PlayerHistoryItem[];
+    serverTime: number;
+    windowDays: number;
 };
 
-export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabProps) {
+export default function PlayerBanTab({ playerRef, banTemplates, history, serverTime, windowDays }: PlayerBanTabProps) {
     const banFormRef = useRef<BanFormType>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isWarn, setIsWarn] = useState(false);
     const [note, setNote] = useState('');
     const { hasPerm } = useAdminPerms();
     const closeModal = useClosePlayerModal();
     const playerBanApi = useBackendApi<GenericApiOkResp>({
         method: 'POST',
         path: `/player/ban`,
+        throwGenericErrors: true,
+    });
+    const playerWarnApi = useBackendApi<GenericApiOkResp>({
+        method: 'POST',
+        path: `/player/warn`,
         throwGenericErrors: true,
     });
 
@@ -39,7 +49,7 @@ export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabPr
 
     const handleSave = () => {
         if (!banFormRef.current) return;
-        const { reason, duration } = banFormRef.current.getData();
+        const { reason, duration, presetId } = banFormRef.current.getData();
 
         if (!reason || reason.length < 3) {
             txToast.warning(`The reason must be at least 3 characters long.`);
@@ -48,12 +58,14 @@ export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabPr
         }
 
         setIsSaving(true);
-        playerBanApi({
+        //A preset's ladder can call for a warn, so this tab can warn too
+        const sendAction = duration === 'warn' ? playerWarnApi : playerBanApi;
+        sendAction({
             queryParams: playerRef,
-            data: { reason, duration, note: note.trim() || undefined },
-            toastLoadingMessage: 'Banning player...',
+            data: { reason, duration, note: note.trim() || undefined, presetId },
+            toastLoadingMessage: duration === 'warn' ? 'Warning player...' : 'Banning player...',
             genericHandler: {
-                successMsg: 'Player banned.',
+                successMsg: duration === 'warn' ? 'Player warned.' : 'Player banned.',
             },
             finally: () => setIsSaving(false),
             success: () => closeModal(),
@@ -67,6 +79,8 @@ export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabPr
                 banTemplates={banTemplates}
                 disabled={isSaving}
                 onNavigateAway={() => { closeModal(); }}
+                ladder={{ history, serverTime, windowDays, canWarn: hasPerm('players.warn') }}
+                onDurationChange={(duration) => setIsWarn(duration === 'warn')}
             />
             <div className="grid gap-1">
                 <Label htmlFor="banStaffNote">{STAFF_NOTE_LABEL}</Label>
@@ -89,9 +103,9 @@ export default function PlayerBanTab({ playerRef, banTemplates }: PlayerBanTabPr
                 >
                     {isSaving ? (
                         <span className="flex items-center leading-relaxed">
-                            <Loader2Icon className="inline animate-spin h-4" /> Banning...
+                            <Loader2Icon className="inline animate-spin h-4" /> Saving...
                         </span>
-                    ) : 'Apply Ban'}
+                    ) : isWarn ? 'Apply Warn' : 'Apply Ban'}
                 </Button>
             </div>
         </ModalTabInner>

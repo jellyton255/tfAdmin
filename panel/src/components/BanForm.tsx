@@ -7,7 +7,9 @@ import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from "reac
 import { DropDownSelect, DropDownSelectContent, DropDownSelectItem, DropDownSelectTrigger } from "@/components/dropDownSelect";
 import { banDurationToShortString, banDurationToString, cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
-import type { BanTemplatesDataType } from "@shared/otherTypes";
+import type { BanTemplatesDataType, LadderStepType } from "@shared/otherTypes";
+import type { PlayerHistoryItem } from "@shared/playerApiTypes";
+import { countActiveOffenses, ladderSteps, nextLadderStep, ordinal, presetLabel } from "@shared/offenseLadder";
 
 // Consts
 const reasonTruncateLength = 150;
@@ -17,8 +19,16 @@ const defaultDurations = ['permanent', '2 hours', '8 hours', '1 day', '2 days', 
 // Types
 type BanFormRespType = {
     reason: string;
-    duration: string;
+    duration: string; //'warn' when the warn option is picked
+    presetId?: string;
 }
+//The player's record, to suggest the next step of a preset's offense ladder
+export type BanFormLadderCtx = {
+    history: PlayerHistoryItem[];
+    serverTime: number;
+    windowDays: number;
+    canWarn: boolean;
+};
 export type BanFormType = HTMLDivElement & {
     focusReason: () => void;
     clearData: () => void;
@@ -28,17 +38,22 @@ type BanFormProps = {
     banTemplates?: BanTemplatesDataType[]; //undefined = loading
     disabled?: boolean;
     onNavigateAway?: () => void;
+    ladder?: BanFormLadderCtx;
+    onDurationChange?: (duration: string) => void;
 };
+
+const ladderStepToShortString = (step: LadderStepType) => step === 'warn' ? 'WARN' : banDurationToShortString(step);
 
 /**
  * A form to set ban reason and duration.
  */
-export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateAway }: BanFormProps, ref) {
+export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateAway, ladder, onDurationChange }: BanFormProps, ref) {
     const reasonRef = useRef<HTMLInputElement>(null);
     const customMultiplierRef = useRef<HTMLInputElement>(null);
     const setLocation = useLocation()[1];
     const [currentDuration, setCurrentDuration] = useState('2 days');
     const [customUnits, setCustomUnits] = useState('days');
+    const [preset, setPreset] = useState<{ id: string; hint?: string } | undefined>();
     const closeModal = useClosePlayerModal();
 
     //Exposing methods to the parent
@@ -50,6 +65,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                     duration: currentDuration === 'custom'
                         ? `${customMultiplierRef.current?.value} ${customUnits}`
                         : currentDuration,
+                    presetId: preset?.id,
                 };
             },
             clearData: () => {
@@ -58,12 +74,18 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                 customMultiplierRef.current.value = '';
                 setCurrentDuration('2 days');
                 setCustomUnits('days');
+                setPreset(undefined);
             },
             focusReason: () => {
                 reasonRef.current?.focus();
             }
         };
-    }, [reasonRef, customMultiplierRef, currentDuration, customUnits]);
+    }, [reasonRef, customMultiplierRef, currentDuration, customUnits, preset]);
+
+    const changeDuration = (value: string) => {
+        setCurrentDuration(value);
+        onDurationChange?.(value);
+    };
 
     const handleTemplateSelectChange = (value: string) => {
         if (value === ADD_NEW_SELECT_OPTION) {
@@ -74,14 +96,28 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
             const template = banTemplates.find(template => template.id === value);
             if (!template) return;
 
-            const processedDuration = banDurationToString(template.duration);
-            if (defaultDurations.includes(processedDuration)) {
-                setCurrentDuration(processedDuration);
-            } else if (typeof template.duration === 'object') {
-                setCurrentDuration('custom');
-                customMultiplierRef.current!.value = template.duration.value.toString();
-                setCustomUnits(template.duration.unit);
+            //With a player, the ladder picks the step after the offenses that still count
+            const priorOffenses = ladder ? countActiveOffenses(ladder.history, template.id, ladder.serverTime) : 0;
+            const ladderStep = ladder ? nextLadderStep(template, priorOffenses) : template.duration;
+            const step = ladderStep === 'warn' && !ladder?.canWarn ? template.duration : ladderStep;
+            if (step === 'warn') {
+                changeDuration('warn');
+            } else {
+                const processedDuration = banDurationToString(step);
+                if (defaultDurations.includes(processedDuration)) {
+                    changeDuration(processedDuration);
+                } else if (typeof step === 'object') {
+                    changeDuration('custom');
+                    customMultiplierRef.current!.value = step.value.toString();
+                    setCustomUnits(step.unit);
+                }
             }
+            setPreset({
+                id: template.id,
+                hint: ladder
+                    ? `${presetLabel(template)}: ${ordinal(priorOffenses + 1)} offense in ${ladder.windowDays} days`
+                    : undefined,
+            });
 
             reasonRef.current!.value = template.reason;
             setTimeout(() => {
@@ -94,7 +130,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
     const processedTemplates = useMemo(() => {
         if (!banTemplates) return;
         return banTemplates.map((template, index) => {
-            const duration = banDurationToShortString(template.duration);
+            const duration = ladderSteps(template).map(ladderStepToShortString).join(' › ');
             const reason = template.reason.length > reasonTruncateLength
                 ? template.reason.slice(0, reasonTruncateLength - 3) + '...'
                 : template.reason;
@@ -106,7 +142,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                 >
                     <span
                         className="inline-block pr-1 font-mono opacity-75 min-w-[4ch]"
-                    >{duration}</span> {reason}
+                    >{duration}</span> {template.name && <strong className="pr-1">{template.name}</strong>}{reason}
                 </DropDownSelectItem>
             );
         });
@@ -183,6 +219,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                         </DropDownSelectContent>
                     </DropDownSelect>
                 </div>
+                {preset?.hint && <p className="text-sm text-muted-foreground">{preset.hint}</p>}
             </div>
             <div className="flex flex-col gap-3">
                 <Label htmlFor="durationSelect">
@@ -190,7 +227,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                 </Label>
                 <div className="space-y-1">
                     <Select
-                        onValueChange={setCurrentDuration}
+                        onValueChange={changeDuration}
                         value={currentDuration}
                         disabled={disabled}
                     >
@@ -198,6 +235,7 @@ export default forwardRef(function BanForm({ banTemplates, disabled, onNavigateA
                             <SelectValue placeholder="Select Duration" />
                         </SelectTrigger>
                         <SelectContent className="tracking-wide">
+                            {ladder?.canWarn && <SelectItem value="warn" className="font-bold">Warn Instead</SelectItem>}
                             <SelectItem value="custom" className="font-bold">Custom (set below)</SelectItem>
                             <SelectItem value="2 hours">2 HOURS</SelectItem>
                             <SelectItem value="8 hours">8 HOURS</SelectItem>

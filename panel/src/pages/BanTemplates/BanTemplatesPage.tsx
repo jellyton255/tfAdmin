@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import BanTemplatesInputDialog from "./BanTemplatesInputDialog";
 import BanTemplatesListItem from "./BanTemplatesListItem";
 import BanTemplatesListAddButton from "./BanTemplatesListAddButton";
-import { BanDurationType, BanTemplatesDataType, GetBanTemplatesSuccessResp, SaveBanTemplatesReq, SaveBanTemplatesResp } from "@shared/otherTypes";
+import { BanDurationType, BanTemplatesDataType, LadderStepType, GetBanTemplatesSuccessResp, SaveBanTemplatesReq, SaveBanTemplatesResp } from "@shared/otherTypes";
 import { DndSortableGroup, DndSortableItem } from "@/components/dndSortable";
 import { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -22,6 +22,8 @@ export type BanTemplatesInputData = {
     id: string | null;
     reason: string;
     duration: BanDurationType;
+    name?: string;
+    ladder?: LadderStepType[];
 }
 
 type DataUpdaterFunc = (prev: BanTemplatesDataType[]) => BanTemplatesDataType[];
@@ -98,21 +100,17 @@ function BanTemplatesPageInner() {
         }
     }
 
-    const handleOnSave = ({ id, reason, duration }: BanTemplatesInputData) => {
+    const handleOnSave = ({ id, ...preset }: BanTemplatesInputData) => {
         if (id) {
             updateBackend((prev) =>
                 prev.map((item) =>
-                    item.id === id ? { id, reason, duration } : item
+                    item.id === id ? { id, ...preset } : item
                 )
             );
         } else {
             updateBackend((prev) => [
                 ...prev,
-                {
-                    id: nanoid(21),
-                    reason,
-                    duration
-                },
+                { id: nanoid(21), ...preset },
             ]);
         }
         setIsDialogOpen(false);
@@ -125,11 +123,11 @@ function BanTemplatesPageInner() {
         const toBeRemoved = swr.data.find((item) => item.id === id);
         if (!toBeRemoved) return;
         openConfirmDialog({
-            title: 'Remove Template',
+            title: 'Remove Preset',
             actionLabel: 'Remove',
             confirmBtnVariant: 'destructive',
             message: <>
-                Are you sure you want to remove this ban template? <br />
+                Are you sure you want to remove this preset? <br />
                 <blockquote className='opacity-70 italic border-l-4 pl-2'>
                     {toBeRemoved.reason}
                 </blockquote>
@@ -190,8 +188,8 @@ function BanTemplatesPageInner() {
     return <>
         <div className="space-y-4 w-full max-w-screen-lg mx-auto">
             <p className="px-2 md:px-0">
-                Here you can configure ban reasons and durations that will appear as dropdown options when banning a player. <br />
-                This is useful for common reasons that happen frequently, like violation of your server rules. <br />
+                Presets appear as dropdown options when banning a player. Each preset has a ladder: the punishment for the 1st, 2nd and later offenses. <br />
+                Preset bans and warns count as offenses for the Offense Window set in Settings, then stop counting but stay in the history. <br />
                 {canEdit ? (
                     <span className="text-muted-foreground italic">
                         TIP: You can also drag and drop to reorder the list. <br />
@@ -204,7 +202,7 @@ function BanTemplatesPageInner() {
             </p>
             <div className="space-y-2">
                 <div className="flex flex-wrap justify-between text-muted-foreground px-2 md:px-0">
-                    <span className="shrink-0">Configured reasons: {swr.data?.length ?? 0}</span>
+                    <span className="shrink-0">Configured presets: {swr.data?.length ?? 0}</span>
                     {statusNode}
                 </div>
 
@@ -221,7 +219,7 @@ function BanTemplatesPageInner() {
                     >
                         {!swr.data.length ? (
                             <div className="text-muted-foreground text-lg md:text-2xl text-center my-4 px-2 md:px-0">
-                                No reasons configured yet.
+                                No presets configured yet.
                             </div>
                         ) : swr.data.map((item) => (
                             <DndSortableItem
@@ -258,7 +256,7 @@ export default function BanTemplatesPage() {
         <div className="w-full mb-10">
             <PageHeader
                 icon={<Settings2Icon />}
-                title="Ban Templates"
+                title="Punishment Presets"
                 parentName="Settings"
                 parentLink="/settings"
             />

@@ -17,7 +17,7 @@ export default function BanTemplatesListAddButton({ onClick, disabled }: BanTemp
             )}
         >
             <PlusIcon className="size-6" />
-            <span>Add New Reason</span>
+            <span>Add New Preset</span>
         </li>
     )
 }

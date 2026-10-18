@@ -153,7 +153,7 @@ const allRoutes: RouteType[] = [
     //No nav routes
     {
         path: '/settings/ban-templates',
-        title: 'Ban Templates',
+        title: 'Punishment Presets',
         //NOTE: content is readonly for unauthorized accounts
         Page: <BanTemplatesPage />
     },

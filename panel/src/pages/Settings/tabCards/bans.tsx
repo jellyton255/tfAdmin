@@ -14,6 +14,7 @@ import { txToast } from "@/components/TxToaster"
 export const pageConfigs = {
     checkingEnabled: getPageConfig('banlist', 'enabled'),
     rejectionMessage: getPageConfig('banlist', 'rejectionMessage'),
+    offenseWindowDays: getPageConfig('banlist', 'offenseWindowDays'),
 
     requiredHwids: getPageConfig('banlist', 'requiredHwidMatches', true),
 } as const;
@@ -98,18 +99,40 @@ export default function ConfigCardBans({ cardCtx, pageCtx }: SettingsCardProps) 
                     <strong>Note:</strong> txAdmin bans will not work if this option is disabled.
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Ban Templates">
+            <SettingItem label="Punishment Presets">
                 <Link asChild href="/settings/ban-templates">
                     <Button
                         size={'sm'}
                         variant="secondary"
                         disabled={pageCtx.isReadOnly}
                     >
-                        <PencilIcon className='size-4 mr-1.5 inline-block' /> Edit Ban Templates
+                        <PencilIcon className='size-4 mr-1.5 inline-block' /> Edit Punishment Presets
                     </Button>
                 </Link>
                 <SettingItemDesc>
-                    Configure ban reasons and durations that will appear as dropdown options when banning a player. This is useful for common reasons that happen frequently, like violation of your server rules.
+                    Configure common offenses, like violations of your server rules, with the punishment for each repeat offense. They appear as dropdown options when banning a player.
+                </SettingItemDesc>
+            </SettingItem>
+            <SettingItem label="Offense Window" htmlFor={cfg.offenseWindowDays.eid}>
+                <Select
+                    value={selectNumberUtil.toUi(states.offenseWindowDays)}
+                    onValueChange={(val) => cfg.offenseWindowDays.state.set(selectNumberUtil.toCfg(val))}
+                    disabled={pageCtx.isReadOnly}
+                >
+                    <SelectTrigger id={cfg.offenseWindowDays.eid}>
+                        <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="7">7 days</SelectItem>
+                        <SelectItem value="14">14 days</SelectItem>
+                        <SelectItem value="30">30 days</SelectItem>
+                        <SelectItem value="60">60 days</SelectItem>
+                        <SelectItem value="90">90 days</SelectItem>
+                        <SelectItem value="180">180 days</SelectItem>
+                    </SelectContent>
+                </Select>
+                <SettingItemDesc>
+                    How long a preset ban or warn counts toward the next step of its ladder. Older ones stay in the player history.
                 </SettingItemDesc>
             </SettingItem>
             <SettingItem label="Ban Rejection Message" htmlFor={cfg.rejectionMessage.eid} showOptional>
