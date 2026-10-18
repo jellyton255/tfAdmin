@@ -11,6 +11,8 @@ import type {
     ApiActionsSearchResp,
     ApiActionsStatsResp,
     ApiAdminsResp,
+    ApiAuditLogQuery,
+    ApiAuditLogResp,
     ApiAnnounceReq,
     ApiBanIdsReq,
     ApiBanPlayerReq,
@@ -49,6 +51,7 @@ import type {
     ApiSetTagsReq,
     ApiSetTagsResp,
     ApiSetWhitelistReq,
+    ApiStaffActivityResp,
     ApiStatusResp,
     ApiWarnPlayerReq,
     ApiWatchPlayerReq,
@@ -300,6 +303,10 @@ export class TxAdminClient {
     //MARK: Server, admins, resources
     admins = {
         list: () => this.get<ApiAdminsResp>('/admins'),
+        /** Who did what in tfAdmin. Pass `cursor` back as `to` for older entries. */
+        auditLog: ({ categories, ...query }: ApiAuditLogQuery = {}) => this.get<ApiAuditLogResp>('/audit-log', { ...query, categories: categories?.join(',') }),
+        /** Each admin's actions, notes and time in game per UTC week, for the last `weeks` weeks (default 8). */
+        activity: (weeks?: number) => this.get<ApiStaffActivityResp>('/staff/activity', { weeks }),
     };
     server = {
         start: () => this.post<ApiServerControlResp>('/server/start'),
