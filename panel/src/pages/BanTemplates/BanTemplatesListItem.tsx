@@ -1,6 +1,6 @@
 import { banDurationToString, cn } from "@/lib/utils";
 import { BanDurationType, LadderStepType } from "@shared/otherTypes";
-import { Settings2Icon, XIcon } from "lucide-react";
+import { LinkIcon, Settings2Icon, XIcon } from "lucide-react";
 
 
 type BanTemplatesListItemProps = {
@@ -9,17 +9,29 @@ type BanTemplatesListItemProps = {
     duration: BanDurationType;
     name?: string;
     ladder?: LadderStepType[];
+    ruleUrl?: string;
     onEdit: (id: string) => void;
     onRemove: (id: string) => void;
     disabled: boolean;
 }
 
-export default function BanTemplatesListItem({ id, reason, duration, name, ladder, onEdit, onRemove, disabled }: BanTemplatesListItemProps) {
+export default function BanTemplatesListItem({ id, reason, duration, name, ladder, ruleUrl, onEdit, onRemove, disabled }: BanTemplatesListItemProps) {
     return (<>
         <div className="grow sm:flex items-center justify-items-start gap-2">
             <span className="line-clamp-5 md:line-clamp-3">
                 {name && <strong className="pr-1">{name}</strong>}
                 {reason}
+                {ruleUrl && (
+                    <a
+                        href={ruleUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={ruleUrl}
+                        className="inline-flex align-middle pl-1 text-muted-foreground hover:text-primary"
+                    >
+                        <LinkIcon className="size-4" />
+                    </a>
+                )}
             </span>
             <div className="flex flex-wrap gap-1 my-1 sm:my-0 shrink-0">
                 {(ladder ?? [duration]).map((step, index) => (

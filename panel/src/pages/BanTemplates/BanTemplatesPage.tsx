@@ -24,6 +24,7 @@ export type BanTemplatesInputData = {
     duration: BanDurationType;
     name?: string;
     ladder?: LadderStepType[];
+    ruleUrl?: string;
 }
 
 type DataUpdaterFunc = (prev: BanTemplatesDataType[]) => BanTemplatesDataType[];

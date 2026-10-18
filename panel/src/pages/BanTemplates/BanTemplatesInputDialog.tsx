@@ -72,6 +72,7 @@ export default function BanTemplatesInputDialog({
 }: BanTemplatesInputDialogProps) {
     const reasonRef = useRef<AutosizeTextAreaRef>(null);
     const nameRef = useRef<HTMLInputElement>(null);
+    const ruleUrlRef = useRef<HTMLInputElement>(null);
     const [steps, setSteps] = useState<StepDraft[]>(() => defaultSteps(reasonData));
 
     useEffect(() => {
@@ -80,6 +81,7 @@ export default function BanTemplatesInputDialog({
             setSteps(defaultSteps(reasonData));
             if (reasonRef.current) reasonRef.current.textArea.value = '';
             if (nameRef.current) nameRef.current.value = '';
+            if (ruleUrlRef.current) ruleUrlRef.current.value = '';
         }, 500);
         return () => clearTimeout(timeout);
     }, [isDialogOpen]);
@@ -99,6 +101,11 @@ export default function BanTemplatesInputDialog({
             return txToast.warning('Reason must be at least 3 characters long');
         }
         const name = form.presetName.value.trim() || undefined;
+        const ruleUrl = form.ruleUrl.value.trim() || undefined;
+        if (ruleUrl && !/^https?:\/\/\S+$/i.test(ruleUrl)) {
+            form.ruleUrl.focus();
+            return txToast.warning('Rule Link must start with https://');
+        }
 
         const ladder: LadderStepType[] = [];
         for (const draft of steps) {
@@ -110,7 +117,7 @@ export default function BanTemplatesInputDialog({
         const firstBan = ladder.find((step): step is BanDurationType => step !== 'warn');
         const duration = firstBan ?? { value: 1, unit: 'days' };
         const isPlainBan = ladder.length === 1 && ladder[0] !== 'warn';
-        onSave({ id, reason, duration, name, ladder: isPlainBan ? undefined : ladder });
+        onSave({ id, reason, duration, name, ladder: isPlainBan ? undefined : ladder, ruleUrl });
     }
 
     return (
@@ -158,6 +165,20 @@ export default function BanTemplatesInputDialog({
                                     }}
                                 />
                             </div>
+                        </div>
+                        <div className="grid grid-cols-6 items-center gap-4">
+                            <Label htmlFor="ruleUrl" className="col-span-6 sm:col-auto">
+                                Rule Link
+                            </Label>
+                            <Input
+                                id="ruleUrl"
+                                ref={ruleUrlRef}
+                                type="url"
+                                placeholder="https://everfallcommunity.com/rules/general#roleplay-regulations-rule-1"
+                                className="col-span-full sm:col-span-5"
+                                defaultValue={reasonData?.ruleUrl}
+                                maxLength={512}
+                            />
                         </div>
                         <div className="grid grid-cols-6 items-start gap-4">
                             <Label className="col-span-6 sm:col-auto sm:pt-3">
