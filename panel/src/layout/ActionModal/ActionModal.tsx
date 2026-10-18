@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useActionModalStateValue } from "@/hooks/actionModal";
-import { InfoIcon, ListIcon, StickyNoteIcon, Undo2Icon } from "lucide-react";
+import { InfoIcon, ListIcon, PencilIcon, StickyNoteIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import GenericSpinner from "@/components/GenericSpinner";
 import { cn } from "@/lib/utils";
@@ -23,10 +23,9 @@ const idsTab: ModalTabInfo = {
     title: 'IDs',
     icon: <ListIcon className="mr-2 h-5 w-5 hidden xs:block" />,
 };
-const revokeTab: ModalTabInfo = {
-    title: 'Revoke',
-    icon: <Undo2Icon className="mr-2 h-5 w-5 hidden xs:block" />,
-    className: 'hover:bg-destructive hover:text-destructive-foreground',
+const modifyTab: ModalTabInfo = {
+    title: 'Modify',
+    icon: <PencilIcon className="mr-2 h-5 w-5 hidden xs:block" />,
 };
 const notesIcon = <StickyNoteIcon className="mr-2 h-5 w-5 hidden xs:block" />;
 
@@ -79,12 +78,12 @@ export default function ActionModal() {
         }
     }, [isModalOpen]);
 
-    //Kicks are a record only, so they have nothing to revoke
+    //Kicks are a record only, so they have nothing to modify
     const visibleNoteCount = modalData?.action.notes?.filter((note: DatabaseNoteType) => !note.deleted).length ?? 0;
     const notesTab: ModalTabInfo = { title: 'Notes', icon: notesIcon };
     const modalTabs = modalData?.action.type === 'kick'
         ? [infoTab, notesTab, idsTab]
-        : [infoTab, notesTab, idsTab, revokeTab];
+        : [infoTab, notesTab, idsTab, modifyTab];
 
     const handleOpenClose = (newOpenState: boolean) => {
         if (isModalOpen && !newOpenState) {
@@ -196,7 +195,7 @@ export default function ActionModal() {
                                 {selectedTab === 'IDs' && <ActionIdsTab
                                     action={modalData.action}
                                 />}
-                                {selectedTab === 'Revoke' && modalData.action.type !== 'kick' && <ActionModifyTab
+                                {selectedTab === 'Modify' && modalData.action.type !== 'kick' && <ActionModifyTab
                                     action={modalData.action}
                                     refreshModalData={refreshModalData}
                                 />}

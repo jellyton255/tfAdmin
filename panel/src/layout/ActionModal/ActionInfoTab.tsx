@@ -37,6 +37,13 @@ function ActionReasonBox({ actionReason }: { actionReason: string }) {
 }
 
 
+//A ban's length from when it was issued, as in "3 days"
+const formatBanLength = (issuedTs: number, expiration: number | false) => {
+    if (expiration === false) return 'permanent';
+    return msToDuration((expiration - issuedTs) * 1000, { units: ['d', 'h'] });
+};
+
+
 type ActionInfoTabProps = {
     action: DatabaseActionType;
     serverTime: number;
@@ -135,6 +142,20 @@ export default function ActionInfoTab({ action, serverTime, tsFetch, setSelected
                         <dd className="text-sm leading-6 col-span-2 mt-0">{revokedText}</dd>
                     </div>
                 )}
+                {action.type === 'ban' && action.lengthChanges?.map((change) => (
+                    <div key={change.ts} className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                        <dt className="text-sm font-medium leading-6 text-muted-foreground">Length Changed</dt>
+                        <dd className="text-sm leading-6 col-span-2 mt-0 break-words">
+                            By {change.author} on <DateTimeCorrected
+                                isDateOnly
+                                className="cursor-help"
+                                serverTime={serverTime}
+                                tsObject={change.ts}
+                                tsFetch={tsFetch}
+                            />, from {formatBanLength(action.timestamp, change.from)} to {formatBanLength(action.timestamp, change.to)}: {change.reason}
+                        </dd>
+                    </div>
+                ))}
                 {action.revocation.reason && (
                     <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
                         <dt className="text-sm font-medium leading-6 text-muted-foreground">Revoke Reason</dt>

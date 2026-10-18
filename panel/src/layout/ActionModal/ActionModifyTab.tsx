@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useBackendApi } from "@/hooks/fetch";
 import type { ApiRevokeActionReqSchema } from "../../../../core/routes/history/actions";
+import ActionBanLengthForm from "./ActionBanLengthForm";
 
 
 type ActionModifyTabProps = {
@@ -50,7 +51,10 @@ export default function ActionModifyTab({ action, refreshModalData }: ActionModi
             ? `Revoke ${upperCasedType}`
             : 'Revoke (no permission)';
     return (
-        <div className="flex flex-col gap-4 px-1 mb-1 md:mb-4">
+        <div className="flex flex-col gap-6 px-1 mb-1 md:mb-4">
+            {action.type === 'ban' && !isAlreadyRevoked && hasRevokePerm && (
+                <ActionBanLengthForm ban={action} refreshModalData={refreshModalData} />
+            )}
             <div className="space-y-2">
                 <h3 className="text-xl">Revoke {upperCasedType}</h3>
                 <p className="text-muted-foreground text-sm">
