@@ -9,6 +9,7 @@ if not TX_SERVER_MODE then return end
 --   exports.monitor:WarnPlayer(source, reason, { author = 'System', note = 'evidence', onDone = fn })
 --   exports.monitor:KickPlayer(source, reason, { author = 'System', note = 'evidence', onDone = fn })
 --   exports.monitor:MessagePlayer(source, message, { author = 'System' })
+--   exports.monitor:RecordSanction(source, 'Jail', reason, { author = 'Police', length = '30 months', note = 'evidence', onDone = fn })
 --   exports.monitor:AddActionNote(actionId, text, author)
 --
 -- Each export reads the player's identifiers immediately, sends them to core, and returns
@@ -16,6 +17,8 @@ if not TX_SERVER_MODE then return end
 -- `note` is a staff note saved on the ban, warn or kick; the player never sees it.
 -- `onDone(actionId)` runs once tfAdmin saved the action, so a script can add notes to it later.
 -- A kick of a player with no valid identifiers is not recorded, so onDone gets nil.
+-- RecordSanction only records a punishment the calling resource applied itself (jail, community
+-- service, a mute); tfAdmin does nothing to the player, and the record is never active.
 -- A ban defaults to permanent with the author 'Anti-Cheat'. BanPlayer drops the player before it
 -- returns, so the calling script can stop at once, and ignores repeat calls for the same player.
 -- =============================================
@@ -158,6 +161,27 @@ local function MessagePlayer(source, message, options)
     return true
 end
 
+---@param source any
+---@param kind any
+---@param reason any
+---@param options table?
+local function RecordSanction(source, kind, reason, options)
+    if type(kind) ~= 'string' or not kind:match('%S') then
+        return false, 'RecordSanction needs a kind, such as Jail'
+    end
+    local payload, err, onDone = buildPayload('sanction', source, reason, options, DEFAULT_AUTHOR)
+    if not payload then return false, err end
+    if options and options.length ~= nil and type(options.length) ~= 'string' then
+        return false, 'RecordSanction options.length must be a string'
+    end
+
+    payload.kind = kind
+    payload.reason = reason
+    payload.length = options and options.length
+    send(payload, nil, onDone)
+    return true
+end
+
 ---@param actionId any
 ---@param text any
 ---@param author any
@@ -183,4 +207,5 @@ exports('BanPlayer', BanPlayer)
 exports('WarnPlayer', WarnPlayer)
 exports('KickPlayer', KickPlayer)
 exports('MessagePlayer', MessagePlayer)
+exports('RecordSanction', RecordSanction)
 exports('AddActionNote', AddActionNote)
