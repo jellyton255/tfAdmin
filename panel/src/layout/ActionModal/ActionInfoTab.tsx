@@ -8,6 +8,7 @@ import { useOpenPlayerModal } from "@/hooks/playerModal";
 import DateTimeCorrected from "@/components/DateTimeCorrected";
 import { ModalTabInner } from "@/components/modal-tabs";
 import StaffNoteText, { formatNoteAge } from "@/components/StaffNoteText";
+import TxAnchor from "@/components/TxAnchor";
 
 
 const calcTextAreaLines = (text?: string) => {
@@ -36,6 +37,9 @@ function ActionReasonBox({ actionReason }: { actionReason: string }) {
     </>
 }
 
+
+const appealStatusLabel = { open: 'Open', denied: 'Denied', accepted: 'Accepted' } as const;
+const appealStatusClass = { open: 'text-warning-inline', denied: 'text-destructive-inline', accepted: 'text-success-inline' } as const;
 
 //A ban's length from when it was issued, as in "3 days"
 const formatBanLength = (issuedTs: number, expiration: number | false) => {
@@ -140,6 +144,24 @@ export default function ActionInfoTab({ action, serverTime, tsFetch, setSelected
                     <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
                         <dt className="text-sm font-medium leading-6 text-muted-foreground">Revoked</dt>
                         <dd className="text-sm leading-6 col-span-2 mt-0">{revokedText}</dd>
+                    </div>
+                )}
+                {action.type === 'ban' && action.appeal && (
+                    <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                        <dt className="text-sm font-medium leading-6 text-muted-foreground">Appeal</dt>
+                        <dd className="text-sm leading-6 col-span-2 mt-0 break-words">
+                            <span className={appealStatusClass[action.appeal.status]}>{appealStatusLabel[action.appeal.status]}</span>
+                            {' '}by {action.appeal.author} on <DateTimeCorrected
+                                isDateOnly
+                                className="cursor-help"
+                                serverTime={serverTime}
+                                tsObject={action.appeal.ts}
+                                tsFetch={tsFetch}
+                            />
+                            {action.appeal.ticket && <>, {/^https?:\/\//.test(action.appeal.ticket)
+                                ? <TxAnchor href={action.appeal.ticket} className="break-all">{action.appeal.ticket}</TxAnchor>
+                                : action.appeal.ticket}</>}
+                        </dd>
                     </div>
                 )}
                 {action.type === 'ban' && action.lengthChanges?.map((change) => (
