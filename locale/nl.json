@@ -28,8 +28,10 @@
             "label_reason": "Ban Reden",
             "label_id": "Ban ID",
             "note_multiple_bans": "Opmerking: U hebt meer dan één actieve ban op uw Identifiers.",
-            "note_diff_license": "Opmerking: de bovenstaande ban werd toegepast voor een andere <code>license</code>, wat betekent dat sommige van jouw IDs/HWIDs matchen met degene die zijn geassocieerd met die ban."
-        }
+            "note_diff_license": "Opmerking: de bovenstaande ban werd toegepast voor een andere <code>license</code>, wat betekent dat sommige van jouw IDs/HWIDs matchen met degene die zijn geassocieerd met die ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Gewaarschuwd door:",
         "stale_message": "Deze waarschuwing is afgegeven voordat je verbinding maakte met de server.",
         "dismiss_key": "SPATIE",
-        "instruction": "Houd %{key} %{smart_count} seconde ingedrukt om dit bericht te verbergen. |||| Houd %{key} %{smart_count} seconden ingedrukt om dit bericht te verbergen."
+        "instruction": "Houd %{key} %{smart_count} seconde ingedrukt om dit bericht te verbergen. |||| Houd %{key} %{smart_count} seconden ingedrukt om dit bericht te verbergen.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

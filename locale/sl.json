@@ -28,8 +28,10 @@
             "label_reason": "Razlog ban-a",
             "label_id": "Ban ID",
             "note_multiple_bans": "Opomba: Imate več kot en ban na vaših identifierjih.",
-            "note_diff_license": "Opomba: zgoraj omenjen ban, je bil dodeljen drugi <code>licenci</code>, torej se tvoji in njihovi IDs/HWIDs, ki so povezani z banom, ujemajo."
-        }
+            "note_diff_license": "Opomba: zgoraj omenjen ban, je bil dodeljen drugi <code>licenci</code>, torej se tvoji in njihovi IDs/HWIDs, ki so povezani z banom, ujemajo.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Opozorjen s strani:",
         "stale_message": "To opozorilo je bilo izdano, preden ste se povezali s strežnikom.",
         "dismiss_key": "SPACE",
-        "instruction": "Drži %{key} za %{smart_count} sekundo, da to sporočilo izgine. |||| Drži %{key} za %{smart_count} sekund, da to sporočilo izgine."
+        "instruction": "Drži %{key} za %{smart_count} sekundo, da to sporočilo izgine. |||| Drži %{key} za %{smart_count} sekund, da to sporočilo izgine.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

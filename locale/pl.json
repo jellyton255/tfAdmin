@@ -28,8 +28,10 @@
             "label_reason": "Powód bana",
             "label_id": "Identyfikator bana",
             "note_multiple_bans": "Uwaga: masz więcej niż jedną aktywną blokadę na swoje identyfikatory.",
-            "note_diff_license": "Uwaga: powyższy ban został nadany na inną <code>licencję</code>, co oznacza że któryś z twoich identyfikatorów pokrywa się z tymi zbanowanymi."
-        }
+            "note_diff_license": "Uwaga: powyższy ban został nadany na inną <code>licencję</code>, co oznacza że któryś z twoich identyfikatorów pokrywa się z tymi zbanowanymi.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Ostrzeżony przez:",
         "stale_message": "To ostrzeżenie zostało wydane przed połączeniem się z serwerem.",
         "dismiss_key": "SPACJA",
-        "instruction": "Przytrzymaj %{key} przez %{smart_count} sekundę, aby odrzucić tę wiadomość. |||| Przytrzymaj %{key} przez %{smart_count} sekundy, aby odrzucić tę wiadomość."
+        "instruction": "Przytrzymaj %{key} przez %{smart_count} sekundę, aby odrzucić tę wiadomość. |||| Przytrzymaj %{key} przez %{smart_count} sekundy, aby odrzucić tę wiadomość.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

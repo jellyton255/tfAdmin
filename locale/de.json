@@ -28,8 +28,10 @@
             "label_reason": "Grund",
             "label_id": "Bann-ID",
             "note_multiple_bans": "Info: Es gibt mehr als einen aktiven Bann für diesen Identifier",
-            "note_diff_license": "Info: der oben angezeigte Ban wurde mit einer anderen <code>license</code> gespeichert. Das bedeutet, dass deine IDs/HWIDs passend sind wie zu diesem Ban."
-        }
+            "note_diff_license": "Info: der oben angezeigte Ban wurde mit einer anderen <code>license</code> gespeichert. Das bedeutet, dass deine IDs/HWIDs passend sind wie zu diesem Ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Verwarnt von:",
         "stale_message": "Diese Warnung wurde ausgegeben, bevor Sie sich mit dem Server verbunden haben.",
         "dismiss_key": "LEERTASTE",
-        "instruction": "Halte deine %{key} für %{smart_count} Sekunde gedrückt, um diese Mitteilung zu schließen. |||| Halte deine %{key} für %{smart_count} Sekunden gedrückt, um diese Mitteilung zu schließen."
+        "instruction": "Halte deine %{key} für %{smart_count} Sekunde gedrückt, um diese Mitteilung zu schließen. |||| Halte deine %{key} für %{smart_count} Sekunden gedrückt, um diese Mitteilung zu schließen.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

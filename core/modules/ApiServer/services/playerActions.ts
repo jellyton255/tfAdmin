@@ -9,6 +9,7 @@ import { toApiNote, toApiWatch } from '@routes/api/v1/players';
 import { normalizeTags } from '@lib/player/playerTags';
 import type { ApiActionRecord } from '@shared/apiV1Types';
 import { addActionNote, type NoteWriter } from './actionNotes';
+import { presetRuleUrl } from '@lib/presetRule';
 
 /**
  * Player moderation service used by the public API.
@@ -89,6 +90,7 @@ export const buildBanKickMessage = (
     reason: string,
     expiration: number | false,
     duration: number | undefined,
+    ruleUrl: string | null = null,
 ) => {
     const tOptions: any = { author: authorPublicName, reason };
     let durationTranslated: string | null = null;
@@ -100,6 +102,7 @@ export const buildBanKickMessage = (
     } else {
         kickMessage = txCore.translator.t('ban_messages.kick_permanent', tOptions);
     }
+    if (ruleUrl) kickMessage += ` ${txCore.translator.t('ban_messages.rule', { url: ruleUrl })}`;
     return { kickMessage, durationTranslated };
 };
 
@@ -126,7 +129,7 @@ export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: 
     let eventSent = false;
     if (!txCore.fxRunner.isIdle) {
         const authorPublicName = txCore.adminStore.getAdminPublicName(admin.name, 'punishment');
-        const { kickMessage, durationTranslated } = buildBanKickMessage(authorPublicName, reason, expiration, duration);
+        const { kickMessage, durationTranslated } = buildBanKickMessage(authorPublicName, reason, expiration, duration, presetRuleUrl(presetId));
         eventSent = !!txCore.fxRunner.sendEvent('playerBanned', {
             author: admin.name,
             reason,
@@ -166,6 +169,7 @@ export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput:
         author: admin.name,
         reason,
         actionId,
+        ruleUrl: presetRuleUrl(presetId),
         targetNetId: (player instanceof ServerPlayer && player.isConnected) ? player.netid : null,
         targetIds: allIds,
         targetName: player.displayName,

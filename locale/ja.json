@@ -28,8 +28,10 @@
             "label_reason": "BANされた理由",
             "label_id": "BAN ID",
             "note_multiple_bans": "注: あなたのIDには、有効なBANが複数記録されています。",
-            "note_diff_license": "注: 上記のBANは別の<code>ライセンス</code>に対して適用されたもので、あなたのID/HWIDの一部がそのBANに関連するものと一致することを意味します。"
-        }
+            "note_diff_license": "注: 上記のBANは別の<code>ライセンス</code>に対して適用されたもので、あなたのID/HWIDの一部がそのBANに関連するものと一致することを意味します。",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "警告した人:",
         "stale_message": "この警告はサーバーに接続する前に発行されました。",
         "dismiss_key": "スペース",
-        "instruction": "%{key}を%{smart_count}秒間押し続けると、このメッセージは解除されます。 |||| %{key}を%{smart_count}秒間押し続けると、このメッセージは解除されます。"
+        "instruction": "%{key}を%{smart_count}秒間押し続けると、このメッセージは解除されます。 |||| %{key}を%{smart_count}秒間押し続けると、このメッセージは解除されます。",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

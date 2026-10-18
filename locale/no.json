@@ -28,8 +28,10 @@
             "label_reason": "Grunnlag for Utestengelsen",
             "label_id": "Utestengelse ID",
             "note_multiple_bans": "NB: du har flere aktive utestengelser.",
-            "note_diff_license": "NB: utestengelsen over var tilegnet en annen <code>license</code>, dette betyr at en eller flere av dine identifikatorer/maskinvare-ID'er er assosiert med den utestengelsen."
-        }
+            "note_diff_license": "NB: utestengelsen over var tilegnet en annen <code>license</code>, dette betyr at en eller flere av dine identifikatorer/maskinvare-ID'er er assosiert med den utestengelsen.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Advart av:",
         "stale_message": "Denne advarselen ble utgitt før du koblet deg til serveren.",
         "dismiss_key": "MELLOMROM",
-        "instruction": "Hold %{key} i %{smart_count} sekund for å fjerne denne meldingen. |||| Hold %{key} i %{smart_count} sekunder for å fjerne denne meldingen."
+        "instruction": "Hold %{key} i %{smart_count} sekund for å fjerne denne meldingen. |||| Hold %{key} i %{smart_count} sekunder for å fjerne denne meldingen.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

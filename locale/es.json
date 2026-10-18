@@ -28,8 +28,10 @@
             "label_reason": "Razón de la expulsión",
             "label_id": "Ban ID",
             "note_multiple_bans": "Nota: tiene más de una prohibición activa en sus identificadores.",
-            "note_diff_license": "Nota: el baneo de arriba fue aplicado para otra <code>license</code>, lo que significa que alguno de tus IDs/HWIDs coinciden con los del baneo asociado."
-        }
+            "note_diff_license": "Nota: el baneo de arriba fue aplicado para otra <code>license</code>, lo que significa que alguno de tus IDs/HWIDs coinciden con los del baneo asociado.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Advertido por:",
         "stale_message": "Esta advertencia se emitió antes de que te conectaras al servidor.",
         "dismiss_key": "ESPACIO",
-        "instruction": "Presione %{key} durante %{smart_count} segundo para descartar este mensaje. |||| Presione %{key} durante %{smart_count} segundos para descartar este mensaje."
+        "instruction": "Presione %{key} durante %{smart_count} segundo para descartar este mensaje. |||| Presione %{key} durante %{smart_count} segundos para descartar este mensaje.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

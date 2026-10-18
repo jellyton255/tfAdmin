@@ -28,8 +28,10 @@
             "label_reason": "Bannlysnings anledning",
             "label_id": "Bannlysnings ID",
             "note_multiple_bans": "OBS Du kan vara bannlyst på flera identifikationer.",
-            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban."
-        }
+            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Varnad av:",
         "stale_message": "Den här varningen utfärdades innan du anslöt till servern.",
         "dismiss_key": "SPACE",
-        "instruction": "Håll in %{key} i %{smart_count} sekund för att dölja detta meddelande. |||| Håll in %{key} i %{smart_count} sekunder för att dölja detta meddelande."
+        "instruction": "Håll in %{key} i %{smart_count} sekund för att dölja detta meddelande. |||| Håll in %{key} i %{smart_count} sekunder för att dölja detta meddelande.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

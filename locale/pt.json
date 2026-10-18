@@ -28,8 +28,10 @@
             "label_reason": "Motivo",
             "label_id": "ID do ban",
             "note_multiple_bans": "Nota: você tem mais de um ban ativo em seus ids.",
-            "note_diff_license": "Nota: o ban acima foi aplicado em outra <code>license</code>, o que significa que um de seus IDs/HWIDs condiz com algum deste ban."
-        }
+            "note_diff_license": "Nota: o ban acima foi aplicado em outra <code>license</code>, o que significa que um de seus IDs/HWIDs condiz com algum deste ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Advertido por:",
         "stale_message": "Esta advertência foi emitida antes de você se conectar ao servidor.",
         "dismiss_key": "ESPAÇO",
-        "instruction": "Aperte %{key} por %{smart_count} segundo para fechar esta advertência. |||| Aperte %{key} por %{smart_count} segundos para fechar esta advertência."
+        "instruction": "Aperte %{key} por %{smart_count} segundo para fechar esta advertência. |||| Aperte %{key} por %{smart_count} segundos para fechar esta advertência.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

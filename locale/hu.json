@@ -28,8 +28,10 @@
             "label_reason": "Kitiltás indoka",
             "label_id": "Kitiltás ID",
             "note_multiple_bans": "Figyelem: Több mint egy aktív kitiltásod van ezen a fiókon.",
-            "note_diff_license": "Megjegyzés: a kitiltás a <code>license</code> miatt van, ami azt jelenti, hogy néhány azonosítód/hardver azonosítód egyezik a kiltiltásban lévő adatokkal."
-        }
+            "note_diff_license": "Megjegyzés: a kitiltás a <code>license</code> miatt van, ami azt jelenti, hogy néhány azonosítód/hardver azonosítód egyezik a kiltiltásban lévő adatokkal.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Figyelmeztetett:",
         "stale_message": "Ezt a figyelmeztetést még azelőtt adták ki, hogy csatlakoztál volna a szerverhez.",
         "dismiss_key": "SPACE",
-        "instruction": "Tartsd lenyomva a %{key}-t %{smart_count} másodpercig, hogy eltüntesd az üzenetet. |||| Tartsd lenyomva a %{key}-t %{smart_count} másodpercig, hogy eltüntesd az üzenetet."
+        "instruction": "Tartsd lenyomva a %{key}-t %{smart_count} másodpercig, hogy eltüntesd az üzenetet. |||| Tartsd lenyomva a %{key}-t %{smart_count} másodpercig, hogy eltüntesd az üzenetet.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

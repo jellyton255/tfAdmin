@@ -28,8 +28,10 @@
             "label_reason": "Lý do cấm",
             "label_id": "ID cấm",
             "note_multiple_bans": "Lưu ý: bạn có nhiều hơn một lệnh cấm hoạt động đối với tài khoản của mình.",
-            "note_diff_license": "Lưu ý: lệnh cấm ở trên đã được áp dụng cho một <code>giấy phép</code> khác, có nghĩa là một số ID/HWID của bạn khớp với những ID/HWID được liên kết với lệnh cấm đó."
-        }
+            "note_diff_license": "Lưu ý: lệnh cấm ở trên đã được áp dụng cho một <code>giấy phép</code> khác, có nghĩa là một số ID/HWID của bạn khớp với những ID/HWID được liên kết với lệnh cấm đó.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Cảnh cáo bởi:",
         "stale_message": "Cảnh báo này đã được phát hành trước khi bạn kết nối với máy chủ.",
         "dismiss_key": "SPACE",
-        "instruction": "Giữ %{key} trong %{smart_count} giây để đóng cửa sổ này. |||| Giữ %{key} trong %{smart_count} giây để đóng cửa sổ này."
+        "instruction": "Giữ %{key} trong %{smart_count} giây để đóng cửa sổ này. |||| Giữ %{key} trong %{smart_count} giây để đóng cửa sổ này.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

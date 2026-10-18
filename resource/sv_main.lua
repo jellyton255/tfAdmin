@@ -259,7 +259,8 @@ TX_EVENT_HANDLERS.playerWarned = function(eventData, isWarningNew)
         authorName,
         eventData.reason,
         eventData.actionId,
-        isWarningNew
+        isWarningNew,
+        eventData.ruleUrl
     )
     txPrint(string.format(
         'Warning player (#%s) %s for %s',

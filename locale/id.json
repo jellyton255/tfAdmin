@@ -28,8 +28,10 @@
             "label_reason": "Alasan Blokir",
             "label_id": "ID Blokir",
             "note_multiple_bans": "Catatan: Anda memiliki lebih dari satu blokir aktif pada identitas Anda.",
-            "note_diff_license": "Catatan: blokir di atas diterapkan untuk <code>license</code> yang berbeda, yang berarti beberapa ID/HWID Anda cocok dengan yang terkait dengan blokir tersebut."
-        }
+            "note_diff_license": "Catatan: blokir di atas diterapkan untuk <code>license</code> yang berbeda, yang berarti beberapa ID/HWID Anda cocok dengan yang terkait dengan blokir tersebut.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Diperingatkan oleh:",
         "stale_message": "Peringatan ini diterbitkan sebelum Anda terhubung ke server.",
         "dismiss_key": "SPACE",
-        "instruction": "Tahan %{key} selama %{smart_count} detik untuk mengabaikan pesan ini. |||| Tahan %{key} selama %{smart_count} detik untuk mengabaikan pesan ini."
+        "instruction": "Tahan %{key} selama %{smart_count} detik untuk mengabaikan pesan ini. |||| Tahan %{key} selama %{smart_count} detik untuk mengabaikan pesan ini.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

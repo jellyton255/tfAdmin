@@ -28,8 +28,10 @@
             "label_reason": "Raison du bannissement",
             "label_id": "ID de sanction",
             "note_multiple_bans": "Note : vous avez plus d'un bannissement sur votre identifiant.",
-            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban."
-        }
+            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Avertis par:",
         "stale_message": "Cet avertissement a été émis avant que vous ne vous connectiez au serveur.",
         "dismiss_key": "ESPACE",
-        "instruction": "Maintenir %{key} pendant %{smart_count} seconde pour cacher ce message. |||| Maintenir %{key} pendant %{smart_count} secondes pour cacher ce message."
+        "instruction": "Maintenir %{key} pendant %{smart_count} seconde pour cacher ce message. |||| Maintenir %{key} pendant %{smart_count} secondes pour cacher ce message.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

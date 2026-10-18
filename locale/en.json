@@ -19,6 +19,7 @@
     "ban_messages": {
         "kick_temporary": "(%{author}) You have been banned from this server for \"%{reason}\". Your ban will expire in: %{expiration}.",
         "kick_permanent": "(%{author}) You have been permanently banned from this server for \"%{reason}\".",
+        "rule": "Rule: %{url}",
         "reject": {
             "title_permanent": "You have been permanently banned from this server.",
             "title_temporary": "You have been temporarily banned from this server.",
@@ -27,6 +28,7 @@
             "label_author": "Banned by",
             "label_reason": "Ban Reason",
             "label_id": "Ban ID",
+            "label_rule": "Rule",
             "note_multiple_bans": "Note: you have more than one active ban on your identifiers.",
             "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban."
         }
@@ -68,6 +70,7 @@
     "nui_warning": {
         "title": "WARNING",
         "warned_by": "Warned by:",
+        "rule": "Rule: %{url}",
         "stale_message": "This warning was issued before you connected to the server.",
         "dismiss_key": "SPACE",
         "instruction": "Hold %{key} for %{smart_count} second to dismiss this message. |||| Hold %{key} for %{smart_count} seconds to dismiss this message. "

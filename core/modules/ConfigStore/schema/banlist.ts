@@ -28,7 +28,7 @@ export type BanDurationType = z.infer<typeof BanDurationTypeSchema>;
 export const LadderStepSchema = z.union([z.literal('warn'), BanDurationTypeSchema]);
 export type LadderStepType = z.infer<typeof LadderStepSchema>;
 
-//everfall: templates are punishment presets. `name` and `ladder` are optional so older builds
+//everfall: templates are punishment presets. `name`, `ladder` and `ruleUrl` are optional so older builds
 //strip them instead of rejecting the config; without a ladder the preset is one ban of `duration`.
 export const BanTemplatesDataSchema = z.object({
     id: z.string().length(BAN_TEMPLATE_ID_LENGTH), //nanoid fixed at 21 chars
@@ -36,6 +36,7 @@ export const BanTemplatesDataSchema = z.object({
     duration: BanDurationTypeSchema,
     name: z.string().trim().min(1).max(32).optional(), //short offense label, like "RDM"
     ladder: LadderStepSchema.array().min(1).max(10).optional(), //punishment for the 1st, 2nd, ... offense
+    ruleUrl: z.string().trim().max(512).url().regex(/^https?:\/\//i).optional(), //the rule players are shown on warn and ban screens
 });
 export type BanTemplatesDataType = z.infer<typeof BanTemplatesDataSchema>;
 

@@ -28,8 +28,10 @@
             "label_reason": "Užblokavimo priežastis",
             "label_id": "Užblokavimo ID",
             "note_multiple_bans": "P.S. Tu turi daugiau nei vieną užblokavimą ant savo identifikatorių",
-            "note_diff_license": "Prierašas: šis užblokavimas skirtas kitai <code>licenzijai</code>, tai reiškią jūsų kai kurie IDs/HWIDs sutampa su esančiais tame užblokavime"
-        }
+            "note_diff_license": "Prierašas: šis užblokavimas skirtas kitai <code>licenzijai</code>, tai reiškią jūsų kai kurie IDs/HWIDs sutampa su esančiais tame užblokavime",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Įspėjimą skyrė:",
         "stale_message": "Šis įspėjimas buvo išduotas prieš jums prisijungiant prie serverio.",
         "dismiss_key": "SPACE",
-        "instruction": "Laikykite %{key} %{smart_count} sekundę, kad išjungtum šį pranešimą. |||| Laikykite %{key} %{smart_count} sekundes, kad išjungtum šį pranešimą."
+        "instruction": "Laikykite %{key} %{smart_count} sekundę, kad išjungtum šį pranešimą. |||| Laikykite %{key} %{smart_count} sekundes, kad išjungtum šį pranešimą.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

@@ -47,6 +47,7 @@ local function useInitData(data)
             author = data.pendingWarn.author,
             reason = data.pendingWarn.reason,
             actionId = data.pendingWarn.actionId,
+            ruleUrl = data.pendingWarn.ruleUrl,
             targetNetId = data.pendingWarn.targetNetId,
             targetIds = data.pendingWarn.targetIds, --not used
             targetName = data.pendingWarn.targetName,

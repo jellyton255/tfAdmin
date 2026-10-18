@@ -28,8 +28,10 @@
             "label_reason": "Ban Reason",
             "label_id": "Ban ID",
             "note_multiple_bans": "Note: you have more than one active ban on your identifiers.",
-            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban."
-        }
+            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Προειδοποιήθηκες από τον:",
         "stale_message": "Αυτή η προειδοποίηση εκδόθηκε πριν συνδεθείτε στον διακομιστή.",
         "dismiss_key": "SPACE",
-        "instruction": "Πάτα %{key} για %{smart_count} δευτερόλεπτο για να απορρίψεις αυτό το μήνυμα. |||| Πάτα %{key} για %{smart_count} δευτερόλεπτα για να απορρίψεις αυτό το μήνυμα."
+        "instruction": "Πάτα %{key} για %{smart_count} δευτερόλεπτο για να απορρίψεις αυτό το μήνυμα. |||| Πάτα %{key} για %{smart_count} δευτερόλεπτα για να απορρίψεις αυτό το μήνυμα.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

@@ -6,6 +6,7 @@ import consoleFactory from '@lib/console';
 import { PlayerDroppedEventType, PlayerJoiningEventType } from '@shared/socketioTypes';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import { sendJoinAlerts } from '@lib/player/joinAlerts';
+import { presetRuleUrl } from '@lib/presetRule';
 const console = consoleFactory(modulename);
 
 
@@ -192,6 +193,7 @@ export default class FxPlayerlist {
                 author: pendingWarn.author,
                 reason: pendingWarn.reason,
                 actionId: pendingWarn.id,
+                ruleUrl: presetRuleUrl(pendingWarn.presetId),
                 targetNetId: playerId,
                 targetIds: pendingWarn.ids, //not used in the playerWarned handler
                 targetName: pendingWarn.playerName,

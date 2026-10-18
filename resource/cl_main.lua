@@ -40,10 +40,11 @@ else
     dismissKeyGroup = 1
 end
 
-RegisterNetEvent('txcl:showWarning', function(author, reason, actionId, isWarningNew)
+RegisterNetEvent('txcl:showWarning', function(author, reason, actionId, isWarningNew, ruleUrl)
     toggleMenuVisibility(false)
     sendMenuMessage('setWarnOpen', {
         reason = reason,
+        ruleUrl = ruleUrl,
         warnedBy = author,
         isWarningNew = isWarningNew,
     })

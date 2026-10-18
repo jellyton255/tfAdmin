@@ -28,8 +28,10 @@
             "label_reason": "Bloķēšanas iemesls",
             "label_id": "Ban ID",
             "note_multiple_bans": "Piezīme: Tev ir vairāk nekā viena aktīva bloķēšana taviem identifikatoriem.",
-            "note_diff_license": "Piezīme: augstāk redzamā bloķēšana tika piemērota citai <code>license</code>, kas nozīmē, ka daži no taviem ID/HWID sakrīt ar tiem, kas saistīti ar šo bloķēšanu."
-        }
+            "note_diff_license": "Piezīme: augstāk redzamā bloķēšana tika piemērota citai <code>license</code>, kas nozīmē, ka daži no taviem ID/HWID sakrīt ar tiem, kas saistīti ar šo bloķēšanu.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Brīdinājumu izdeva:",
         "stale_message": "Šis brīdinājums tika izdots, pirms tu pievienojies serverim.",
         "dismiss_key": "SPACE",
-        "instruction": "Turiet %{key} %{smart_count} sekundi, lai noraidītu šo ziņojumu. |||| Turiet %{key} %{smart_count} sekundes, lai noraidītu šo ziņojumu."
+        "instruction": "Turiet %{key} %{smart_count} sekundi, lai noraidītu šo ziņojumu. |||| Turiet %{key} %{smart_count} sekundes, lai noraidītu šo ziņojumu.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

@@ -7,6 +7,7 @@ import { filterPlayerHwids, parsePlayerIds, summarizeIdsArray } from '@lib/playe
 import type { PlayerIdsObjectType } from "@shared/otherTypes";
 import { escapeHtmlContent, sanitizeSimpleHtml } from '@lib/htmlRenderSafety';
 import playerResolver from '@lib/player/playerResolver';
+import { presetRuleUrl } from '@lib/presetRule';
 import { Unit } from 'humanize-duration';
 import consoleFactory from '@lib/console';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
@@ -172,6 +173,7 @@ function checkBan(
             label_author: txCore.translator.t('ban_messages.reject.label_author'),
             label_reason: txCore.translator.t('ban_messages.reject.label_reason'),
             label_id: txCore.translator.t('ban_messages.reject.label_id'),
+            label_rule: txCore.translator.t('ban_messages.reject.label_rule'),
             note_multiple_bans: txCore.translator.t('ban_messages.reject.note_multiple_bans'),
             note_diff_license: txCore.translator.t('ban_messages.reject.note_diff_license'),
         };
@@ -213,6 +215,13 @@ function checkBan(
             note += `<br>${textKeys.note_diff_license}`;
         }
 
+        //everfall: the rule from the punishment preset
+        let ruleLine = '';
+        const ruleUrl = presetRuleUrl(ban.presetId);
+        if (ruleUrl) {
+            ruleLine = `<strong>${textKeys.label_rule}:</strong> ${escapeHtmlContent(ruleUrl)} <br>`;
+        }
+
         //Prepare rejection message
         const reason = rejectMessageTemplate(
             title,
@@ -220,6 +229,7 @@ function checkBan(
             <strong>${textKeys.label_date}:</strong> ${banDate} <br>
             <strong>${textKeys.label_reason}:</strong> ${escapeHtmlContent(ban.reason)} <br>
             <strong>${textKeys.label_id}:</strong> <codeid>${ban.id}</codeid> <br>
+            ${ruleLine}
             ${authorLine}
             ${prepCustomMessage(txConfig.banlist.rejectionMessage)}
             <span style="font-style: italic;">${note}</span>`

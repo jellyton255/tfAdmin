@@ -28,8 +28,10 @@
             "label_reason": "封禁原因",
             "label_id": "封禁ID",
             "note_multiple_bans": "提示：您还有其他激活的封禁。",
-            "note_diff_license": "提示：上述封禁适用于另一个<code>license</code>，这意味着您的一些ID/HWID与该禁令相关的ID/HWID匹配。"
-        }
+            "note_diff_license": "提示：上述封禁适用于另一个<code>license</code>，这意味着您的一些ID/HWID与该禁令相关的ID/HWID匹配。",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "操作人:",
         "stale_message": "此警告是在您连接服务器之前发出的。",
         "dismiss_key": "空格",
-        "instruction": "按住 %{key} %{smart_count}秒来关闭这个消息。 |||| 按住 %{key} %{smart_count}秒来关闭这个消息。"
+        "instruction": "按住 %{key} %{smart_count}秒来关闭这个消息。 |||| 按住 %{key} %{smart_count}秒来关闭这个消息。",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

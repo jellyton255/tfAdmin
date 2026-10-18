@@ -28,8 +28,10 @@
             "label_reason": "Шалтгаан",
             "label_id": "БАН КОД",
             "note_multiple_bans": "Сануулга: та хэтэрхий олон BAN -тай байна.",
-            "note_diff_license": "Сануулга: таны <code>license</code> Rockstar ID, HWID BAN буюу их хавтангаар эрхээ хязгаарлуулсан байна."
-        }
+            "note_diff_license": "Сануулга: таны <code>license</code> Rockstar ID, HWID BAN буюу их хавтангаар эрхээ хязгаарлуулсан байна.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Анхааруулсан:",
         "stale_message": "Энэхүү сануулгыг серверт холбогдохоосоо өмнө гаргасан байна.",
         "dismiss_key": "SPACE",
-        "instruction": "%{key} товчийг %{smart_count} секунд дарж арилгана уу. |||| %{key} товчийг %{smart_count} секунд дарж арилгана уу."
+        "instruction": "%{key} товчийг %{smart_count} секунд дарж арилгана уу. |||| %{key} товчийг %{smart_count} секунд дарж арилгана уу.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

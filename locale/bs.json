@@ -28,8 +28,10 @@
             "label_reason": "Ban Reason",
             "label_id": "Ban ID",
             "note_multiple_bans": "Note: you have more than one active ban on your identifiers.",
-            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban."
-        }
+            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Vas je upozorio",
         "stale_message": "Ovo upozorenje je izdato prije nego što ste se povezali na server.",
         "dismiss_key": "SPACE",
-        "instruction": "držite %{key} %{smart_count} sekundu da vam se skine ova poruka. |||| držite %{key} %{smart_count} sekundi da vam se skine ova poruka."
+        "instruction": "držite %{key} %{smart_count} sekundu da vam se skine ova poruka. |||| držite %{key} %{smart_count} sekundi da vam se skine ova poruka.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

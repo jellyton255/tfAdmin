@@ -28,8 +28,10 @@
             "label_reason": "Razlog zabrane",
             "label_id": "ID zabrane",
             "note_multiple_bans": "Poruka: Imaš više od jedne zabrane na ovom profilu.",
-            "note_diff_license": "Poruka: Gornja zabrana je stavljen na <code>license</code>, što znači da jedan od tvojih IDova/HWIDova se slažu sa tim koji ima zabranu."
-        }
+            "note_diff_license": "Poruka: Gornja zabrana je stavljen na <code>license</code>, što znači da jedan od tvojih IDova/HWIDova se slažu sa tim koji ima zabranu.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Vas je upozorio",
         "stale_message": "Ovo upozorenje je izdano prije nego što ste se spojili na server.",
         "dismiss_key": "SPACE",
-        "instruction": "Držite %{key} na %{smart_count} sekundu da vam se skine ova poruka. |||| Držite %{key} na %{smart_count} sekunde da vam se skine ova poruka."
+        "instruction": "Držite %{key} na %{smart_count} sekundu da vam se skine ova poruka. |||| Držite %{key} na %{smart_count} sekunde da vam se skine ova poruka.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

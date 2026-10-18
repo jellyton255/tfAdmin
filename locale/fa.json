@@ -28,8 +28,10 @@
             "label_reason": "دلیل بن",
             "label_id": "شناسه بن",
             "note_multiple_bans": "توجه: شما بیش از یک بن فعال در شناسه‌های خود دارید.",
-            "note_diff_license": "توجه: بن فوق برای <code>license</code> دیگری اعمال شده است، به این معنی که برخی از شناسه‌ها/HWIDهای شما با موارد مرتبط با آن بن مطابقت دارند."
-        }
+            "note_diff_license": "توجه: بن فوق برای <code>license</code> دیگری اعمال شده است، به این معنی که برخی از شناسه‌ها/HWIDهای شما با موارد مرتبط با آن بن مطابقت دارند.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "هشدار داده شده توسط:",
         "stale_message": "این هشدار قبل از اتصال شما به سرور صادر شده است.",
         "dismiss_key": "SPACE",
-        "instruction": "دکمه %{key} را برای %{smart_count} ثانیه نگه دارید تا پیام رد شود. |||| دکمه %{key} را برای %{smart_count} ثانیه‌ها نگه دارید تا پیام رد شود."
+        "instruction": "دکمه %{key} را برای %{smart_count} ثانیه نگه دارید تا پیام رد شود. |||| دکمه %{key} را برای %{smart_count} ثانیه‌ها نگه دارید تا پیام رد شود.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

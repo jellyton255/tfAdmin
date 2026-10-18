@@ -11,6 +11,7 @@ import { shortenId } from '@shared/utils';
 import { summarizeIdsArray } from '@lib/player/idUtils';
 import { addSanctionNote, recordKick, resolvePresetId, setPlayerTags, unwatchPlayer, watchPlayer } from '@modules/ApiServer/services/playerActions';
 import { movePlayerNoteToAction } from '@modules/ApiServer/services/actionNotes';
+import { presetRuleUrl } from '@lib/presetRule';
 const console = consoleFactory(modulename);
 
 
@@ -268,6 +269,7 @@ async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
         author: ctx.admin.name,
         reason,
         actionId,
+        ruleUrl: presetRuleUrl(preset.presetId),
         targetNetId: (player instanceof ServerPlayer && player.isConnected) ? player.netid : null,
         targetIds: allIds,
         targetName: player.displayName,
@@ -363,6 +365,8 @@ async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericAp
         durationTranslated = null;
         kickMessage = txCore.translator.t('ban_messages.kick_permanent', tOptions);
     }
+    const ruleUrl = presetRuleUrl(preset.presetId);
+    if (ruleUrl) kickMessage += ` ${txCore.translator.t('ban_messages.rule', { url: ruleUrl })}`;
 
     // Dispatch `txAdmin:events:playerBanned`
     const eventSent = txCore.fxRunner.sendEvent('playerBanned', {

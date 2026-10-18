@@ -28,8 +28,10 @@
             "label_reason": "سبب الحظر",
             "label_id": "معرف الحظر",
             "note_multiple_bans": ".ملاحظة: لديك أكثر من حظر نشط على المعرفات الخاصة بك",
-            "note_diff_license": ".تتطابق مع تلك المرتبطة بهذا الحظر HWID مما يعني أن بعض معرفاتك <code>license</code> ملاحظة: تم تطبيق الحظر أعلاه على شخص آخر"
-        }
+            "note_diff_license": ".تتطابق مع تلك المرتبطة بهذا الحظر HWID مما يعني أن بعض معرفاتك <code>license</code> ملاحظة: تم تطبيق الحظر أعلاه على شخص آخر",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": ":تحذير من",
         "stale_message": ".تم إصدار هذا التحذير قبل أن تتصل بالخادم",
         "dismiss_key": "SPACE",
-        "instruction": ".اضغط باستمرار على %{key} لمدة %{smart_count} ثانية لتجاهل هذه الرسالة |||| .اضغط باستمرار على %{key} لمدة %{smart_count} ثوانٍ لتجاهل هذه الرسالة"
+        "instruction": ".اضغط باستمرار على %{key} لمدة %{smart_count} ثانية لتجاهل هذه الرسالة |||| .اضغط باستمرار على %{key} لمدة %{smart_count} ثوانٍ لتجاهل هذه الرسالة",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

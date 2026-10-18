@@ -28,8 +28,10 @@
             "label_reason": "Ban Årsag",
             "label_id": "Ban ID",
             "note_multiple_bans": "Bemærk: Du har mere end én aktiv ban på dine identifikatorer.",
-            "note_diff_license": "Bemærk: Bannet ovenfor blev påført en anden <code>licens</code>, hvilket betyder, at nogle af dine IDs/HWIDs matcher dem, der er forbundet med det ban."
-        }
+            "note_diff_license": "Bemærk: Bannet ovenfor blev påført en anden <code>licens</code>, hvilket betyder, at nogle af dine IDs/HWIDs matcher dem, der er forbundet med det ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Advarsel afsendt fra:",
         "stale_message": "Denne advarsel blev udsendt, før du tilsluttede dig serveren.",
         "dismiss_key": "MELLEMRUM",
-        "instruction": "Hold %{key} nede i %{smart_count} sekund for at afvise denne meddelelse. |||| Hold %{key} nede i %{smart_count} sekunder for at afvise denne meddelelse."
+        "instruction": "Hold %{key} nede i %{smart_count} sekund for at afvise denne meddelelse. |||| Hold %{key} nede i %{smart_count} sekunder for at afvise denne meddelelse.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

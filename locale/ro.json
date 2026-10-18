@@ -28,8 +28,10 @@
             "label_reason": "Ban Reason",
             "label_id": "Ban ID",
             "note_multiple_bans": "Note: you have more than one active ban on your identifiers.",
-            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban."
-        }
+            "note_diff_license": "Note: the ban above was applied for another <code>license</code>, which means some of your IDs/HWIDs match the ones associated with that ban.",
+            "label_rule": "Rule"
+        },
+        "rule": "Rule: %{url}"
     },
     "whitelist_messages": {
         "admin_only": {
@@ -70,7 +72,8 @@
         "warned_by": "Avertizat de:",
         "stale_message": "Acest avertisment a fost emis înainte de a vă conecta la server.",
         "dismiss_key": "SPACE",
-        "instruction": "Țineți %{key} timp de %{smart_count} secundă pentru a respinge acest mesaj. |||| Țineți %{key} timp de %{smart_count} secunde pentru a respinge acest mesaj."
+        "instruction": "Țineți %{key} timp de %{smart_count} secundă pentru a respinge acest mesaj. |||| Țineți %{key} timp de %{smart_count} secunde pentru a respinge acest mesaj.",
+        "rule": "Rule: %{url}"
     },
     "nui_menu": {
         "misc": {

@@ -55,6 +55,7 @@ const WarnInnerStyles = styled('div')({
 
 interface WarnInnerComp {
   message: string;
+  ruleUrl?: string | null;
   warnedBy: string;
   isWarningNew: boolean;
   secsRemaining: number;
@@ -74,6 +75,7 @@ const WarningIcon = () => (
 
 const WarnInnerComp: React.FC<WarnInnerComp> = ({
   message,
+  ruleUrl,
   warnedBy,
   isWarningNew,
   secsRemaining,
@@ -119,6 +121,15 @@ const WarnInnerComp: React.FC<WarnInnerComp> = ({
         >
           {message}
         </Typography>
+        {ruleUrl ? (
+          <Typography
+            letterSpacing={1}
+            style={{ textAlign: "center", marginTop: 12, opacity: 0.85 }}
+          >
+            {/* the warning has no cursor, so the link is written out for the player to open later */}
+            {t("nui_warning.rule", { url: ruleUrl.replace(/^https?:\/\//i, "") })}
+          </Typography>
+        ) : null}
         <Typography
           letterSpacing={1}
           style={{
@@ -199,6 +210,7 @@ const MainPageStyles = styled('div')(({
 
 export interface SetWarnOpenData {
   reason: string;
+  ruleUrl?: string | null;
   warnedBy: string;
   isWarningNew: boolean;
 }
@@ -259,6 +271,7 @@ export const WarnPage: React.FC = ({ }) => {
         >
           <WarnInnerComp
             message={warnData?.reason ?? ''}
+            ruleUrl={warnData?.ruleUrl}
             warnedBy={warnData?.warnedBy ?? ''}
             isWarningNew={warnData?.isWarningNew ?? true}
             secsRemaining={secsRemaining}
