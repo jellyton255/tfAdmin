@@ -5503,6 +5503,17 @@
               }
             ]
           },
+          "ruleUrl": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Link to the rule of that preset, shown to the player on warn and ban screens, else null"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "lengthChanges": {
             "type": "array",
             "items": {
@@ -5573,6 +5584,7 @@
           "notes",
           "externalRef",
           "presetId",
+          "ruleUrl",
           "lengthChanges",
           "sanction",
           "appeal"

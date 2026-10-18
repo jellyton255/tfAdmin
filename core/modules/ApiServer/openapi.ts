@@ -187,6 +187,7 @@ const schemas: Record<string, Schema> = {
         notes: { ...arr(ref('ActionNote')), description: 'Staff notes, newest first. Never shown to the player; deleted notes are left out' },
         externalRef: nullable(str({ description: 'Idempotency key of bans recorded via POST /actions/import-ban, else null' })),
         presetId: nullable(str({ description: 'Punishment preset (ban template) the ban or warn was issued from, else null' })),
+        ruleUrl: nullable(str({ description: 'Link to the rule of that preset, shown to the player on warn and ban screens, else null' })),
         lengthChanges: { ...arr(ref('BanLengthChange')), description: 'Bans only: every change of the length, oldest first. Empty otherwise' },
         sanction: {
             ...nullable(obj({ kind: str({ description: 'Such as Jail or Community Service' }), length: nullable(str({ description: 'Free text from the resource, such as 30 months' })) })),

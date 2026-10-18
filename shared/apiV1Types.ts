@@ -264,6 +264,8 @@ export type ApiActionRecord = {
     externalRef: string | null;
     /** The punishment preset (ban template) a ban or warn was issued from, else null. */
     presetId: string | null;
+    /** everfall: the rule link of that preset, else null */
+    ruleUrl: string | null;
     /** Bans only: every change of the ban's length, oldest first. Empty otherwise. */
     lengthChanges: ApiBanLengthChange[];
     /** Bans only: where the ban's appeal stands, else null. Accepting does not lift the ban by itself. */

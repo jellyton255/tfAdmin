@@ -10,6 +10,7 @@ import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { ApiActionRecord } from '@shared/apiV1Types';
 import { notesNewestFirst, visibleNotes } from '@lib/notes';
 import { toApiActionNote } from '@modules/ApiServer/services/actionNotes';
+import { presetRuleUrl } from '@lib/presetRule';
 
 export const idParamSchema = z.object({ id: z.string().trim().min(1).max(32) });
 export const searchQuerySchema = z.object({
@@ -57,6 +58,7 @@ export const toApiAction = (a: DatabaseActionType, currTs = now()): ApiActionRec
         notes: notesNewestFirst(a.notes).map(toApiActionNote),
         externalRef: a.type === 'ban' ? a.externalRef ?? null : null,
         presetId: a.presetId ?? null,
+        ruleUrl: presetRuleUrl(a.presetId),
         lengthChanges: a.type === 'ban'
             ? (a.lengthChanges ?? []).map((change) => ({
                 changedAt: secToMs(change.ts) ?? 0,

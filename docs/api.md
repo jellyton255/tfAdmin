@@ -153,7 +153,8 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 Action records carry `banStatus` (`active`, `expired`, `permanent`, or `null` for warns and kicks), `expiresAt`, `acked` for warns,
 and `revokedAt` / `revokedBy` / `revokeReason`. `externalRef` is the idempotency key of bans recorded through
 `POST /api/v1/actions/import-ban`, and `null` for every other action. `presetId` names the punishment
-preset (ban template) a ban or warn was issued from, or is `null`. `lengthChanges` lists every change of a ban's
+preset (ban template) a ban or warn was issued from, or is `null`. `ruleUrl` is that preset's rule link,
+the same one the player sees on the warning and ban screens, or `null`. `lengthChanges` lists every change of a ban's
 length with who made it, why, and the expiry before and after. `appeal` is `{ status, ticket, updatedBy, updatedAt }`
 for a ban with an appeal (`open`, `denied` or `accepted`), else `null`.
 
