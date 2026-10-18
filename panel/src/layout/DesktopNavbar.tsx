@@ -155,6 +155,13 @@ export default function DesktopNavbar() {
                             </HeaderMenuLink>
                             <HeaderMenuLink
                                 className="w-36 justify-start"
+                                href="/system/staff-activity"
+                                disabled={!hasPerm('manage.admins')}
+                            >
+                                Staff Activity
+                            </HeaderMenuLink>
+                            <HeaderMenuLink
+                                className="w-36 justify-start"
                                 href="/system/api-keys"
                                 disabled={!hasPerm('manage.admins')}
                             >
