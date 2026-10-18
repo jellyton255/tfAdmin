@@ -72,12 +72,21 @@ export type DatabaseBanLengthChangeType = {
     to: number | false;
     reason: string;
 };
+//everfall: where a ban's appeal stands; `author` and `ts` are who set this status and when
+export const BAN_APPEAL_STATUSES = ['open', 'denied', 'accepted'] as const;
+export type DatabaseBanAppealType = {
+    status: typeof BAN_APPEAL_STATUSES[number];
+    ticket?: string; //ticket link or number
+    author: string;
+    ts: number;
+};
 export type DatabaseActionBanType = {
     type: 'ban';
     hwids?: string[];
     expiration: number | false;
     externalRef?: string; //idempotency key of bans imported via the API (players.ban_import)
     lengthChanges?: DatabaseBanLengthChangeType[]; //everfall: oldest first, absent when never changed
+    appeal?: DatabaseBanAppealType; //everfall: absent when never appealed
 } & DatabaseActionBaseType;
 export type DatabaseActionWarnType = {
     type: 'warn';

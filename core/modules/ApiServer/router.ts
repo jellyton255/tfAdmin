@@ -74,6 +74,7 @@ export default () => {
     router.post('/actions/import-ban', apiKeyAuthMw('players.ban_import'), v1.actions_importBan as any);
     router.post('/actions/:id/revoke', apiKeyAuthMw(), v1.actions_revoke as any); //per-type permission inside
     router.post('/actions/:id/length', apiKeyAuthMw('players.ban'), v1.actions_changeLength as any);
+    router.put('/actions/:id/appeal', apiKeyAuthMw('players.ban'), v1.actions_setAppeal as any);
     router.post('/actions/:id/notes', apiKeyAuthMw(), v1.actions_addNote as any); //players.note or the type's scope inside
     router.patch('/actions/:id/notes/:noteId', apiKeyAuthMw(), v1.actions_editNote as any);
     router.delete('/actions/:id/notes/:noteId', apiKeyAuthMw(), v1.actions_deleteNote as any);

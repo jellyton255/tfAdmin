@@ -15,7 +15,7 @@ import apiV1Router from './router';
 import { DuplicateKeyError } from '@modules/Database/dbUtils';
 import { ServerPlayer } from '@lib/player/playerClasses';
 import { appendNote, editNote, softDeleteNote } from '@lib/notes';
-import type { DatabaseActionType, DatabasePlayerType, DatabaseWhitelistApprovalsType, DatabaseWhitelistRequestsType } from '@modules/Database/databaseTypes';
+import type { DatabaseActionType, DatabaseBanAppealType, DatabasePlayerType, DatabaseWhitelistApprovalsType, DatabaseWhitelistRequestsType } from '@modules/Database/databaseTypes';
 
 let tmpDir: string;
 let server: ReturnType<Koa['listen']>;
@@ -184,6 +184,12 @@ beforeAll(async () => {
                     if (!a) throw new Error('action not found');
                     if (allowed !== true && !allowed.includes(a.type)) throw new Error('not allowed');
                     a.revocation = { timestamp: nowSec(), author, ...(reason ? { reason } : {}) };
+                    return a;
+                },
+                setBanAppeal: (id: string, appeal: DatabaseBanAppealType | undefined) => {
+                    const a = actions.find((x) => x.id === id)!;
+                    if (a.type !== 'ban') throw new Error('only bans can be appealed');
+                    a.appeal = appeal;
                     return a;
                 },
                 changeBanLength: (id: string, expiration: number | false, author: string, reason: string) => {
@@ -463,6 +469,32 @@ describe('ban length', () => {
 
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' });
         expect((await call('POST', `/api/v1/actions/${warn.json.data.action.id}/length`, { duration: '2 days', reason: 'appeal' })).status).toBe(409);
+    });
+});
+
+
+describe('ban appeal', () => {
+    it('records the status with who set it, and clears it', async () => {
+        const ban = await call('POST', `/api/v1/players/${LIC_OFF}/ban`, { reason: 'rdm', duration: '1 week' });
+        const id = ban.json.data.action.id;
+        expect(ban.json.data.action.appeal).toBeNull();
+
+        const open = await call('PUT', `/api/v1/actions/${id}/appeal`, { status: 'open', ticket: 'https://everfallcommunity.com/tickets/812' });
+        expect(open.status).toBe(200);
+        expect(open.json.data.action.appeal).toMatchObject({ status: 'open', ticket: 'https://everfallcommunity.com/tickets/812' });
+        const page = apiServer.events.list({ limit: 50, types: ['action.appealChanged'] });
+        expect(page.events.at(-1)?.data).toMatchObject({ actionId: id, status: 'open' });
+
+        const denied = await call('PUT', `/api/v1/actions/${id}/appeal`, { status: 'denied' });
+        expect(denied.json.data.action.appeal).toMatchObject({ status: 'denied', ticket: null });
+        expect(denied.json.data.action.banStatus).toBe('active');
+
+        const cleared = await call('PUT', `/api/v1/actions/${id}/appeal`, { status: null });
+        expect(cleared.json.data.action.appeal).toBeNull();
+
+        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' });
+        expect((await call('PUT', `/api/v1/actions/${warn.json.data.action.id}/appeal`, { status: 'open' })).status).toBe(409);
+        expect((await call('PUT', `/api/v1/actions/${id}/appeal`, { status: 'maybe' })).status).toBe(400);
     });
 });
 

@@ -66,6 +66,9 @@ export const toApiAction = (a: DatabaseActionType, currTs = now()): ApiActionRec
                 reason: change.reason,
             }))
             : [],
+        appeal: a.type === 'ban' && a.appeal
+            ? { status: a.appeal.status, ticket: a.appeal.ticket ?? null, updatedBy: a.appeal.author, updatedAt: secToMs(a.appeal.ts) ?? 0 }
+            : null,
     };
 };
 

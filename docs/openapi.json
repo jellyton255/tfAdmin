@@ -2443,6 +2443,120 @@
         }
       }
     },
+    "/actions/{id}/appeal": {
+      "put": {
+        "summary": "Set a ban's appeal status",
+        "description": "Accepting an appeal does not lift the ban; revoke it or change its length. Other action types return 409. Publishes the `action.appealChanged` event.\n\nRequires the `players.ban` scope.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "open",
+                          "denied",
+                          "accepted"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "null clears the appeal"
+                  },
+                  "ticket": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 256,
+                        "description": "Ticket link or number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "$ref": "#/components/schemas/Action"
+                        }
+                      },
+                      "required": [
+                        "action"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
     "/actions/{id}/notes": {
       "post": {
         "summary": "Add a staff note to an action",
@@ -5393,6 +5507,17 @@
               "$ref": "#/components/schemas/BanLengthChange"
             },
             "description": "Bans only: every change of the length, oldest first. Empty otherwise"
+          },
+          "appeal": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BanAppeal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bans only: where the appeal stands, else null. Accepting does not lift the ban by itself"
           }
         },
         "required": [
@@ -5413,7 +5538,47 @@
           "notes",
           "externalRef",
           "presetId",
-          "lengthChanges"
+          "lengthChanges",
+          "appeal"
+        ],
+        "additionalProperties": false
+      },
+      "BanAppeal": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "denied",
+              "accepted"
+            ]
+          },
+          "ticket": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Ticket link or number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Who set this status"
+          },
+          "updatedAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          }
+        },
+        "required": [
+          "status",
+          "ticket",
+          "updatedBy",
+          "updatedAt"
         ],
         "additionalProperties": false
       },
@@ -5871,6 +6036,7 @@
           "action.revoked",
           "action.noteAdded",
           "action.lengthChanged",
+          "action.appealChanged",
           "admin.login",
           "apiKey.firstUse",
           "webhook.test"

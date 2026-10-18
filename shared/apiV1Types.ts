@@ -266,6 +266,14 @@ export type ApiActionRecord = {
     presetId: string | null;
     /** Bans only: every change of the ban's length, oldest first. Empty otherwise. */
     lengthChanges: ApiBanLengthChange[];
+    /** Bans only: where the ban's appeal stands, else null. Accepting does not lift the ban by itself. */
+    appeal: ApiBanAppeal | null;
+};
+export type ApiBanAppeal = {
+    status: 'open' | 'denied' | 'accepted';
+    ticket: string | null; //ticket link or number
+    updatedBy: string; //who set this status
+    updatedAt: number; //epoch ms
 };
 export type ApiBanLengthChange = {
     changedAt: number; //epoch ms
@@ -434,6 +442,7 @@ export const API_EVENT_TYPES = [
     'action.revoked',
     'action.noteAdded',
     'action.lengthChanged',
+    'action.appealChanged',
     'admin.login',
     'apiKey.firstUse',
     'webhook.test',

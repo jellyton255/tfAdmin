@@ -3,7 +3,8 @@ import { sendData } from '@modules/ApiServer/envelope';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import { ApiError } from '@modules/ApiServer/envelope';
 import { banIdentifiers, importBan as importBanService, revokeAction } from '@modules/ApiServer/services/actionWrites';
-import { changeBanLength } from '@modules/ApiServer/services/banChanges';
+import { changeBanLength, setBanAppeal } from '@modules/ApiServer/services/banChanges';
+import { BAN_APPEAL_STATUSES } from '@modules/Database/databaseTypes';
 import {
     ACTION_NOTE_SCOPES, addActionNote, deleteActionNote, editActionNote, findActionOr404,
 } from '@modules/ApiServer/services/actionNotes';
@@ -19,6 +20,10 @@ export const revokeBodySchema = z.object({ reason: z.string().trim().max(2048).o
 export const banLengthBodySchema = z.object({
     duration: z.string().trim().min(1).max(32),
     reason: z.string().trim().min(3).max(2048),
+});
+export const banAppealBodySchema = z.object({
+    status: z.enum(BAN_APPEAL_STATUSES).nullable(),
+    ticket: z.string().trim().max(256).nullable().optional(),
 });
 export const actionNoteBodySchema = z.object({ text: z.string().trim().min(1).max(4096) });
 export const actionNoteParamSchema = idParamSchema.extend({ noteId: z.string().trim().min(1).max(32) });
@@ -60,6 +65,14 @@ export async function changeLength(ctx: ApiKeyCtx) {
     const { id } = idParamSchema.parse(ctx.params);
     const body = banLengthBodySchema.parse(ctx.request.body);
     return sendData(ctx, { action: changeBanLength(ctx.admin, id.toUpperCase(), body.duration, body.reason) });
+};
+
+
+/** PUT /api/v1/actions/:id/appeal  (players.ban) */
+export async function setAppeal(ctx: ApiKeyCtx) {
+    const { id } = idParamSchema.parse(ctx.params);
+    const body = banAppealBodySchema.parse(ctx.request.body);
+    return sendData(ctx, { action: setBanAppeal(ctx.admin, id.toUpperCase(), body.status, body.ticket) });
 };
 
 

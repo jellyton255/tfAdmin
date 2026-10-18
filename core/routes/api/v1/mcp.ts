@@ -10,7 +10,7 @@ import { idParamSchema as actionIdParamSchema, searchQuerySchema as actionsQuery
 import { listQuerySchema as whitelistQuerySchema } from './whitelist';
 import { querySchema as eventsQuerySchema } from './events';
 import { idParamSchema as webhookIdParamSchema } from './webhooks';
-import { actionNoteBodySchema, actionNoteParamSchema, banIdsBodySchema, banLengthBodySchema, revokeBodySchema } from './actionWrites';
+import { actionNoteBodySchema, actionNoteParamSchema, banIdsBodySchema, banAppealBodySchema, banLengthBodySchema, revokeBodySchema } from './actionWrites';
 import { identifierBodySchema, reqIdParamSchema, denyAllBodySchema } from './whitelistWrites';
 import {
     banBodySchema, warnBodySchema, kickBodySchema, messageBodySchema, whitelistBodySchema, noteBodySchema, noteIdParamSchema,
@@ -256,6 +256,15 @@ export const MCP_TOOLS: ToolDefinition[] = [
         input: { ...actionIdParamSchema.shape, ...banLengthBodySchema.shape },
         annotations: destructive,
         request: ({ id, ...body }) => ({ method: 'POST', path: `/actions/${enc(id)}/length`, body }),
+    },
+    {
+        name: 'tfadmin_actions_set_appeal',
+        title: 'Set Ban Appeal',
+        description: 'Record where a ban\'s appeal stands: open, denied or accepted, with an optional ticket link or number. null clears it. Accepting does not lift the ban; revoke it or change its length.',
+        scopes: ['players.ban'],
+        input: { ...actionIdParamSchema.shape, ...banAppealBodySchema.shape },
+        annotations: write,
+        request: ({ id, ...body }) => ({ method: 'PUT', path: `/actions/${enc(id)}/appeal`, body }),
     },
     {
         name: 'tfadmin_actions_add_note',

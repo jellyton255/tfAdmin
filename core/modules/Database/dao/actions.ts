@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash-es';
 import { DbInstance, SavePriority } from "../instance";
-import { DatabaseActionBanType, DatabaseActionKickType, DatabaseActionType, DatabaseActionWarnType, DatabaseNoteType } from "../databaseTypes";
+import { DatabaseActionBanType, DatabaseActionKickType, DatabaseBanAppealType, DatabaseActionType, DatabaseActionWarnType, DatabaseNoteType } from "../databaseTypes";
 import { genActionID } from "../dbUtils";
 import { now } from '@lib/misc';
 import { appendNote, editNote, softDeleteNote } from '@lib/notes';
@@ -381,6 +381,25 @@ export default class ActionsDao {
             { ts: now(), author, from: action.expiration, to: expiration, reason },
         ];
         action.expiration = expiration;
+        this.db.writeFlag(SavePriority.HIGH);
+        return cloneDeep(action);
+    }
+
+
+    /**
+     * Sets or clears the appeal status of a ban
+     */
+    setBanAppeal(actionId: string, appeal: DatabaseBanAppealType | undefined): DatabaseActionBanType {
+        const action = this.chain.get('actions')
+            .find({ id: actionId })
+            .value();
+        if (!action) throw new Error('action not found');
+        if (action.type !== 'ban') throw new Error('only bans can be appealed');
+        if (appeal) {
+            action.appeal = appeal;
+        } else {
+            delete action.appeal;
+        }
         this.db.writeFlag(SavePriority.HIGH);
         return cloneDeep(action);
     }

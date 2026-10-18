@@ -1,5 +1,6 @@
 const modulename = 'ApiServer:BanChanges';
-import type { DatabaseActionBanType } from '@modules/Database/databaseTypes';
+import type { DatabaseActionBanType, DatabaseBanAppealType } from '@modules/Database/databaseTypes';
+import { now } from '@lib/misc';
 import { toApiAction } from '@routes/api/v1/actions';
 import { ApiError } from '../envelope';
 import { secToMs } from '../pagination';
@@ -53,6 +54,40 @@ export const changeBanLength = (writer: NoteWriter, actionId: string, durationIn
         expiresAt: expiration === false ? null : secToMs(expiration),
         changedBy: writer.name,
         reason,
+    });
+    return toApiAction(updated);
+};
+
+
+/**
+ * Sets where a ban's appeal stands (open, denied or accepted), or clears it with null.
+ * Accepting an appeal does not lift the ban: staff revoke it or change its length.
+ */
+export const setBanAppeal = (
+    writer: NoteWriter,
+    actionId: string,
+    status: DatabaseBanAppealType['status'] | null,
+    ticketInput?: string | null,
+) => {
+    const ban = findBanOr409(actionId);
+    const ticket = ticketInput?.trim() || undefined;
+    const appeal = status ? { status, ...(ticket ? { ticket } : {}), author: writer.name, ts: now() } : undefined;
+
+    let updated: DatabaseActionBanType;
+    try {
+        updated = txCore.database.actions.setBanAppeal(ban.id, appeal);
+    } catch (error) {
+        throw new ApiError(500, 'INTERNAL_ERROR', `Failed to save the appeal: ${(error as Error).message}`);
+    }
+    const ticketSuffix = ticket ? ` (${ticket})` : '';
+    writer.logAction(`Set the appeal of ban ${ban.id} on ${ban.playerName || 'identifiers'} to ${status ?? 'none'}${ticketSuffix}`);
+    txCore.apiServer.publishEvent('action.appealChanged', {
+        actionId: ban.id,
+        playerName: ban.playerName,
+        playerIds: ban.ids,
+        status,
+        ticket: ticket ?? null,
+        changedBy: writer.name,
     });
     return toApiAction(updated);
 };

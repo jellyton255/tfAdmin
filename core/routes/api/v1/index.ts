@@ -8,7 +8,7 @@ export { default as admins } from './admins';
 export { default as resources } from './resources';
 export { ban as players_ban, warn as players_warn, kick as players_kick, message as players_message, whitelist as players_whitelist, note as players_note, addNote as players_addNote, deleteNote as players_deleteNote, watch as players_watch, unwatch as players_unwatch, tags as players_tags } from './playerWrites';
 export {
-    banIds as actions_banIds, importBan as actions_importBan, revoke as actions_revoke, changeLength as actions_changeLength,
+    banIds as actions_banIds, importBan as actions_importBan, revoke as actions_revoke, changeLength as actions_changeLength, setAppeal as actions_setAppeal,
     addNote as actions_addNote, editNote as actions_editNote, deleteNote as actions_deleteNote,
 } from './actionWrites';
 export { addApproval as whitelist_addApproval, removeApproval as whitelist_removeApproval, approveRequest as whitelist_approveRequest, denyRequest as whitelist_denyRequest, denyAllRequests as whitelist_denyAllRequests } from './whitelistWrites';
