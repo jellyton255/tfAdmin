@@ -313,7 +313,7 @@ TX_EVENT_HANDLERS.playerBanned = function(eventData)
                     if searchIdentifier == playerIdentifier then
                         txPrint("[handleBanEvent] Kicking #"..playerID..": "..eventData.reason)
                         kickCount = kickCount + 1
-                        DropPlayer(playerID, '[txAdmin] ' .. eventData.kickMessage)
+                        TxDropBannedPlayer(playerID, '[txAdmin] ' .. eventData.kickMessage, eventData.actionId)
                         found = true
                         break
                     end

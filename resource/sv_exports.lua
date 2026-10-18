@@ -19,13 +19,16 @@ if not TX_SERVER_MODE then return end
 -- A kick of a player with no valid identifiers is not recorded, so onDone gets nil.
 -- RecordSanction only records a punishment the calling resource applied itself (jail, community
 -- service, a mute); tfAdmin does nothing to the player, and the record is never active.
--- A ban defaults to permanent with the author 'Anti-Cheat'. BanPlayer drops the player before it
--- returns, so the calling script can stop at once, and ignores repeat calls for the same player.
+-- A ban defaults to permanent with the author 'Anti-Cheat'. BanPlayer ignores repeat calls for the
+-- same player and drops them within BAN_SCREENSHOT_WAIT_MS: first it screenshots them through
+-- ef_administration, when that resource is started, and saves the link as a staff note.
 -- =============================================
 
 local MODERATION_URL = 'http://' .. TX_LUACOMHOST .. '/intercom/moderation'
 local DEFAULT_BAN_AUTHOR = 'Anti-Cheat'
 local DEFAULT_AUTHOR = 'System'
+local SCREENSHOT_AUTHOR = 'Ban Screenshot'
+local BAN_SCREENSHOT_WAIT_MS = 5000
 local BAN_DROP_MESSAGE = '[txAdmin] You have been banned for cheating. If you believe this is an error, make a ticket.'
 local banning = {}
 
@@ -114,6 +117,55 @@ local function buildPayload(action, source, text, options, defaultAuthor)
     }, nil, options.onDone
 end
 
+--- Screenshots a player about to be dropped for a ban, then calls back with the image URL, or nil
+--- when ef_administration (which owns the upload settings) is not started, the capture fails, or it
+--- takes longer than BAN_SCREENSHOT_WAIT_MS. The player stays connected only until then.
+---@param playerId string
+---@param cb fun(url: string?)
+local function captureBanScreenshot(playerId, cb)
+    if GetResourceState('ef_administration') ~= 'started' then return cb(nil) end
+
+    -- the capture and the time limit both call finish; only the first one counts
+    local finished = false
+    local function finish(url)
+        if finished then return end
+        finished = true
+        cb(url)
+    end
+    SetTimeout(BAN_SCREENSHOT_WAIT_MS, function() finish(nil) end)
+    CreateThread(function()
+        -- optional export of another resource; it raises while that resource restarts
+        local ok, url = pcall(function()
+            return exports.ef_administration:CapturePlayerScreenshot(tonumber(playerId))
+        end)
+        finish(ok and type(url) == 'string' and url or nil)
+    end)
+end
+
+local function screenshotNote(url)
+    return 'Screenshot when banned: ' .. url
+end
+
+--- Drops a player banned through the panel, the in-game menu or the API (the playerBanned event),
+--- after a screenshot that is saved as a note on the ban.
+---@param playerId string
+---@param dropMessage string
+---@param actionId string?
+function TxDropBannedPlayer(playerId, dropMessage, actionId)
+    captureBanScreenshot(playerId, function(url)
+        DropPlayer(playerId, dropMessage)
+        if url and actionId then
+            send({
+                action = 'note',
+                resource = 'monitor',
+                author = SCREENSHOT_AUTHOR,
+                actionId = actionId,
+                text = screenshotNote(url),
+            })
+        end
+    end)
+end
+
 local function BanPlayer(source, reason, options)
     local payload, err, onDone = buildPayload('ban', source, reason, options, DEFAULT_BAN_AUTHOR)
     if not payload then return false, err end
@@ -124,8 +176,13 @@ local function BanPlayer(source, reason, options)
 
     payload.reason = reason
     payload.duration = options and type(options.duration) == 'string' and options.duration or 'permanent'
-    DropPlayer(playerId, BAN_DROP_MESSAGE)
-    send(payload, nil, onDone)
+    captureBanScreenshot(playerId, function(url)
+        if url then
+            payload.note = payload.note and (payload.note .. '\n' .. screenshotNote(url)) or screenshotNote(url)
+        end
+        DropPlayer(playerId, BAN_DROP_MESSAGE)
+        send(payload, nil, onDone)
+    end)
     return true
 end
 

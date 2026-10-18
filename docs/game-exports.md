@@ -44,6 +44,10 @@ exports.monitor:AddActionNote('BABC-1234', 'Second detection an hour later.', 'A
   bans: ef_administration's ban workspace and ef_bifrost look for it.
 - The admin log line names the calling resource, for example `[ef_mining] Banned player ...`.
 - If tfAdmin cannot record a ban or kick, the export still drops the player and prints the error.
+- Screenshot on ban: when `ef_administration` is started, a player who is banned while connected
+  (through `BanPlayer`, the panel, the in-game menu or the API) is screenshotted before the drop.
+  The image link is saved as a staff note on the ban, by `Ban Screenshot`. The player stays connected
+  until the upload finishes, for at most 5 seconds; without a screenshot they are dropped at once.
 - The exports go through the `/intercom/moderation` scope with the monitor resource's token, so only
   the `monitor` resource can call it. Staff tools that act for a person keep using `/api/v1` with the
   actor header.
