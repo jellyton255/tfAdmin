@@ -187,6 +187,11 @@ const schemas: Record<string, Schema> = {
         notes: { ...arr(ref('ActionNote')), description: 'Staff notes, newest first. Never shown to the player; deleted notes are left out' },
         externalRef: nullable(str({ description: 'Idempotency key of bans recorded via POST /actions/import-ban, else null' })),
         presetId: nullable(str({ description: 'Punishment preset (ban template) the ban or warn was issued from, else null' })),
+        lengthChanges: { ...arr(ref('BanLengthChange')), description: 'Bans only: every change of the length, oldest first. Empty otherwise' },
+    }),
+    BanLengthChange: obj({
+        changedAt: epochMs(), changedBy: str(), reason: str(),
+        previousExpiresAt: nullable(epochMs('null = permanent')), expiresAt: nullable(epochMs('null = permanent')),
     }),
     ActionsStats: obj({
         totalWarns: int(), warnsLast7d: int(), totalBans: int(), bansLast7d: int(), totalKicks: int(), kicksLast7d: int(),
@@ -473,6 +478,14 @@ const paths: Record<string, Schema> = {
             body: obj({ reason: str({ maxLength: 2048, description: 'Optional staff reason, shown in the panel and stored as revokeReason' }) }, []), bodyOptional: true,
             response: obj({ action: ref('Action') }), errors: [403, 404, 409],
             permissionNote: 'Requires the `players.ban` scope for bans and the `players.warn` scope for warns; read-only keys are rejected. Kicks cannot be revoked (409).',
+        }),
+    },
+    '/actions/{id}/length': {
+        post: op({
+            tag: 'Moderation', summary: 'Change a ban\'s length', permission: 'players.ban', params: [paramPath('id', str())],
+            body: obj({ duration: ref('BanDuration'), reason: str({ minLength: 3, maxLength: 2048, description: 'Staff reason, kept in lengthChanges' }) }),
+            response: obj({ action: ref('Action') }), errors: [404, 409],
+            description: 'The new length counts from when the ban was issued, so a length shorter than the time already served ends the ban at once. Revoked bans and other action types return 409. Publishes the `action.lengthChanged` event.',
         }),
     },
     '/actions/{id}/notes': {

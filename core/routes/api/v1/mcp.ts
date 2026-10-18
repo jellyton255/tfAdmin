@@ -10,7 +10,7 @@ import { idParamSchema as actionIdParamSchema, searchQuerySchema as actionsQuery
 import { listQuerySchema as whitelistQuerySchema } from './whitelist';
 import { querySchema as eventsQuerySchema } from './events';
 import { idParamSchema as webhookIdParamSchema } from './webhooks';
-import { actionNoteBodySchema, actionNoteParamSchema, banIdsBodySchema, revokeBodySchema } from './actionWrites';
+import { actionNoteBodySchema, actionNoteParamSchema, banIdsBodySchema, banLengthBodySchema, revokeBodySchema } from './actionWrites';
 import { identifierBodySchema, reqIdParamSchema, denyAllBodySchema } from './whitelistWrites';
 import {
     banBodySchema, warnBodySchema, kickBodySchema, messageBodySchema, whitelistBodySchema, noteBodySchema, noteIdParamSchema,
@@ -247,6 +247,15 @@ export const MCP_TOOLS: ToolDefinition[] = [
         input: { ...actionIdParamSchema.shape, ...revokeBodySchema.shape },
         annotations: destructive,
         request: ({ id, ...body }) => ({ method: 'POST', path: `/actions/${enc(id)}/revoke`, body }),
+    },
+    {
+        name: 'tfadmin_actions_change_ban_length',
+        title: 'Change Ban Length',
+        description: `Change how long a ban lasts, with a required staff reason. The new length counts from when the ban was issued. ${durationHelp}`,
+        scopes: ['players.ban'],
+        input: { ...actionIdParamSchema.shape, ...banLengthBodySchema.shape },
+        annotations: destructive,
+        request: ({ id, ...body }) => ({ method: 'POST', path: `/actions/${enc(id)}/length`, body }),
     },
     {
         name: 'tfadmin_actions_add_note',

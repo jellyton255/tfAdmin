@@ -2347,6 +2347,102 @@
         }
       }
     },
+    "/actions/{id}/length": {
+      "post": {
+        "summary": "Change a ban's length",
+        "description": "The new length counts from when the ban was issued, so a length shorter than the time already served ends the ban at once. Revoked bans and other action types return 409. Publishes the `action.lengthChanged` event.\n\nRequires the `players.ban` scope.",
+        "tags": [
+          "Moderation"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ActorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "$ref": "#/components/schemas/BanDuration"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 2048,
+                    "description": "Staff reason, kept in lengthChanges"
+                  }
+                },
+                "required": [
+                  "duration",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "$ref": "#/components/schemas/Action"
+                        }
+                      },
+                      "required": [
+                        "action"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
     "/actions/{id}/notes": {
       "post": {
         "summary": "Add a staff note to an action",
@@ -5290,6 +5386,13 @@
                 "type": "null"
               }
             ]
+          },
+          "lengthChanges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BanLengthChange"
+            },
+            "description": "Bans only: every change of the length, oldest first. Empty otherwise"
           }
         },
         "required": [
@@ -5309,7 +5412,53 @@
           "revokeReason",
           "notes",
           "externalRef",
-          "presetId"
+          "presetId",
+          "lengthChanges"
+        ],
+        "additionalProperties": false
+      },
+      "BanLengthChange": {
+        "type": "object",
+        "properties": {
+          "changedAt": {
+            "type": "integer",
+            "description": "Unix epoch milliseconds"
+          },
+          "changedBy": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "previousExpiresAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "null = permanent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "description": "null = permanent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "changedAt",
+          "changedBy",
+          "reason",
+          "previousExpiresAt",
+          "expiresAt"
         ],
         "additionalProperties": false
       },
@@ -5721,6 +5870,7 @@
           "whitelist.request",
           "action.revoked",
           "action.noteAdded",
+          "action.lengthChanged",
           "admin.login",
           "apiKey.firstUse",
           "webhook.test"

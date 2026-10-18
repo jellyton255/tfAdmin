@@ -64,11 +64,20 @@ export type DatabaseActionBaseType = {
     notes?: DatabaseNoteType[]; //staff only, oldest first, absent when empty
     presetId?: string; //everfall: the punishment preset (ban template) it was issued from
 };
+//everfall: a change of a ban's length; the new length counts from when the ban was issued
+export type DatabaseBanLengthChangeType = {
+    ts: number;
+    author: string;
+    from: number | false; //previous expiration, false = permanent
+    to: number | false;
+    reason: string;
+};
 export type DatabaseActionBanType = {
     type: 'ban';
     hwids?: string[];
     expiration: number | false;
     externalRef?: string; //idempotency key of bans imported via the API (players.ban_import)
+    lengthChanges?: DatabaseBanLengthChangeType[]; //everfall: oldest first, absent when never changed
 } & DatabaseActionBaseType;
 export type DatabaseActionWarnType = {
     type: 'warn';

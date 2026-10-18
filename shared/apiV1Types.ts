@@ -264,6 +264,15 @@ export type ApiActionRecord = {
     externalRef: string | null;
     /** The punishment preset (ban template) a ban or warn was issued from, else null. */
     presetId: string | null;
+    /** Bans only: every change of the ban's length, oldest first. Empty otherwise. */
+    lengthChanges: ApiBanLengthChange[];
+};
+export type ApiBanLengthChange = {
+    changedAt: number; //epoch ms
+    changedBy: string;
+    previousExpiresAt: number | null; //epoch ms, null = permanent
+    expiresAt: number | null;
+    reason: string;
 };
 export type ApiActionsSearchResp = ApiResp<{ actions: ApiActionRecord[] }, ApiPageMeta>;
 export type ApiActionDetailResp = ApiResp<{ action: ApiActionRecord }>;
@@ -424,6 +433,7 @@ export const API_EVENT_TYPES = [
     'whitelist.request',
     'action.revoked',
     'action.noteAdded',
+    'action.lengthChanged',
     'admin.login',
     'apiKey.firstUse',
     'webhook.test',

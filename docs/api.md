@@ -153,7 +153,8 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 Action records carry `banStatus` (`active`, `expired`, `permanent`, or `null` for warns and kicks), `expiresAt`, `acked` for warns,
 and `revokedAt` / `revokedBy` / `revokeReason`. `externalRef` is the idempotency key of bans recorded through
 `POST /api/v1/actions/import-ban`, and `null` for every other action. `presetId` names the punishment
-preset (ban template) a ban or warn was issued from, or is `null`.
+preset (ban template) a ban or warn was issued from, or is `null`. `lengthChanges` lists every change of a ban's
+length with who made it, why, and the expiry before and after.
 
 Every kick is stored as a `kick` action (panel, API, in-game menu and the `KickPlayer` export). A kick is
 a record only: it never blocks joins, is never active and cannot be revoked. Kick-all and restarts are
@@ -186,6 +187,7 @@ Writes behave exactly like the matching panel buttons: same database records, sa
 | `POST /api/v1/actions/ban-identifiers` | `players.ban` | `{ identifiers[], reason, duration, note? }`. Bans raw identifiers (`discord:…`, `fivem:…`, `license:…`) that may not belong to a known player. 201 with `{ action, eventSent }` |
 | `POST /api/v1/actions/import-ban` | `players.ban_import` | `{ externalRef, identifiers[], hwids?[], playerName?, reason, author, expiresAt?, notify? }`. Records a system or legacy ban. 201 with `{ action, created: true, dropped, eventSent }`; 200 with `created: false` on a replay |
 | `POST /api/v1/actions/{id}/revoke` | `players.ban` for bans, `players.warn` for warns | `{ reason? }`. Revokes the action; 409 if already revoked or a kick. Returns `{ action }` |
+| `POST /api/v1/actions/{id}/length` | `players.ban` | `{ duration, reason }`. Changes a ban's length, counted from when it was issued; a length shorter than the time served ends the ban at once. 409 for revoked bans and other types. Publishes `action.lengthChanged` |
 | `POST /api/v1/actions/{id}/notes` | `players.note`, or the type's scope (`players.ban`, `players.warn`, `players.kick`) | `{ text }`. 201 with `{ note }`; publishes `action.noteAdded` |
 | `PATCH /api/v1/actions/{id}/notes/{noteId}` | same | `{ text }`. Only the note's author can edit it. Returns `{ note }` |
 | `DELETE /api/v1/actions/{id}/notes/{noteId}` | same | The author, or a key or staff member with `manage.admins`, can delete it. The note is hidden, not erased. Returns `{ note }` |
@@ -246,6 +248,7 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 | `whitelist.player`, `whitelist.preApproval`, `whitelist.request` | Whitelist changes |
 | `action.revoked` | `{ actionId, actionType, actionReason, actionAuthor, playerName, playerIds, playerHwids, revokedBy }` |
 | `action.noteAdded` | A staff note was added to a ban, warn or kick. `{ actionId, actionType, playerName, playerIds, note }` |
+| `action.lengthChanged` | A ban's length was changed. `{ actionId, playerName, playerIds, previousExpiresAt, expiresAt, changedBy, reason }`; expiry times are epoch ms, `null` = permanent |
 | `admin.login` | A panel admin signed in. `{ name, method: 'password' \| 'citizenfx', ip }` |
 | `apiKey.firstUse` | First request made with a new key. `{ keyId, keyName, ip }` |
 | `webhook.test` | Sent by the test button / endpoint to that webhook only |

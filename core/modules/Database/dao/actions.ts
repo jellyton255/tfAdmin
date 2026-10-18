@@ -368,6 +368,25 @@ export default class ActionsDao {
 
 
     /**
+     * Sets a new expiration on a ban and records the change with its reason
+     */
+    changeBanLength(actionId: string, expiration: number | false, author: string, reason: string): DatabaseActionBanType {
+        const action = this.chain.get('actions')
+            .find({ id: actionId })
+            .value();
+        if (!action) throw new Error('action not found');
+        if (action.type !== 'ban') throw new Error('only bans have a length');
+        action.lengthChanges = [
+            ...(action.lengthChanges ?? []),
+            { ts: now(), author, from: action.expiration, to: expiration, reason },
+        ];
+        action.expiration = expiration;
+        this.db.writeFlag(SavePriority.HIGH);
+        return cloneDeep(action);
+    }
+
+
+    /**
      * Revoke an action (ban, warn). Kicks cannot be revoked.
      */
     revoke(

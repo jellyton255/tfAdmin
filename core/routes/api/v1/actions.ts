@@ -57,6 +57,15 @@ export const toApiAction = (a: DatabaseActionType, currTs = now()): ApiActionRec
         notes: notesNewestFirst(a.notes).map(toApiActionNote),
         externalRef: a.type === 'ban' ? a.externalRef ?? null : null,
         presetId: a.presetId ?? null,
+        lengthChanges: a.type === 'ban'
+            ? (a.lengthChanges ?? []).map((change) => ({
+                changedAt: secToMs(change.ts) ?? 0,
+                changedBy: change.author,
+                previousExpiresAt: change.from === false ? null : secToMs(change.from),
+                expiresAt: change.to === false ? null : secToMs(change.to),
+                reason: change.reason,
+            }))
+            : [],
     };
 };
 

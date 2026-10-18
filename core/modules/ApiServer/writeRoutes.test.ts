@@ -186,6 +186,13 @@ beforeAll(async () => {
                     a.revocation = { timestamp: nowSec(), author, ...(reason ? { reason } : {}) };
                     return a;
                 },
+                changeBanLength: (id: string, expiration: number | false, author: string, reason: string) => {
+                    const a = actions.find((x) => x.id === id)!;
+                    if (a.type !== 'ban') throw new Error('only bans have a length');
+                    a.lengthChanges = [...(a.lengthChanges ?? []), { ts: nowSec(), author, from: a.expiration, to: expiration, reason }];
+                    a.expiration = expiration;
+                    return a;
+                },
                 addNote: (id: string, text: string, author: string) => {
                     const a = actions.find((x) => x.id === id)!;
                     const { history, note } = appendNote(a.notes, text, author, nowSec());
@@ -424,6 +431,38 @@ describe('actions', () => {
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' });
         const revokeWarn = await call('POST', `/api/v1/actions/${warn.json.data.action.id}/revoke`, undefined, kickOnlyToken);
         expect(revokeWarn.status).toBe(200);
+    });
+});
+
+
+describe('ban length', () => {
+    it('counts the new length from when the ban was issued and keeps each change', async () => {
+        const ban = await call('POST', `/api/v1/players/${LIC_OFF}/ban`, { reason: 'rdm', duration: '1 week' });
+        const { id, createdAt } = ban.json.data.action;
+
+        const shorter = await call('POST', `/api/v1/actions/${id}/length`, { duration: '3 days', reason: 'appeal accepted' });
+        expect(shorter.status).toBe(200);
+        expect(shorter.json.data.action.expiresAt).toBe(createdAt + 3 * 86400_000);
+        expect(shorter.json.data.action.lengthChanges).toMatchObject([
+            { reason: 'appeal accepted', previousExpiresAt: createdAt + 7 * 86400_000, expiresAt: createdAt + 3 * 86400_000 },
+        ]);
+        const page = apiServer.events.list({ limit: 50, types: ['action.lengthChanged'] });
+        expect(page.events.at(-1)?.data).toMatchObject({ actionId: id, reason: 'appeal accepted' });
+
+        const perm = await call('POST', `/api/v1/actions/${id}/length`, { duration: 'permanent', reason: 'ban evasion found' });
+        expect(perm.json.data.action.banStatus).toBe('permanent');
+        expect(perm.json.data.action.lengthChanges).toHaveLength(2);
+    });
+
+    it('needs a reason, and refuses revoked bans and warns', async () => {
+        const ban = await call('POST', `/api/v1/players/${LIC_OFF}/ban`, { reason: 'rdm', duration: '1 day' });
+        const id = ban.json.data.action.id;
+        expect((await call('POST', `/api/v1/actions/${id}/length`, { duration: '2 days', reason: 'x' })).status).toBe(400);
+        await call('POST', `/api/v1/actions/${id}/revoke`);
+        expect((await call('POST', `/api/v1/actions/${id}/length`, { duration: '2 days', reason: 'appeal' })).status).toBe(409);
+
+        const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' });
+        expect((await call('POST', `/api/v1/actions/${warn.json.data.action.id}/length`, { duration: '2 days', reason: 'appeal' })).status).toBe(409);
     });
 });
 

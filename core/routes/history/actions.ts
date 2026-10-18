@@ -9,6 +9,7 @@ import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { z } from 'zod';
 import { addSanctionNote } from '@modules/ApiServer/services/playerActions';
 import { addActionNote, deleteActionNote, editActionNote } from '@modules/ApiServer/services/actionNotes';
+import { changeBanLength } from '@modules/ApiServer/services/banChanges';
 const console = consoleFactory(modulename);
 
 //Schema
@@ -34,6 +35,13 @@ const actionNoteBodySchema = z.discriminatedUnion('op', [
 ]);
 export type ApiActionNoteReqSchema = z.infer<typeof actionNoteBodySchema>;
 
+const changeBanLengthBodySchema = z.object({
+    actionId: z.string(),
+    duration: z.string().trim().min(1).max(32),
+    reason: z.string().trim().min(3, 'The reason must be at least 3 characters long.').max(2048),
+});
+export type ApiChangeBanLengthReqSchema = z.infer<typeof changeBanLengthBodySchema>;
+
 
 /**
  * Endpoint to interact with the actions database.
@@ -53,6 +61,8 @@ export default async function HistoryActions(ctx: AuthedCtx & { params: any }) {
         return sendTypedResp(await handleRevokeAction(ctx));
     } else if (action === 'actionNote') {
         return sendTypedResp(await handleActionNote(ctx));
+    } else if (action === 'changeBanLength') {
+        return sendTypedResp(await handleChangeBanLength(ctx));
     } else {
         return sendTypedResp({ error: 'unknown action' });
     }
@@ -224,6 +234,27 @@ async function handleActionNote(ctx: AuthedCtx): Promise<GenericApiOkResp> {
         } else {
             deleteActionNote(ctx.admin, req.actionId, req.noteId);
         }
+        return { success: true };
+    } catch (error) {
+        return { error: (error as Error).message };
+    }
+}
+
+
+/**
+ * Handle changing a ban's length (players.ban). The new length counts from when the ban was issued.
+ */
+async function handleChangeBanLength(ctx: AuthedCtx): Promise<GenericApiOkResp> {
+    const schemaRes = changeBanLengthBodySchema.safeParse(ctx.request.body);
+    if (!schemaRes.success) {
+        return { error: schemaRes.error.issues[0]?.message ?? 'Invalid request body.' };
+    }
+    if (!ctx.admin.testPermission('players.ban', modulename)) {
+        return { error: 'You don\'t have permission to execute this action.' };
+    }
+    const { actionId, duration, reason } = schemaRes.data;
+    try {
+        changeBanLength(ctx.admin, actionId, duration, reason);
         return { success: true };
     } catch (error) {
         return { error: (error as Error).message };
