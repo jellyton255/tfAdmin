@@ -46,9 +46,13 @@ import type {
     ApiServerCommandReq,
     ApiServerControlResp,
     ApiSetNoteReq,
+    ApiSetTagsReq,
+    ApiSetTagsResp,
     ApiSetWhitelistReq,
     ApiStatusResp,
     ApiWarnPlayerReq,
+    ApiWatchPlayerReq,
+    ApiWatchPlayerResp,
     ApiWebhookCreateReq,
     ApiWebhookCreateResp,
     ApiWebhookDeliveriesResp,
@@ -104,8 +108,8 @@ type Data<R> = Unwrap<Exclude<R, ApiErrorBody>>;
 
 export type PlayerSearchQuery = {
     q?: string;
-    type?: 'name' | 'ids' | 'notes';
-    filter?: ('isAdmin' | 'isOnline' | 'isWhitelisted' | 'hasNote')[];
+    type?: 'name' | 'ids' | 'notes' | 'tag';
+    filter?: ('isAdmin' | 'isOnline' | 'isWhitelisted' | 'hasNote' | 'isWatched')[];
     sort?: 'playTime' | 'tsJoined' | 'tsLastConnection';
     order?: 'asc' | 'desc';
     limit?: number;
@@ -256,6 +260,10 @@ export class TxAdminClient {
         setNote: (license: string, input: ApiSetNoteReq) => this.put<ApiOkResp>(`/players/${encodeURIComponent(license)}/note`, input),
         addNote: (license: string, input: ApiSetNoteReq) => this.post<ApiPlayerNoteResp>(`/players/${encodeURIComponent(license)}/notes`, input),
         deleteNote: (license: string, noteId: string) => this.delete<ApiPlayerNoteResp>(`/players/${encodeURIComponent(license)}/notes/${encodeURIComponent(noteId)}`),
+        watch: (license: string, input: ApiWatchPlayerReq) => this.put<ApiWatchPlayerResp>(`/players/${encodeURIComponent(license)}/watch`, input),
+        unwatch: (license: string) => this.delete<ApiOkResp>(`/players/${encodeURIComponent(license)}/watch`),
+        /** Replaces every tag; returns them as saved. */
+        setTags: (license: string, input: ApiSetTagsReq) => this.put<ApiSetTagsResp>(`/players/${encodeURIComponent(license)}/tags`, input),
     };
 
     //MARK: Actions
