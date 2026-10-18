@@ -53,6 +53,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
   const revokeButonDisabled =
     action.revokedBy !== undefined ||
     action.type == "kick" ||
+    action.type == "sanction" ||
     (action.type == "warn" && permsDisableWarn) ||
     (action.type == "ban" && permsDisableBan);
 
@@ -67,6 +68,9 @@ const ActionCard: React.FC<ActionCardProps> = ({
     actionMessage = t("nui_menu.player_modal.history.warned_by", {
       author: action.author,
     });
+  } else if (action.type == "sanction") {
+    actionColor = colors.dark;
+    actionMessage = `${action.sanction?.toUpperCase()} by ${action.author}`;
   } else if (action.type == "kick") {
     actionColor = colors.dark;
     actionMessage = t("nui_menu.player_modal.history.kicked_by", {
