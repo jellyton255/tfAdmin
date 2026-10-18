@@ -5,6 +5,7 @@ import { DatabaseActionWarnType, DatabasePlayerType } from '@modules/Database/da
 import consoleFactory from '@lib/console';
 import { PlayerDroppedEventType, PlayerJoiningEventType } from '@shared/socketioTypes';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
+import { sendJoinAlerts } from '@lib/player/joinAlerts';
 const console = consoleFactory(modulename);
 
 
@@ -228,6 +229,7 @@ export default class FxPlayerlist {
                     license: svPlayer.license,
                 });
                 txCore.apiServer?.publishEvent('player.joined', { netid: svPlayer.netid, displayName: svPlayer.displayName, license: svPlayer.license, ids: svPlayer.idsOnline }); // everfall:api
+                sendJoinAlerts(svPlayer); // everfall:watchlist
             } catch (error) {
                 console.verbose.warn(`playerJoining event error: ${(error as Error).message}`);
             }

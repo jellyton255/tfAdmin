@@ -27,6 +27,8 @@ const SERVER_EVENT_MAP: Record<string, ApiEventType> = {
     playerWarned: 'player.warned',
     playerKicked: 'player.kicked',
     playerDirectMessage: 'player.directMessage',
+    playerWatchJoined: 'player.watchJoined',
+    playerPossibleBanEvasion: 'player.possibleBanEvasion',
     whitelistPlayer: 'whitelist.player',
     whitelistPreApproval: 'whitelist.preApproval',
     whitelistRequest: 'whitelist.request',

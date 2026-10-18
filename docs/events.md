@@ -102,6 +102,23 @@ Event Data:
 - `actionId`: (tfAdmin) The id of the stored kick action, or `null` for kick-all and unrecorded kicks.
 - `targetName`: (tfAdmin) The player's name, absent when kicking everyone.
 
+### txAdmin:events:playerPossibleBanEvasion
+(tfAdmin) Broadcasted when a player joins whose linked accounts (shared identifiers or HWIDs, as in the player window's Linked Accounts tab) have an active ban that the join check did not match. ef_hud shows it to `staffNetIds`.
+Event Data:
+- `staffNetIds`: The ids of the admins online in game.
+- `netid`, `displayName`, `license`: The player who joined.
+- `bannedLinkCount`: How many linked accounts are banned.
+- `bannedLinks`: Up to 5 of them, each `{ license, displayName, matchedIdTypes, matchedHwidCount }`. `matchedIdTypes` lists the shared identifier types, such as `discord`.
+
+### txAdmin:events:playerWatchJoined
+(tfAdmin) Broadcasted when a player on the watchlist joins. ef_hud shows it to `staffNetIds`.
+Event Data:
+- `staffNetIds`: The ids of the admins online in game.
+- `netid`, `displayName`, `license`: The player who joined.
+- `reason`: Why the player is watched.
+- `watchedBy`: The admin who put them on the watchlist.
+- `watchedAt`: When, in epoch milliseconds.
+
 ### txAdmin:events:playerWarned
 Broadcasted when a player is warned using txAdmin.  
 If you want to hide the default notification, you can do that in `txAdmin -> Settings -> Game -> Notifications`.  

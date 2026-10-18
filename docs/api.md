@@ -237,6 +237,8 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 | `player.joined` | `{ netid, displayName, license, ids }` |
 | `player.left` | `{ netid, displayName, license, reason, reasonCategory }` |
 | `player.banned`, `player.warned`, `player.kicked`, `player.directMessage` | Same payload as `txAdmin:events:playerBanned` etc. `author` is `api:<key>` for API actions |
+| `player.watchJoined` | A player on the watchlist joined. `{ staffNetIds, netid, displayName, license, reason, watchedBy, watchedAt }` |
+| `player.possibleBanEvasion` | A player joined whose linked accounts (shared identifiers or HWIDs, as in Linked Accounts) have an active ban the join check did not match. `{ staffNetIds, netid, displayName, license, bannedLinkCount, bannedLinks: [{ license, displayName, matchedIdTypes, matchedHwidCount }] }` (at most 5 links) |
 | `whitelist.player`, `whitelist.preApproval`, `whitelist.request` | Whitelist changes |
 | `action.revoked` | `{ actionId, actionType, actionReason, actionAuthor, playerName, playerIds, playerHwids, revokedBy }` |
 | `action.noteAdded` | A staff note was added to a ban, warn or kick. `{ actionId, actionType, playerName, playerIds, note }` |

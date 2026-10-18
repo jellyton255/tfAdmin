@@ -616,6 +616,21 @@ export default class AdminStore {
 
 
     /**
+     * Returns the net ids of the admins connected to the game server right now.
+     * @returns {number[]}
+     */
+    getOnlineAdminNetIds() {
+        //FIXME: use getAdminsIdentifiers() instead
+        const adminIDs = this.admins.reduce((ids, adm) => {
+            const adminIDs = Object.keys(adm.providers).map((pName) => adm.providers[pName].identifier);
+            return ids.concat(adminIDs);
+        }, []);
+        const { idsFound } = txCore.fxPlayerlist.getAssociatedOnlineNetIds(adminIDs);
+        return [...new Set(idsFound.map(x => x[1]))];
+    }
+
+
+    /**
      * Notify game server about admin changes
      * FIXME: doesn't need to be async, just make sure it never throws
      */
@@ -624,22 +639,7 @@ export default class AdminStore {
         txCore.webServer.webSocket.reCheckAdminAuths().catch((e) => { });
 
         try {
-            //Getting all admin identifiers
-            //FIXME: use getAdminsIdentifiers() instead
-            const adminIDs = this.admins.reduce((ids, adm) => {
-                const adminIDs = Object.keys(adm.providers).map((pName) => adm.providers[pName].identifier);
-                return ids.concat(adminIDs);
-            }, []);
-
-            //Finding online admins
-            const onlineIDs = [];
-            const { idsFound } = txCore.fxPlayerlist.getAssociatedOnlineNetIds(adminIDs);
-            for (const netid of idsFound.map(x => x[1])) {
-                if (!onlineIDs.includes(netid)) {
-                    onlineIDs.push(netid);
-                }
-            }
-            txCore.fxRunner.sendEvent('adminsUpdated', onlineIDs);
+            txCore.fxRunner.sendEvent('adminsUpdated', this.getOnlineAdminNetIds());
         } catch (error) {
             console.verbose.error('Failed to refreshOnlineAdmins() with error:');
             console.verbose.dir(error);

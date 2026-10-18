@@ -402,6 +402,8 @@ export const API_EVENT_TYPES = [
     'player.warned',
     'player.kicked',
     'player.directMessage',
+    'player.watchJoined',
+    'player.possibleBanEvasion',
     'whitelist.player',
     'whitelist.preApproval',
     'whitelist.request',
