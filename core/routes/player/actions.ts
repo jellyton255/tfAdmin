@@ -9,7 +9,7 @@ import { SYM_CURRENT_MUTEX } from '@lib/symbols';
 import { z } from 'zod';
 import { shortenId } from '@shared/utils';
 import { summarizeIdsArray } from '@lib/player/idUtils';
-import { addSanctionNote, recordKick } from '@modules/ApiServer/services/playerActions';
+import { addSanctionNote, recordKick, setPlayerTags, unwatchPlayer, watchPlayer } from '@modules/ApiServer/services/playerActions';
 import { movePlayerNoteToAction } from '@modules/ApiServer/services/actionNotes';
 const console = consoleFactory(modulename);
 
@@ -30,6 +30,12 @@ const moveNoteBodySchema = z.object({
     actionId: z.string().min(1).max(32),
 });
 export type ApiMovePlayerNoteReqSchema = z.infer<typeof moveNoteBodySchema>;
+const watchBodySchema = z.object({
+    reason: z.string().trim().min(1, 'Say why this player is being watched.').max(512, 'The reason is too long.'),
+});
+const setTagsBodySchema = z.object({
+    tags: z.array(z.string().max(64)).max(32),
+});
 const sanctionNoteSchema = z.string().trim().max(4096, 'The note is too long.').optional();
 
 /**
@@ -74,6 +80,12 @@ export default async function PlayerActions(ctx: AuthedCtx) {
         return sendTypedResp(await handleDeleteNote(ctx, player));
     } else if (action === 'move_note') {
         return sendTypedResp(await handleMoveNote(ctx, player));
+    } else if (action === 'watch') {
+        return sendTypedResp(await handleWatch(ctx, player));
+    } else if (action === 'unwatch') {
+        return sendTypedResp(await handleUnwatch(ctx, player));
+    } else if (action === 'set_tags') {
+        return sendTypedResp(await handleSetTags(ctx, player));
     } else if (action === 'warn') {
         return sendTypedResp(await handleWarning(ctx, player));
     } else if (action === 'ban') {
@@ -144,6 +156,53 @@ async function handleMoveNote(ctx: AuthedCtx, player: PlayerClass): Promise<Gene
         return { success: true };
     } catch (error) {
         return { error: `Failed to move note: ${(error as Error).message}` };
+    }
+}
+
+
+/**
+ * Handle Watch (open to all admins, like notes): puts the player on the watchlist
+ */
+async function handleWatch(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+    const schemaRes = watchBodySchema.safeParse(ctx.request.body);
+    if (!schemaRes.success) {
+        return { error: schemaRes.error.issues[0]?.message ?? 'Invalid request.' };
+    }
+    try {
+        watchPlayer(ctx.admin, player, schemaRes.data.reason);
+        return { success: true };
+    } catch (error) {
+        return { error: (error as Error).message };
+    }
+}
+
+
+/**
+ * Handle Unwatch (open to all admins): takes the player off the watchlist
+ */
+async function handleUnwatch(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+    try {
+        unwatchPlayer(ctx.admin, player);
+        return { success: true };
+    } catch (error) {
+        return { error: (error as Error).message };
+    }
+}
+
+
+/**
+ * Handle Set Tags (open to all admins): replaces the player's tags
+ */
+async function handleSetTags(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+    const schemaRes = setTagsBodySchema.safeParse(ctx.request.body);
+    if (!schemaRes.success) {
+        return { error: 'Invalid request.' };
+    }
+    try {
+        setPlayerTags(ctx.admin, player, schemaRes.data.tags);
+        return { success: true };
+    } catch (error) {
+        return { error: (error as Error).message };
     }
 }
 

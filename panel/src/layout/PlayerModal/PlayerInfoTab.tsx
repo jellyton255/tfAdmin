@@ -10,13 +10,13 @@ import { msToDuration, tsToLocaleDateTimeString } from "@/lib/dateTime";
 import StaffNoteText, { formatNoteAge } from "@/components/StaffNoteText";
 import { GenericApiOkResp } from "@shared/genericApiTypes";
 import { PlayerModalPlayerData, PlayerNoteItem } from "@shared/playerApiTypes";
-import { CornerDownRightIcon, ShieldAlertIcon, Trash2Icon } from "lucide-react";
+import { CornerDownRightIcon, EyeIcon, ShieldAlertIcon, Trash2Icon, XIcon } from "lucide-react";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { isNoteAuthor } from "@shared/noteAuthor";
 import { useMemo, useState } from "react";
-import { useOpenConfirmDialog } from "@/hooks/dialogs";
+import { useOpenConfirmDialog, useOpenPromptDialog } from "@/hooks/dialogs";
 import { ModalTabInner } from "@/components/modal-tabs";
 
 
@@ -213,18 +213,33 @@ function PlayerNotesBox({ playerRef, player, serverTime, refreshModalData }: Pla
 type PlayerInfoTabProps = {
     playerRef: PlayerModalRefType;
     player: PlayerModalPlayerData;
+    tagSuggestions: string[];
     serverTime: number;
     tsFetch: number;
     setSelectedTab: (t: string) => void;
     refreshModalData: () => void;
 }
 
-export default function PlayerInfoTab({ playerRef, player, serverTime, tsFetch, setSelectedTab, refreshModalData }: PlayerInfoTabProps) {
+export default function PlayerInfoTab({ playerRef, player, tagSuggestions, serverTime, tsFetch, setSelectedTab, refreshModalData }: PlayerInfoTabProps) {
     const { hasPerm } = useAdminPerms();
+    const openPromptDialog = useOpenPromptDialog();
     const playerWhitelistApi = useBackendApi<GenericApiOkResp>({
         method: 'POST',
         path: `/player/whitelist`,
     });
+    const watchApi = useBackendApi<GenericApiOkResp>({
+        method: 'POST',
+        path: `/player/watch`,
+    });
+    const unwatchApi = useBackendApi<GenericApiOkResp>({
+        method: 'POST',
+        path: `/player/unwatch`,
+    });
+    const setTagsApi = useBackendApi<GenericApiOkResp>({
+        method: 'POST',
+        path: `/player/set_tags`,
+    });
+    const tags = player.tags ?? [];
 
     const sessionTimeText = !player.sessionTime ? '--' : msToDuration(
         player.sessionTime * 60_000,
@@ -276,6 +291,61 @@ export default function PlayerInfoTab({ playerRef, player, serverTime, tsFetch, 
         });
     }
 
+    const handleWatchClick = () => {
+        if (player.watch) {
+            unwatchApi({
+                queryParams: playerRef,
+                toastLoadingMessage: 'Removing from the watchlist...',
+                genericHandler: { successMsg: 'Removed from the watchlist.' },
+                success: (data) => {
+                    if ('success' in data) refreshModalData();
+                },
+            });
+            return;
+        }
+        openPromptDialog({
+            title: 'Watch Player',
+            placeholder: 'Reason',
+            required: true,
+            submitLabel: 'Watch',
+            onSubmit: (reason) => {
+                watchApi({
+                    queryParams: playerRef,
+                    data: { reason },
+                    toastLoadingMessage: 'Adding to the watchlist...',
+                    genericHandler: { successMsg: 'Added to the watchlist.' },
+                    success: (data) => {
+                        if ('success' in data) refreshModalData();
+                    },
+                });
+            },
+        });
+    }
+
+    const saveTags = (newTags: string[]) => {
+        setTagsApi({
+            queryParams: playerRef,
+            data: { tags: newTags },
+            toastLoadingMessage: 'Saving tags...',
+            genericHandler: { successMsg: 'Tags saved.' },
+            success: (data) => {
+                if ('success' in data) refreshModalData();
+            },
+        });
+    }
+
+    const handleAddTagClick = () => {
+        const taken = new Set(tags.map((tag) => tag.toLowerCase()));
+        openPromptDialog({
+            title: 'Add Tag',
+            placeholder: 'Tag',
+            required: true,
+            suggestions: tagSuggestions.filter((tag) => !taken.has(tag.toLowerCase())).slice(0, 8),
+            submitLabel: 'Add',
+            onSubmit: (tag) => saveTags([...tags, tag]),
+        });
+    }
+
     const playerBannedText: string | undefined = useMemo(() => {
         if (!player || !serverTime) return;
         let banExpiration;
@@ -305,6 +375,22 @@ export default function PlayerInfoTab({ playerRef, player, serverTime, tsFetch, 
                     </div>
                     <div className="flex-grow text-sm font-medium">
                         {playerBannedText}
+                    </div>
+                </div>
+            ) : null}
+            {player.watch ? (
+                <div className="w-full p-2 pr-3 mb-1 flex items-center justify-between space-x-4 rounded-lg border shadow-lg transition-all text-black/75 dark:text-white/90 border-destructive/70 bg-destructive-hint">
+                    <div className="flex-shrink-0 flex flex-col gap-2 items-center">
+                        <EyeIcon className="size-5 text-destructive" />
+                    </div>
+                    <div className="flex-grow min-w-0">
+                        <StaffNoteText text={player.watch.reason} />
+                        <small
+                            className="block text-xs text-muted-foreground"
+                            title={tsToLocaleDateTimeString(player.watch.ts, 'long', 'short')}
+                        >
+                            Watched by {player.watch.author} · {formatNoteAge(serverTime - player.watch.ts)}
+                        </small>
                     </div>
                 </div>
             ) : null}
@@ -339,6 +425,50 @@ export default function PlayerInfoTab({ playerRef, player, serverTime, tsFetch, 
                         >
                             {player.tsWhitelisted ? 'Remove' : 'Allow'}
                         </Button>
+                    </dd>
+                </div>
+                <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                    <dt className="text-sm font-medium leading-6 text-muted-foreground">Watchlist</dt>
+                    <dd className="text-sm leading-6 mt-0">{player.watch ? 'Watched' : 'Not watched'}</dd>
+                    <dd className="text-right">
+                        <Button
+                            variant="outline"
+                            size='inline'
+                            style={{ minWidth: '8.25ch' }}
+                            onClick={handleWatchClick}
+                            disabled={!player.isRegistered}
+                        >
+                            {player.watch ? 'Remove' : 'Watch'}
+                        </Button>
+                    </dd>
+                </div>
+                <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                    <dt className="text-sm font-medium leading-6 text-muted-foreground">Tags</dt>
+                    <dd className="text-sm leading-6 mt-0 flex flex-wrap gap-1">
+                        {tags.length ? tags.map((tag) => (
+                            <span
+                                key={tag}
+                                className="h-max inline-flex items-center gap-0.5 rounded-sm bg-secondary text-secondary-foreground text-xs font-semibold pl-1.5 pr-0.5 py-[0.125rem]"
+                            >
+                                {tag}
+                                <button
+                                    className="rounded-sm opacity-60 hover:opacity-100"
+                                    title={`Remove ${tag}`}
+                                    onClick={() => saveTags(tags.filter((x) => x !== tag))}
+                                >
+                                    <XIcon className="size-3" />
+                                </button>
+                            </span>
+                        )) : '--'}
+                    </dd>
+                    <dd className="text-right">
+                        <Button
+                            variant="outline"
+                            size='inline'
+                            style={{ minWidth: '8.25ch' }}
+                            onClick={handleAddTagClick}
+                            disabled={!player.isRegistered}
+                        >Add</Button>
                     </dd>
                 </div>
                 <div className="py-0.5 grid grid-cols-3 gap-4 px-0">

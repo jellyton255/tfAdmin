@@ -183,6 +183,7 @@ export default function PlayerModal() {
                             <>
                                 {selectedTab === 'Info' && <PlayerInfoTab
                                     player={modalData.player}
+                                    tagSuggestions={modalData.tagSuggestions}
                                     playerRef={playerRef!}
                                     serverTime={modalData.serverTime}
                                     tsFetch={tsFetch}

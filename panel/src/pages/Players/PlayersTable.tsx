@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { convertRowDateTime, msToShortDuration } from '@/lib/dateTime';
 import { TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2Icon, ShieldCheckIcon, ActivitySquareIcon, FileTextIcon } from 'lucide-react';
+import { Loader2Icon, ShieldCheckIcon, ActivitySquareIcon, FileTextIcon, EyeIcon } from 'lucide-react';
 import { useOpenPlayerModal } from "@/hooks/playerModal";
 import { PlayersTableSearchResp, PlayersTableFiltersType, PlayersTableSearchType, PlayersTableSortingType, PlayersTablePlayerType } from '@shared/playerApiTypes';
 import { useBackendApi } from '@/hooks/fetch';
@@ -38,6 +38,9 @@ function PlayerRow({ rowData, modalOpener }: PlayerRowProps) {
                     )} />
                     <FileTextIcon className={cn('h-5',
                         rowData.notes ? 'text-secondary-foreground' : 'text-muted'
+                    )} />
+                    <EyeIcon className={cn('h-5',
+                        rowData.isWatched ? 'text-destructive-inline' : 'text-muted'
                     )} />
                 </div>
             </TableCell>

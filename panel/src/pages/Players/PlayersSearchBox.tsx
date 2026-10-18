@@ -36,6 +36,12 @@ export const availableSearchTypes = [
         description: 'Search players by their profile notes contents.'
     },
     {
+        value: 'playerTag',
+        label: 'Tag',
+        placeholder: 'VIP, Content Creator, etc.',
+        description: 'Search players by one of their tags.'
+    },
+    {
         value: 'playerIds',
         label: 'Player IDs',
         placeholder: 'License, Discord, Steam, etc.',
@@ -50,6 +56,7 @@ export const availableFilters = [
     // { label: 'Has Previous Ban', value: 'hasPreviousBan' },
     { label: 'Has Whitelisted ID', value: 'isWhitelisted' },
     { label: 'Has Profile Notes', value: 'hasNote' },
+    { label: 'Is Watched', value: 'isWatched' },
 ] as const;
 
 //FIXME: this doesn't require exporting, but HMR doesn't work without it

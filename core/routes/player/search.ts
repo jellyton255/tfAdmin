@@ -8,13 +8,14 @@ import { chain as createChain } from 'lodash-es';
 import Fuse from 'fuse.js';
 import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
 import { newestNote } from '@lib/notes';
+import { hasTag } from '@lib/player/playerTags';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
 const console = consoleFactory(modulename);
 
 //Helpers
 const DEFAULT_LIMIT = 100; //cant override it for now
 const ALLOWED_SORTINGS = ['playTime', 'tsJoined', 'tsLastConnection'];
-const SIMPLE_FILTERS = ['isAdmin', 'isOnline', 'isWhitelisted', 'hasNote'];
+const SIMPLE_FILTERS = ['isAdmin', 'isOnline', 'isWhitelisted', 'hasNote', 'isWatched'];
 //'isBanned', 'hasPreviousBan'
 
 
@@ -75,6 +76,7 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
                 'isOnline': (p: DatabasePlayerType) => onlinePlayersLicenses.has(p.license),
                 'isWhitelisted': (p: DatabasePlayerType) => p.tsWhitelisted,
                 'hasNote': (p: DatabasePlayerType) => !!p.noteHistory?.length,
+                'isWatched': (p: DatabasePlayerType) => !!p.watch,
             };
             chain = chain.filter((p) => {
                 for (const filterName of validRequestedFilters) {
@@ -131,6 +133,8 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
             });
             const filtered = fuse.search(searchValue).map(x => x.item);
             chain = createChain(filtered);
+        } else if (searchType === 'playerTag') {
+            chain = chain.filter((p) => hasTag(p, searchValue));
         } else if (searchType === 'playerIds') {
             //Searching by player identifiers
             const { validIds, validHwids, invalids } = parseLaxIdsArrayInput(searchValue);
@@ -171,6 +175,7 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
             isAdmin: p.ids.some((id) => adminsIdentifiers.includes(id)),
             isOnline: onlinePlayersLicenses.has(p.license),
             isWhitelisted: p.tsWhitelisted ? true : false,
+            isWatched: !!p.watch,
             // isBanned: boolean,
             // warnCount: number,
             // banCount: number,

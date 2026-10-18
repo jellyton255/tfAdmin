@@ -21,6 +21,12 @@ export type PlayerNoteItem = {
     ts: number;
 }
 
+export type PlayerWatchItem = {
+    reason: string;
+    author: string;
+    ts: number;
+}
+
 export type PlayerModalPlayerData = {
     //common
     displayName: string;
@@ -43,12 +49,15 @@ export type PlayerModalPlayerData = {
     tsWhitelisted?: number;
     playTime?: number;
     noteHistory?: PlayerNoteItem[]; //newest first
+    watch?: PlayerWatchItem; //only while on the watchlist
+    tags?: string[];
     tsLastConnection?: number; //only show if offline
 }
 
 export type PlayerModalSuccess = {
     serverTime: number; //required to calculate if bans have expired on frontend
     banTemplates: BanTemplatesDataType[]; //TODO: move this to websocket push
+    tagSuggestions: string[]; //tags in use, most used first, then unused defaults
     player: PlayerModalPlayerData;
 }
 export type PlayerModalResp = PlayerModalSuccess | GenericApiErrorResp;
@@ -147,6 +156,7 @@ export type PlayersTablePlayerType = {
     notes?: string;
 
     isAdmin: boolean;
+    isWatched: boolean;
     isOnline: boolean;
     isWhitelisted: boolean;
     // isBanned: boolean;

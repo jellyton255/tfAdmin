@@ -8,6 +8,8 @@ import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { now } from '@lib/misc';
 import { SYM_CURRENT_MUTEX } from '@lib/symbols';
 import { notesNewestFirst, visibleNotes } from '@lib/notes';
+import { tagSuggestions } from '@lib/player/playerTags';
+import type { DatabasePlayerType } from '@modules/Database/databaseTypes';
 const console = consoleFactory(modulename);
 
 //Helpers
@@ -81,6 +83,8 @@ export default async function PlayerModal(ctx: AuthedCtx) {
         playerData.tsLastConnection = playerDbData.tsLastConnection;
 
         playerData.noteHistory = notesNewestFirst(playerDbData.noteHistory);
+        playerData.watch = playerDbData.watch;
+        playerData.tags = playerDbData.tags;
     }
 
     // console.dir(metaFields);
@@ -88,6 +92,7 @@ export default async function PlayerModal(ctx: AuthedCtx) {
     return sendTypedResp({
         serverTime: now(),
         banTemplates: txConfig.banlist.templates, //TODO: move this to websocket push
+        tagSuggestions: tagSuggestions(txCore.database.players.findMany((p: DatabasePlayerType) => !!p.tags)),
         player: playerData
     });
 };
