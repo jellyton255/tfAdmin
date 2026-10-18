@@ -56,6 +56,7 @@ export const toApiAction = (a: DatabaseActionType, currTs = now()): ApiActionRec
         revokeReason: a.revocation.reason ?? null,
         notes: notesNewestFirst(a.notes).map(toApiActionNote),
         externalRef: a.type === 'ban' ? a.externalRef ?? null : null,
+        presetId: a.presetId ?? null,
     };
 };
 

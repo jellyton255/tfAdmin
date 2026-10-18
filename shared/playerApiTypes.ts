@@ -12,6 +12,8 @@ export type PlayerHistoryItem = {
     exp?: number;
     revokedBy?: string;
     revokedAt?: number;
+    presetId?: string; //everfall: punishment preset it was issued from
+    offenseUntil?: number; //everfall: preset bans and warns count toward the ladder until this time
 }
 
 export type PlayerNoteItem = {
@@ -58,6 +60,7 @@ export type PlayerModalSuccess = {
     serverTime: number; //required to calculate if bans have expired on frontend
     banTemplates: BanTemplatesDataType[]; //TODO: move this to websocket push
     tagSuggestions: string[]; //tags in use, most used first, then unused defaults
+    offenseWindowDays: number; //everfall: how long preset offenses count toward the ladder
     player: PlayerModalPlayerData;
 }
 export type PlayerModalResp = PlayerModalSuccess | GenericApiErrorResp;

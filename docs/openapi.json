@@ -5279,6 +5279,17 @@
                 "type": "null"
               }
             ]
+          },
+          "presetId": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Punishment preset (ban template) the ban or warn was issued from, else null"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5297,7 +5308,8 @@
           "revokedBy",
           "revokeReason",
           "notes",
-          "externalRef"
+          "externalRef",
+          "presetId"
         ],
         "additionalProperties": false
       },

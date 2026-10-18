@@ -26,6 +26,8 @@ const processHistoryLog = (hist: DatabaseActionType[]) => {
                 revokedBy: log.revocation.author ? log.revocation.author : undefined,
                 revokedAt: log.revocation.timestamp ? log.revocation.timestamp : undefined,
                 noteCount: visibleNotes(log.notes).length || undefined,
+                presetId: log.presetId,
+                offenseUntil: log.presetId ? log.timestamp + txConfig.banlist.offenseWindowDays * 86400 : undefined,
             };
         });
     } catch (error) {
@@ -93,6 +95,7 @@ export default async function PlayerModal(ctx: AuthedCtx) {
         serverTime: now(),
         banTemplates: txConfig.banlist.templates, //TODO: move this to websocket push
         tagSuggestions: tagSuggestions(txCore.database.players.findMany((p: DatabasePlayerType) => !!p.tags)),
+        offenseWindowDays: txConfig.banlist.offenseWindowDays,
         player: playerData
     });
 };

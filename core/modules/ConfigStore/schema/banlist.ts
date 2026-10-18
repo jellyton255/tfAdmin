@@ -24,10 +24,18 @@ export const BanDurationTypeSchema = z.union([
 ]);
 export type BanDurationType = z.infer<typeof BanDurationTypeSchema>;
 
+//everfall: one rung of a preset's offense ladder
+export const LadderStepSchema = z.union([z.literal('warn'), BanDurationTypeSchema]);
+export type LadderStepType = z.infer<typeof LadderStepSchema>;
+
+//everfall: templates are punishment presets. `name` and `ladder` are optional so older builds
+//strip them instead of rejecting the config; without a ladder the preset is one ban of `duration`.
 export const BanTemplatesDataSchema = z.object({
     id: z.string().length(BAN_TEMPLATE_ID_LENGTH), //nanoid fixed at 21 chars
     reason: z.string().min(3).max(2048), //should be way less, but just in case
     duration: BanDurationTypeSchema,
+    name: z.string().trim().min(1).max(32).optional(), //short offense label, like "RDM"
+    ladder: LadderStepSchema.array().min(1).max(10).optional(), //punishment for the 1st, 2nd, ... offense
 });
 export type BanTemplatesDataType = z.infer<typeof BanTemplatesDataSchema>;
 
@@ -75,6 +83,14 @@ const requiredHwidMatches = typeDefinedConfig({
     fixer: SYM_FIXER_DEFAULT,
 });
 
+//everfall: how long a preset ban or warn counts toward the offense ladder
+const offenseWindowDays = typeDefinedConfig({
+    name: 'Offense Window (days)',
+    default: 30,
+    validator: z.number().int().min(1).max(3650),
+    fixer: SYM_FIXER_DEFAULT,
+});
+
 const templates = typeDefinedConfig({
     name: 'Ban Templates',
     default: [],
@@ -89,4 +105,5 @@ export default {
     rejectionMessage,
     requiredHwidMatches,
     templates,
+    offenseWindowDays,
 } as const;

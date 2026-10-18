@@ -262,6 +262,8 @@ export type ApiActionRecord = {
     notes: ApiActionNote[];
     /** Bans imported via POST /actions/import-ban: their idempotency key. Otherwise null. */
     externalRef: string | null;
+    /** The punishment preset (ban template) a ban or warn was issued from, else null. */
+    presetId: string | null;
 };
 export type ApiActionsSearchResp = ApiResp<{ actions: ApiActionRecord[] }, ApiPageMeta>;
 export type ApiActionDetailResp = ApiResp<{ action: ApiActionRecord }>;

@@ -91,6 +91,7 @@ export default class ActionsDao {
         expiration: number | false,
         playerName: string | false = false,
         hwids?: string[], //only used for bans
+        presetId?: string,
     ): string {
         //Sanity check
         if (!Array.isArray(ids) || !ids.length) throw new Error('Invalid ids array.');
@@ -118,6 +119,7 @@ export default class ActionsDao {
                     timestamp: null,
                     author: null,
                 },
+                ...(presetId ? { presetId } : {}),
             };
             this.chain.get('actions')
                 .push(toDB)
@@ -207,6 +209,7 @@ export default class ActionsDao {
         author: string,
         reason: string,
         playerName: string | false = false,
+        presetId?: string,
     ): string {
         //Sanity check
         if (!Array.isArray(ids) || !ids.length) throw new Error('Invalid ids array.');
@@ -232,6 +235,7 @@ export default class ActionsDao {
                     timestamp: null,
                     author: null,
                 },
+                ...(presetId ? { presetId } : {}),
             };
             this.chain.get('actions')
                 .push(toDB)

@@ -186,6 +186,7 @@ const schemas: Record<string, Schema> = {
         revokeReason: nullable(str({ description: 'Staff reason given when revoking, else null' })),
         notes: { ...arr(ref('ActionNote')), description: 'Staff notes, newest first. Never shown to the player; deleted notes are left out' },
         externalRef: nullable(str({ description: 'Idempotency key of bans recorded via POST /actions/import-ban, else null' })),
+        presetId: nullable(str({ description: 'Punishment preset (ban template) the ban or warn was issued from, else null' })),
     }),
     ActionsStats: obj({
         totalWarns: int(), warnsLast7d: int(), totalBans: int(), bansLast7d: int(), totalKicks: int(), kicksLast7d: int(),

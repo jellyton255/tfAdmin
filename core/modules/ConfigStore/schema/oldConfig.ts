@@ -58,6 +58,7 @@ const restructureOldConfig = (old: any) => {
             rejectionMessage: old?.playerDatabase?.banRejectionMessage,
             requiredHwidMatches: old?.playerDatabase?.requiredBanHwidMatches,
             templates: old?.banTemplates,
+            offenseWindowDays: 30, //NOTE: new config
         },
         whitelist: { //NOTE: All Renamed
             mode: old?.playerDatabase?.whitelistMode,

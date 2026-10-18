@@ -62,6 +62,7 @@ export type DatabaseActionBaseType = {
         reason?: string;
     };
     notes?: DatabaseNoteType[]; //staff only, oldest first, absent when empty
+    presetId?: string; //everfall: the punishment preset (ban template) it was issued from
 };
 export type DatabaseActionBanType = {
     type: 'ban';

@@ -9,7 +9,7 @@ import { SYM_CURRENT_MUTEX } from '@lib/symbols';
 import { z } from 'zod';
 import { shortenId } from '@shared/utils';
 import { summarizeIdsArray } from '@lib/player/idUtils';
-import { addSanctionNote, recordKick, setPlayerTags, unwatchPlayer, watchPlayer } from '@modules/ApiServer/services/playerActions';
+import { addSanctionNote, recordKick, resolvePresetId, setPlayerTags, unwatchPlayer, watchPlayer } from '@modules/ApiServer/services/playerActions';
 import { movePlayerNoteToAction } from '@modules/ApiServer/services/actionNotes';
 const console = consoleFactory(modulename);
 
@@ -37,6 +37,20 @@ const setTagsBodySchema = z.object({
     tags: z.array(z.string().max(64)).max(32),
 });
 const sanctionNoteSchema = z.string().trim().max(4096, 'The note is too long.').optional();
+const presetIdSchema = z.string().max(32).optional();
+
+/**
+ * Reads the optional punishment preset sent with a ban or warn. Returns an error message when it is unknown.
+ */
+const readPresetId = (ctx: AuthedCtx): { presetId?: string; error?: string } => {
+    const parsed = presetIdSchema.safeParse(ctx.request.body?.presetId);
+    if (!parsed.success) return { error: 'Invalid preset.' };
+    try {
+        return { presetId: resolvePresetId(parsed.data) };
+    } catch (error) {
+        return { error: (error as Error).message };
+    }
+};
 
 /**
  * Saves the optional staff note sent with a ban, warn or kick. Returns an error message on failure.
@@ -219,6 +233,8 @@ async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
         return { error: 'Invalid request.' };
     }
     const reason = ctx.request.body.reason.trim() || 'no reason provided';
+    const preset = readPresetId(ctx);
+    if (preset.error) return { error: preset.error };
 
     //Check permissions
     if (!ctx.admin.testPermission('players.warn', modulename)) {
@@ -239,6 +255,7 @@ async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
             ctx.admin.name,
             reason,
             player.displayName,
+            preset.presetId,
         );
     } catch (error) {
         return { error: `Failed to warn player: ${(error as Error).message}` };
@@ -290,6 +307,8 @@ async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericAp
         return { error: (error as Error).message };
     }
     const { expiration, duration } = calcResults;
+    const preset = readPresetId(ctx);
+    if (preset.error) return { error: preset.error };
 
     //Check permissions
     if (!ctx.admin.testPermission('players.ban', modulename)) {
@@ -312,7 +331,8 @@ async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericAp
             reason,
             expiration,
             player.displayName,
-            allHwids
+            allHwids,
+            preset.presetId,
         );
     } catch (error) {
         return { error: `Failed to ban player: ${(error as Error).message}` };

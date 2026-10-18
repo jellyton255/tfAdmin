@@ -152,7 +152,8 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 
 Action records carry `banStatus` (`active`, `expired`, `permanent`, or `null` for warns and kicks), `expiresAt`, `acked` for warns,
 and `revokedAt` / `revokedBy` / `revokeReason`. `externalRef` is the idempotency key of bans recorded through
-`POST /api/v1/actions/import-ban`, and `null` for every other action.
+`POST /api/v1/actions/import-ban`, and `null` for every other action. `presetId` names the punishment
+preset (ban template) a ban or warn was issued from, or is `null`.
 
 Every kick is stored as a `kick` action (panel, API, in-game menu and the `KickPlayer` export). A kick is
 a record only: it never blocks joins, is never active and cannot be revoked. Kick-all and restarts are

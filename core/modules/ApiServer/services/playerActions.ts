@@ -52,6 +52,17 @@ export const recordKick = (author: string, ids: string[], reason: string, player
     return txCore.database.actions.registerKick(ids, author, reason, playerName);
 };
 
+/**
+ * everfall: checks that a preset id sent with a ban or warn names a configured preset
+ */
+export const resolvePresetId = (presetId: string | undefined) => {
+    if (!presetId) return undefined;
+    if (!txConfig.banlist.templates.some((preset) => preset.id === presetId)) {
+        throw new ApiError(400, 'VALIDATION_ERROR', 'That punishment preset does not exist.', { field: 'presetId' });
+    }
+    return presetId;
+};
+
 const requireOnline = (player: PlayerClass): ServerPlayer => {
     if (!txCore.fxRunner.child?.isAlive) {
         throw new ApiError(503, 'SERVER_OFFLINE', 'The server is not running.');
@@ -93,8 +104,9 @@ export const buildBanKickMessage = (
 };
 
 
-export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string, durationInput: string, note?: string): ActionWriteResult => {
+export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string, durationInput: string, note?: string, presetIdInput?: string): ActionWriteResult => {
     const reason = reasonInput.trim() || 'no reason provided';
+    const presetId = resolvePresetId(presetIdInput);
     const { expiration, duration } = parseBanDuration(durationInput);
     const allIds = player.allIdentifiers;
     const allHwids = player.allHardwareIdentifiers;
@@ -104,7 +116,7 @@ export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: 
 
     let actionId: string;
     try {
-        actionId = txCore.database.actions.registerBan(allIds, admin.name, reason, expiration, player.displayName, allHwids);
+        actionId = txCore.database.actions.registerBan(allIds, admin.name, reason, expiration, player.displayName, allHwids, presetId);
     } catch (error) {
         throw new ApiError(500, 'INTERNAL_ERROR', `Failed to ban player: ${(error as Error).message}`);
     }
@@ -133,8 +145,9 @@ export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: 
 };
 
 
-export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string, note?: string): ActionWriteResult => {
+export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: string, note?: string, presetIdInput?: string): ActionWriteResult => {
     const reason = reasonInput.trim() || 'no reason provided';
+    const presetId = resolvePresetId(presetIdInput);
     const allIds = player.allIdentifiers;
     if (!allIds.length) {
         throw new ApiError(409, 'CONFLICT', 'Cannot warn a player with no identifiers.');
@@ -142,7 +155,7 @@ export const warnPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput:
 
     let actionId: string;
     try {
-        actionId = txCore.database.actions.registerWarn(allIds, admin.name, reason, player.displayName);
+        actionId = txCore.database.actions.registerWarn(allIds, admin.name, reason, player.displayName, presetId);
     } catch (error) {
         throw new ApiError(500, 'INTERNAL_ERROR', `Failed to warn player: ${(error as Error).message}`);
     }
