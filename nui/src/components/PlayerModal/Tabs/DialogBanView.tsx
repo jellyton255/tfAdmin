@@ -21,7 +21,8 @@ import { usePermissionsValue } from "../../../state/permissions.state";
 import { DialogLoadError } from "./DialogLoadError";
 import { GenericApiErrorResp, GenericApiResp } from "@shared/genericApiTypes";
 import { useSetPlayerModalVisibility } from "@nui/src/state/playerModal.state";
-import type { BanTemplatesDataType, BanDurationType } from "@shared/otherTypes";
+import type { BanTemplatesDataType, BanDurationType, LadderStepType } from "@shared/otherTypes";
+import { countActiveOffenses, ladderSteps, nextLadderStep, ordinal, presetLabel } from "@shared/offenseLadder";
 
 //Helpers - yoinked from the web ui code
 const maxReasonSize = 128;
@@ -51,6 +52,7 @@ const banDurationToShortString = (duration: BanDurationType) => {
   }
   return `${duration.value}${suffix}`;
 }
+const ladderStepToShortString = (step: LadderStepType) => step === 'warn' ? 'WARN' : banDurationToShortString(step);
 
 const DialogBanView: React.FC = () => {
   const assocPlayer = useAssociatedPlayerValue();
@@ -60,6 +62,7 @@ const DialogBanView: React.FC = () => {
   const [duration, setDuration] = useState("2 hours");
   const [customDuration, setCustomDuration] = useState("hours");
   const [customDurLength, setCustomDurLength] = useState("1");
+  const [preset, setPreset] = useState<{ id: string; hint: string } | undefined>();
   const t = useTranslate();
   const setModalOpen = useSetPlayerModalVisibility();
   const { enqueueSnackbar } = useSnackbar();
@@ -70,9 +73,13 @@ const DialogBanView: React.FC = () => {
     return <DialogLoadError />;
   }
 
+  const canWarn = userHasPerm("players.warn", playerPerms);
   const handleBan = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userHasPerm("players.ban", playerPerms)) return showNoPerms("Ban");
+    //A preset's ladder can call for a warn, so this view can warn too
+    const isWarn = duration === "warn";
+    if (isWarn && !canWarn) return showNoPerms("Warn");
+    if (!isWarn && !userHasPerm("players.ban", playerPerms)) return showNoPerms("Ban");
 
     const trimmedReason = reason.trim();
     if (!trimmedReason.length) {
@@ -87,22 +94,26 @@ const DialogBanView: React.FC = () => {
       : duration;
 
     fetchWebPipe<GenericApiResp>(
-      `/player/ban?mutex=current&netid=${assocPlayer.id}`,
+      `/player/${isWarn ? "warn" : "ban"}?mutex=current&netid=${assocPlayer.id}`,
       {
         method: "POST",
         data: {
           reason: trimmedReason,
           duration: actualDuration,
           note: note.trim() || undefined,
+          presetId: preset?.id,
         },
       }
     )
       .then((result) => {
         if ("success" in result && result.success) {
           setModalOpen(false);
-          enqueueSnackbar(t(`nui_menu.player_modal.ban.success`), {
-            variant: "success",
-          });
+          enqueueSnackbar(
+            isWarn
+              ? t("nui_menu.player_modal.actions.moderation.warn_dialog.success")
+              : t(`nui_menu.player_modal.ban.success`),
+            { variant: "success" }
+          );
         } else {
           enqueueSnackbar(
             (result as GenericApiErrorResp).error ?? t("nui_menu.misc.unknown_error"),
@@ -116,6 +127,7 @@ const DialogBanView: React.FC = () => {
   };
 
   const banDurations = [
+    ...(canWarn ? [{ value: "warn", label: "Warn Instead" }] : []),
     {
       value: "2 hours",
       label: `2 ${t("nui_menu.player_modal.ban.hours")}`,
@@ -174,7 +186,7 @@ const DialogBanView: React.FC = () => {
   const processedTemplates = useMemo(() => {
     return banTemplates.map((template, index) => ({
       id: template.id,
-      label: template.reason,
+      label: template.name ? `${template.name}: ${template.reason}` : template.reason,
     }));
   }, [banTemplates]);
 
@@ -182,16 +194,28 @@ const DialogBanView: React.FC = () => {
     //reason = One of "createOption", "selectOption", "removeOption", "blur" or "clear".
     if (reason !== 'selectOption' || value === null) return;
     const template = banTemplates.find(template => template.id === value.id);
-    if (!template) return;
+    if (!template || !("player" in playerDetails)) return;
 
-    const processedDuration = banDurationToString(template.duration);
-    if (defaultDurations.includes(processedDuration)) {
-      setDuration(processedDuration);
-    } else if (typeof template.duration === 'object') {
-      setDuration('custom');
-      setCustomDurLength(template.duration.value.toString());
-      setCustomDuration(template.duration.unit);
+    //The ladder picks the step after the offenses that still count
+    const priorOffenses = countActiveOffenses(playerDetails.player.actionHistory, template.id, playerDetails.serverTime);
+    const ladderStep = nextLadderStep(template, priorOffenses);
+    const step = ladderStep === 'warn' && !canWarn ? template.duration : ladderStep;
+    if (step === 'warn') {
+      setDuration('warn');
+    } else {
+      const processedDuration = banDurationToString(step);
+      if (defaultDurations.includes(processedDuration)) {
+        setDuration(processedDuration);
+      } else if (typeof step === 'object') {
+        setDuration('custom');
+        setCustomDurLength(step.value.toString());
+        setCustomDuration(step.unit);
+      }
     }
+    setPreset({
+      id: template.id,
+      hint: `${presetLabel(template)}: ${ordinal(priorOffenses + 1)} offense in ${playerDetails.offenseWindowDays} days`,
+    });
   }
 
   const handleReasonInputChange = (event: React.SyntheticEvent, value: string, reason: string) => {
@@ -214,7 +238,8 @@ const DialogBanView: React.FC = () => {
           onInputChange={handleReasonInputChange}
           options={processedTemplates}
           renderOption={(props, option, state) => {
-            const duration = banTemplates.find((t) => t.id === option.id)?.duration ?? '????';
+            const template = banTemplates.find((t) => t.id === option.id);
+            const duration = template ? ladderSteps(template).map(ladderStepToShortString).join(' › ') : '????';
             const reason = option.label.length > maxReasonSize
               ? option.label.slice(0, maxReasonSize - 3) + '...'
               : option.label;
@@ -227,11 +252,16 @@ const DialogBanView: React.FC = () => {
                   opacity: "0.75",
                   minWidth: "4ch"
                 }}
-              >{banDurationToShortString(duration as any)}</span> {reason}
+              >{duration}</span> {reason}
             </li>
           }}
           renderInput={(params) => <TextField {...params} label="Reason" />}
         />
+        {preset && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            {preset.hint}
+          </Typography>
+        )}
         <TextField
           size="small"
           select
@@ -295,7 +325,7 @@ const DialogBanView: React.FC = () => {
           sx={{ mt: 2 }}
           onClick={handleBan}
         >
-          {t("nui_menu.player_modal.ban.submit")}
+          {duration === "warn" ? "Apply Warn" : t("nui_menu.player_modal.ban.submit")}
         </Button>
       </form>
     </DialogContent>

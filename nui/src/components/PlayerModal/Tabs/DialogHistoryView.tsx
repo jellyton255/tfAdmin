@@ -13,6 +13,8 @@ import { GenericApiErrorResp, GenericApiResp } from "@shared/genericApiTypes";
 import { ButtonXS } from "../../misc/ButtonXS";
 import { tsToLocaleDateTime, userHasPerm } from "@nui/src/utils/miscUtils";
 import { usePermissionsValue } from "@nui/src/state/permissions.state";
+import type { BanTemplatesDataType } from "@shared/otherTypes";
+import { presetLabel } from "@shared/offenseLadder";
 
 // TODO: Make the styling on this nicer
 const NoHistoryBox = () => (
@@ -34,6 +36,7 @@ type ActionCardProps = {
   permsDisableWarn: boolean;
   permsDisableBan: boolean;
   serverTime: number;
+  preset?: BanTemplatesDataType;
   btnAction: Function;
 };
 const ActionCard: React.FC<ActionCardProps> = ({
@@ -41,6 +44,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
   permsDisableWarn,
   permsDisableBan,
   serverTime,
+  preset,
   btnAction,
 }) => {
   const theme = useTheme();
@@ -87,6 +91,14 @@ const ActionCard: React.FC<ActionCardProps> = ({
         });
   }
 
+  //Preset offenses count toward the ladder for a while, then stay here without counting
+  let offenseNote;
+  if (action.offenseUntil && !action.revokedBy) {
+    offenseNote = action.offenseUntil > serverTime
+      ? `Counts as an offense until ${tsToLocaleDateTime(action.offenseUntil, "medium")}.`
+      : "No longer counts as an offense.";
+  }
+
   return (
     <Box
       style={{
@@ -126,11 +138,12 @@ const ActionCard: React.FC<ActionCardProps> = ({
         </Typography>
       </Box>
       <span style={{ color: theme.palette.text.secondary }}>
+        {preset && <strong>[{presetLabel(preset)}] </strong>}
         {action.reason}
       </span>
-      {footerNote && (
+      {(footerNote || offenseNote) && (
         <small style={{ display: "block", paddingTop: "0.35em" }}>
-          {footerNote}
+          {footerNote} {offenseNote}
         </small>
       )}
     </Box>
@@ -194,6 +207,7 @@ const DialogHistoryView: React.FC = () => {
               permsDisableWarn={!hasWarnPerm}
               permsDisableBan={!hasBanPerm}
               serverTime={playerDetails.serverTime}
+              preset={playerDetails.banTemplates.find((template) => template.id === action.presetId)}
               btnAction={() => {
                 handleRevoke(action.id);
               }}
