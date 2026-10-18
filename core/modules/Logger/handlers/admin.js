@@ -1,6 +1,4 @@
 const modulename = 'Logger:Admin';
-import fsp from 'node:fs/promises';
-import path from 'node:path';
 import { getBootDivider } from '../loggerUtils';
 import consoleFactory from '@lib/console';
 import { LoggerBase } from '../LoggerBase';
@@ -32,17 +30,6 @@ export default class AdminLogger extends LoggerBase {
             writes: this.writeCounter,
             lrErrors: this.lrErrors,
         };
-    }
-
-    /**
-     * Returns an string with everything in admin.log (the active log rotate file)
-     */
-    async getRecentBuffer() {
-        try {
-            return await fsp.readFile(path.join(this.basePath, 'admin.log'), 'utf8');
-        } catch (error) {
-            return false;
-        }
     }
 
     /**

@@ -24,7 +24,7 @@ import { darkThemeColors, lightThemeColors } from './LiveConsole/liveConsoleColo
 //Helpers
 const keyDebounceTime = 150; //ms
 type SystemLogPageProps = {
-    pageName: 'console' | 'action';
+    pageName: 'console';
 };
 
 
@@ -200,12 +200,8 @@ export default function SystemLogPage({ pageName }: SystemLogPageProps) {
     }
 
     //Rendering stuff
-    let pageTitle = 'Console Log';
-    let pageSubtitle = 'Output of txAdmin to it\'s parent terminal, including usually hidden debug messages.';
-    if (pageName === 'action') {
-        pageTitle = 'Action Log';
-        pageSubtitle = 'Log of all actions taken by txAdmin or any admin.';
-    }
+    const pageTitle = 'Console Log';
+    const pageSubtitle = 'Output of txAdmin to it\'s parent terminal, including usually hidden debug messages.';
 
     return (
         <div className="text-primary flex flex-col h-full w-full bg-card border md:rounded-xl overflow-clip">

@@ -151,7 +151,7 @@ export default function DesktopNavbar() {
                                 href="/system/action-log"
                                 disabled={!hasPerm('txadmin.log.view')}
                             >
-                                Action Log
+                                Audit Log
                             </HeaderMenuLink>
                             <HeaderMenuLink
                                 className="w-36 justify-start"

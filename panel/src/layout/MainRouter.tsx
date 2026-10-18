@@ -29,6 +29,7 @@ import MasterActionsPage from "@/pages/MasterActions/MasterActionsPage";
 import ResourcesPage from "@/pages/Resources/ResourcesPage";
 import ServerLogPage from "@/pages/ServerLog/ServerLogPage";
 import ReleaseNotesPage from "@/pages/ReleaseNotes/ReleaseNotesPage";
+import AuditLogPage from "@/pages/AuditLog/AuditLogPage";
 
 
 type RouteType = {
@@ -91,9 +92,9 @@ const allRoutes: RouteType[] = [
     },
     {
         path: '/system/action-log',
-        title: 'Action Log',
+        title: 'Audit Log',
         permission: 'txadmin.log.view',
-        Page: <SystemLogPage pageName="action" />
+        Page: <AuditLogPage />
     },
     {
         //everfall:api

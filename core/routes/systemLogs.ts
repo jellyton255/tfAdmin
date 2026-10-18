@@ -4,7 +4,7 @@ import type { GenericApiErrorResp } from '@shared/genericApiTypes';
 
 
 /**
- * Returns the data of for the system logs pages (console/actions)
+ * Returns the data of for the console log page
  * NOTE: would be more efficient to return the raw string, but the frontend fetcher expects JSON
  */
 export default async function SystemLogs(ctx: AuthedCtx) {
@@ -20,12 +20,6 @@ export default async function SystemLogs(ctx: AuthedCtx) {
     if (scope === 'console') {
         return sendTypedResp({
             data: getLogBuffer(),
-        });
-    } else if (scope === 'action') {
-        const rawActions = await txCore.logger.admin.getRecentBuffer();
-        if (!rawActions) return sendTypedResp({ error: 'Error fetching actions' });
-        return sendTypedResp({
-            data: rawActions,
         });
     } else {
         return sendTypedResp({ error: 'Invalid scope' });
