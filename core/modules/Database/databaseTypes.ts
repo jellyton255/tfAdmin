@@ -11,7 +11,13 @@ export type DatabasePlayerType = {
     noteHistory?: DatabasePlayerNoteType[]; //oldest first, absent when empty
     watch?: DatabasePlayerWatchType; //on the staff watchlist, absent when not watched
     tags?: string[]; //staff labels such as VIP, absent when empty
+    staffPlayDays?: DatabaseStaffPlayDayType[]; //everfall: in-game minutes per UTC day while a staff member, oldest first
 };
+
+/**
+ * Minutes a staff member spent in game on one UTC day (`YYYY-MM-DD`), for the Staff Activity page.
+ */
+export type DatabaseStaffPlayDayType = [day: string, minutes: number];
 
 /**
  * Why and by whom a player was put on the watchlist. Staff are alerted when a watched player joins.

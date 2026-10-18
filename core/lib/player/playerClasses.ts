@@ -5,6 +5,7 @@ import { cloneDeep, union } from 'lodash-es';
 import { now } from '@lib/misc';
 import { parsePlayerIds } from '@lib/player/idUtils';
 import { appendNote } from '@lib/notes';
+import { addStaffMinute } from '@lib/staffActivity';
 import consoleFactory from '@lib/console';
 import consts from '@shared/consts';
 import type FxPlayerlist from '@modules/FxPlayerlist';
@@ -340,29 +341,12 @@ export class ServerPlayer extends BasePlayer {
      * Updates dbData play time every minute
      */
     #minuteCron() {
-        //FIXME: maybe use UIntXarray or mnemonist.Uint16Vector circular buffers to save memory
-        //TODO: rough draft of a playtime tracking system written before note above
-        // let list: [day: string, mins: number][] = [];
-        // const today = new Date;
-        // const currDay = today.toISOString().split('T')[0];
-        // if(!list.length){
-        //     list.push([currDay, 1]);
-        //     return;
-        // }
-        // if(list.at(-1)![0] === currDay){
-        //     list.at(-1)![1]++;
-        // } else {
-        //     //FIXME: move this cutoff to a const in the database or playerlist manager
-        //     const cutoffTs = today.setUTCHours(0, 0, 0, 0) - 1000 * 60 * 60 * 24 * 28; 
-        //     const cutoffIndex = list.findIndex(x => new Date(x[0]).getTime() < cutoffTs);
-        //     list = list.slice(cutoffIndex);
-        //     list.push([currDay, 1]);
-        // }
-
-
         if (!this.dbData || !this.isConnected) return;
         try {
-            this.mutateDbData({ playTime: this.dbData.playTime + 1 });
+            const isStaff = !!txCore.adminStore.getAdminByIdentifiers(this.idsOnline);
+            this.mutateDbData(isStaff
+                ? { playTime: this.dbData.playTime + 1, staffPlayDays: addStaffMinute(this.dbData.staffPlayDays, Date.now()) }
+                : { playTime: this.dbData.playTime + 1 });
         } catch (error) {
             console.warn(`Failed to update playtime for player ${this.displayName}:`);
             console.dir(error);

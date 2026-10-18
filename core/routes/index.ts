@@ -78,6 +78,7 @@ export { default as advanced_runCommand } from './advanced/runCommand';
 export { default as serverLogPartial } from './serverLogPartial';
 export { default as serverLogSearch } from './serverLogSearch';
 export { default as adminLogSearch } from './adminLogSearch';
+export { default as staffActivity } from './staffActivity';
 
 export { default as host_status } from './hostStatus';
 
