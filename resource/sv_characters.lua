@@ -2,14 +2,16 @@
 if not TX_SERVER_MODE then return end
 
 -- =============================================
--- Everfall: QBox character lookup for the player modal.
--- Core POSTs { txAdminToken, licenses } to /monitor/characters; sv_main.lua routes it here.
+-- Everfall: QBox character lookup for the player modal and quick search.
+-- Core POSTs { txAdminToken, licenses } or { txAdminToken, citizenIds } to /monitor/characters;
+-- sv_main.lua routes it here.
 -- Read-only: one SELECT through oxmysql, so it also works for offline players.
 -- =============================================
 
 local MAX_BODY_LENGTH = 4096
-local MAX_LICENSES = 16
+local MAX_KEYS = 16
 local LICENSE_PATTERN = '^license2?:%x+$'
+local CITIZEN_ID_PATTERN = '^%w+$'
 
 local CHARACTERS_QUERY = [[
     SELECT
@@ -24,10 +26,12 @@ local CHARACTERS_QUERY = [[
         JSON_VALUE(p.money, '$.cash') + 0 AS cash,
         JSON_VALUE(p.money, '$.bank') + 0 AS bank,
         UNIX_TIMESTAMP(p.last_updated) AS tsLastUpdated,
-        UNIX_TIMESTAMP(p.last_logged_out) AS tsLastLoggedOut
+        UNIX_TIMESTAMP(p.last_logged_out) AS tsLastLoggedOut,
+        u.license AS license,
+        u.license2 AS license2
     FROM players p
     JOIN users u ON u.userId = p.userId
-    WHERE (u.license IN (%s) OR u.license2 IN (%s))
+    WHERE %s
         AND p.deleted IS NULL
     ORDER BY p.last_updated DESC
 ]]
@@ -37,31 +41,42 @@ local function sendJson(res, status, data)
     res.send(json.encode(data))
 end
 
-local function readLicenses(body)
-    local data = json.decode(body)
-    if type(data) ~= 'table' or data.txAdminToken ~= TX_LUACOMTOKEN then return nil end
-    if type(data.licenses) ~= 'table' or #data.licenses < 1 or #data.licenses > MAX_LICENSES then return nil end
-
-    for _, license in ipairs(data.licenses) do
-        if type(license) ~= 'string' or not license:match(LICENSE_PATTERN) then return nil end
+local function readKeys(list, pattern)
+    if type(list) ~= 'table' or #list < 1 or #list > MAX_KEYS then return nil end
+    for _, key in ipairs(list) do
+        if type(key) ~= 'string' or not key:match(pattern) then return nil end
     end
-
-    return data.licenses
+    return list
 end
 
-local function queryCharacters(res, licenses)
-    if GetResourceState('oxmysql') ~= 'started' then
-        return sendJson(res, 503, { error = 'oxmysql is not started' })
+-- Returns the WHERE clause and its parameters, or nil for an invalid request
+local function readFilter(body)
+    local data = json.decode(body)
+    if type(data) ~= 'table' or data.txAdminToken ~= TX_LUACOMTOKEN then return nil end
+
+    local citizenIds = data.citizenIds and readKeys(data.citizenIds, CITIZEN_ID_PATTERN)
+    if citizenIds then
+        local marks = ('?,'):rep(#citizenIds):sub(1, -2)
+        return ('p.citizenid IN (%s)'):format(marks), citizenIds
     end
 
+    local licenses = readKeys(data.licenses, LICENSE_PATTERN)
+    if not licenses then return nil end
     local marks = ('?,'):rep(#licenses):sub(1, -2)
     local params = {}
     for index, license in ipairs(licenses) do
         params[index] = license
         params[#licenses + index] = license
     end
+    return ('(u.license IN (%s) OR u.license2 IN (%s))'):format(marks, marks), params
+end
 
-    exports.oxmysql:query(CHARACTERS_QUERY:format(marks, marks), params, function(rows, err)
+local function queryCharacters(res, where, params)
+    if GetResourceState('oxmysql') ~= 'started' then
+        return sendJson(res, 503, { error = 'oxmysql is not started' })
+    end
+
+    exports.oxmysql:query(CHARACTERS_QUERY:format(where), params, function(rows, err)
         if err then
             txPrint('^1Character lookup failed: ' .. tostring(err))
             return sendJson(res, 500, { error = 'character query failed' })
@@ -86,11 +101,11 @@ function TxHandleCharactersHttp(req, res)
             return sendJson(res, 400, { error = 'invalid request' })
         end
 
-        local licenses = readLicenses(body)
-        if not licenses then
+        local where, params = readFilter(body)
+        if not where then
             return sendJson(res, 401, { error = 'invalid request' })
         end
 
-        queryCharacters(res, licenses)
+        queryCharacters(res, where, params)
     end)
 end

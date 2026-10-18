@@ -28,23 +28,44 @@ const charactersRespSchema = z.object({
         tsLastUpdated: nullableNumber,
         tsLastLoggedOut: nullableNumber,
         online: z.boolean(),
+        license: nullableString,
+        license2: nullableString,
     })),
 });
 const errorRespSchema = z.object({ error: z.string() });
 
 
+export type GameCharacter = PlayerCharacter & {
+    license: string | null;
+    license2: string | null;
+};
+type CharactersLookupResult = {
+    status: 'ok';
+    characters: GameCharacter[];
+} | {
+    status: 'unavailable';
+    reason: string;
+};
+
+
 /**
- * Asks the monitor resource (resource/sv_characters.lua) for the QBox characters of these licenses.
- * The lookup runs in FXServer through oxmysql, so tfAdmin needs no database credentials.
+ * Asks the monitor resource (resource/sv_characters.lua) for the QBox characters of these licenses,
+ * or with these citizen IDs. The lookup runs in FXServer through oxmysql, so tfAdmin needs no
+ * database credentials.
  */
-async function fetchCharacters(netEndpoint: string, licenses: string[]): Promise<PlayerCharactersResp> {
+export async function lookupCharacters(filter: { licenses: string[] } | { citizenIds: string[] }): Promise<CharactersLookupResult> {
+    const child = txCore.fxRunner.child;
+    if (!child?.isAlive || !child.netEndpoint) {
+        return { status: 'unavailable', reason: 'The game server is not running.' };
+    }
+
     let resp;
     try {
         resp = await got.post({
-            url: `http://${netEndpoint}/monitor/characters`,
+            url: `http://${child.netEndpoint}/monitor/characters`,
             json: {
                 txAdminToken: txCore.webServer.luaComToken,
-                licenses,
+                ...filter,
             },
             maxRedirects: 0,
             timeout: { request: LOOKUP_TIMEOUT_MS },
@@ -58,12 +79,16 @@ async function fetchCharacters(netEndpoint: string, licenses: string[]): Promise
 
     const parsed = charactersRespSchema.safeParse(resp);
     if (parsed.success) {
-        const characters: PlayerCharacter[] = parsed.data.characters;
-        return { status: 'ok', characters };
+        return { status: 'ok', characters: parsed.data.characters };
     }
 
+    //before the citizen ID lookup, the resource refused anything without licenses
     const gameError = errorRespSchema.safeParse(resp);
-    if (gameError.success && gameError.data.error === 'route not found') {
+    const isOutdated = gameError.success && (
+        gameError.data.error === 'route not found'
+        || ('citizenIds' in filter && gameError.data.error === 'invalid request')
+    );
+    if (isOutdated) {
         return { status: 'unavailable', reason: 'The game server needs a restart to load the character lookup.' };
     }
     if (gameError.success) {
@@ -98,10 +123,5 @@ export default async function PlayerCharacters(ctx: AuthedCtx) {
         return sendTypedResp({ status: 'ok', characters: [] });
     }
 
-    const child = txCore.fxRunner.child;
-    if (!child?.isAlive || !child.netEndpoint) {
-        return sendTypedResp({ status: 'unavailable', reason: 'The game server is not running.' });
-    }
-
-    return sendTypedResp(await fetchCharacters(child.netEndpoint, licenses.slice(0, 16)));
+    return sendTypedResp(await lookupCharacters({ licenses: licenses.slice(0, 16) }));
 };

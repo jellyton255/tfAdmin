@@ -89,6 +89,7 @@ export default () => {
     router.get('/serverLog/search', apiAuthMw, routes.serverLogSearch);
     router.get('/adminLog/search', apiAuthMw, routes.adminLogSearch);
     router.get('/staffActivity', apiAuthMw, routes.staffActivity);
+    router.get('/quickSearch', apiAuthMw, routes.quickSearch);
     router.get('/resources/list', apiAuthMw, routes.resources);
     router.get('/systemLog/:scope', apiAuthMw, routes.systemLogs);
     router.get('/perfChartData/:thread', apiAuthMw, routes.perfChart);
