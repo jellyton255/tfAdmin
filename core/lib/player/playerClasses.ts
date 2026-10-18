@@ -108,6 +108,32 @@ export class BasePlayer {
     }
 
     /**
+     * Puts this player on the watchlist, replacing any earlier reason.
+     */
+    setWatch(reason: string, author: string) {
+        if (!this.license || !this.dbData) throw new Error(`cannot watch a player that is not registered`);
+        const watch = { reason, author, ts: now() };
+        this.mutateDbData({ watch });
+        return watch;
+    }
+
+    /**
+     * Takes this player off the watchlist.
+     */
+    clearWatch() {
+        if (!this.license || !this.dbData) throw new Error(`cannot unwatch a player that is not registered`);
+        this.mutateDbData({ watch: undefined });
+    }
+
+    /**
+     * Replaces this player's tags with an already normalized list.
+     */
+    setTags(tags: string[]) {
+        if (!this.license || !this.dbData) throw new Error(`cannot tag a player that is not registered`);
+        this.mutateDbData({ tags: tags.length ? tags : undefined });
+    }
+
+    /**
      * Saves the whitelist status for this player
      * NOTE: Techinically, we should be checking this.isRegistered, but not available in BasePlayer
      */

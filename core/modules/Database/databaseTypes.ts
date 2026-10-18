@@ -9,6 +9,17 @@ export type DatabasePlayerType = {
     tsJoined: number;
     tsWhitelisted?: number;
     noteHistory?: DatabasePlayerNoteType[]; //oldest first, absent when empty
+    watch?: DatabasePlayerWatchType; //on the staff watchlist, absent when not watched
+    tags?: string[]; //staff labels such as VIP, absent when empty
+};
+
+/**
+ * Why and by whom a player was put on the watchlist. Staff are alerted when a watched player joins.
+ */
+export type DatabasePlayerWatchType = {
+    reason: string;
+    author: string;
+    ts: number;
 };
 
 /**
