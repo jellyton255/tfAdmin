@@ -1,6 +1,6 @@
 import { throttle } from "throttle-debounce";
 
-export type GlobalHotkeyAction = 'focusPlayerlistFilter' | 'toggleLightMode';
+export type GlobalHotkeyAction = 'openQuickSearch' | 'toggleLightMode';
 
 const keyDebounceTime = 150; //ms
 const sendHotkeyEvent = throttle(keyDebounceTime, (action: GlobalHotkeyAction) => {
@@ -16,8 +16,8 @@ const sendHotkeyEvent = throttle(keyDebounceTime, (action: GlobalHotkeyAction) =
  * Handles events and returns true if the event was handled.
  */
 export function handleHotkeyEvent(e: KeyboardEvent) {
-    if (e.code === 'KeyK' && e.ctrlKey) {
-        sendHotkeyEvent('focusPlayerlistFilter');
+    if (e.code === 'KeyK' && (e.ctrlKey || e.metaKey)) {
+        sendHotkeyEvent('openQuickSearch');
         return true;
     } else if (e.code === 'KeyL' && e.altKey) {
         sendHotkeyEvent('toggleLightMode');

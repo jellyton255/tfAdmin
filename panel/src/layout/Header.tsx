@@ -4,16 +4,16 @@ import {
     DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { KeyRoundIcon, LogOutIcon, Menu, Monitor, MoonIcon, PersonStanding, SunIcon } from "lucide-react";
+import { KeyRoundIcon, LogOutIcon, Menu, Monitor, MoonIcon, PersonStanding, SearchIcon, SunIcon } from "lucide-react";
 import DesktopNavbar from "./DesktopNavbar";
 import Avatar from "@/components/Avatar";
 import { useAuth } from "@/hooks/auth";
 import { useGlobalMenuSheet, usePlayerlistSheet, useServerSheet } from "@/hooks/sheets";
 import { useTheme } from "@/hooks/theme";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { serverNameAtom } from "@/hooks/status";
 import { playerCountAtom } from "@/hooks/playerlist";
-import { useAccountModal } from "@/hooks/dialogs";
+import { quickSearchOpenAtom, useAccountModal } from "@/hooks/dialogs";
 import { LogoSquareGreen, LogoFullSquareGreen } from "@/components/Logos";
 import { NavLink } from "@/components/MainPageLink";
 
@@ -48,6 +48,22 @@ const navButtonClasses = `h-11 w-11 sm:h-10 sm:min-w-max sm:px-2 lg:px-3
     bg-zinc-100 hover:bg-zinc-200 border-zinc-200
     dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:border-zinc-800
 `;
+
+function ButtonQuickSearch({ className }: NavButtonProps) {
+    const setQuickSearchOpen = useSetAtom(quickSearchOpenAtom);
+    return (
+        <button
+            className={cn(navButtonClasses, className)}
+            title="Search (Ctrl+K)"
+            onClick={() => setQuickSearchOpen(true)}
+        >
+            <SearchIcon className="h-6 w-6 sm:h-5 sm:w-5" />
+            <div className="hidden sm:flex flex-row min-w-max">
+                Search
+            </div>
+        </button>
+    );
+}
 
 function ButtonToggleServerSheet({ className }: NavButtonProps) {
     const { setIsSheetOpen } = useServerSheet();
@@ -187,6 +203,7 @@ export function Header() {
                 </div>
 
                 <div className="flex flex-row items-center gap-2 sm:gap-3">
+                    <ButtonQuickSearch />
                     <ButtonToggleServerSheet className="lg:hidden" />
                     <ButtonToggleGlobalMenu className="lg:hidden" />
                     <ButtonTogglePlayerlistSheet className="xl:hidden" />

@@ -6,6 +6,12 @@ import { ReactElement } from "react";
 
 
 /**
+ * MARK: Quick Search (Ctrl+K)
+ */
+export const quickSearchOpenAtom = atom(false);
+
+
+/**
  * MARK: Account Modal Stuff
  */
 export const accountModalOpenAtom = atom(false);

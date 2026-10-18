@@ -11,7 +11,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import PromptDialog from '@/components/PromptDialog';
 import TxToaster from '@/components/TxToaster';
 import AccountDialog from './AccountDialog';
-import { useOpenAccountModal } from '@/hooks/dialogs';
+import { quickSearchOpenAtom, useOpenAccountModal } from '@/hooks/dialogs';
 import PlayerModal from './PlayerModal/PlayerModal';
 import { playerModalUrlParam, useOpenPlayerModal } from '@/hooks/playerModal';
 import { navigate as setLocation } from 'wouter/use-browser-location';
@@ -23,6 +23,8 @@ import BreakpointDebugger from './BreakpointDebugger';
 import ActionModal from './ActionModal/ActionModal';
 import { useEffect } from 'react';
 import { actionModalUrlParam, useOpenActionModal } from '@/hooks/actionModal';
+import { useSetAtom } from 'jotai';
+import QuickSearchDialog from './QuickSearchDialog';
 
 
 export default function MainShell() {
@@ -31,6 +33,7 @@ export default function MainShell() {
     const openPlayerModal = useOpenPlayerModal();
     const openActionModal = useOpenActionModal();
     const toggleTheme = useToggleTheme();
+    const setQuickSearchOpen = useSetAtom(quickSearchOpenAtom);
 
     //Listener for messages from child iframes (legacy routes) or other sources
     useEventListener('message', (e: TxMessageEvent) => {
@@ -44,6 +47,8 @@ export default function MainShell() {
             setLocation(e.data.href);
         } else if (e.data.type === 'globalHotkey' && e.data.action === 'toggleLightMode') {
             toggleTheme();
+        } else if (e.data.type === 'globalHotkey' && e.data.action === 'openQuickSearch') {
+            setQuickSearchOpen(true);
         }
     });
 
@@ -97,6 +102,7 @@ export default function MainShell() {
             <AccountDialog />
             <PlayerModal />
             <ActionModal />
+            <QuickSearchDialog />
             <MainSocket />
             {/* <BreakpointDebugger /> */}
 

@@ -19,8 +19,6 @@ import {
     DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useOpenPlayerModal } from "@/hooks/playerModal";
-import InlineCode from "@/components/InlineCode";
-import { useEventListener } from "usehooks-ts";
 
 
 //NOTE: Move the styles (except color) to global.css since this component is rendered often
@@ -42,18 +40,10 @@ type PlayerlistFilterProps = {
     setFilterString: (s: string) => void;
 };
 function PlayerlistFilter({ filterString, setFilterString }: PlayerlistFilterProps) {
-    const inputRef = useRef<HTMLInputElement>(null);
-    useEventListener('message', (e: TxMessageEvent) => {
-        if (e.data.type === 'globalHotkey' && e.data.action === 'focusPlayerlistFilter') {
-            inputRef.current?.focus();
-        }
-    });
-
     return (
         <div className="pt-2 px-2 flex gap-2">
             <div className="relative w-full">
                 <Input
-                    ref={inputRef}
                     className="h-8"
                     placeholder="Filter by Name or ID"
                     value={filterString}
@@ -71,11 +61,7 @@ function PlayerlistFilter({ filterString, setFilterString }: PlayerlistFilterPro
                     >
                         <XIcon />
                     </button>
-                ) : (
-                    <div className="absolute right-2 inset-y-0 flex items-center text-zinc-500 dark:text-zinc-400 select-none pointer-events-none">
-                        <InlineCode className="text-xs tracking-wide">ctrl+k</InlineCode>
-                    </div>
-                )}
+                ) : null}
             </div>
             {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>

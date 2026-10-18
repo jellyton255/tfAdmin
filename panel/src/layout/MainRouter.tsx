@@ -33,14 +33,14 @@ import AuditLogPage from "@/pages/AuditLog/AuditLogPage";
 import StaffActivityPage from "@/pages/StaffActivity/StaffActivityPage";
 
 
-type RouteType = {
+export type RouteType = {
     path: string;
     title: string;
     permission?: string;
     Page: JSX.Element;
 };
 
-const allRoutes: RouteType[] = [
+export const allRoutes: RouteType[] = [
     //Global Routes
     {
         path: '/players',
