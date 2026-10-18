@@ -41,7 +41,6 @@ const timeRegex = /^\[(\d{1,2}):(\d{2}):(\d{2})(?:[\s  ]?([AaPp])\.?\s?[Mm]\.
 const playerSrcRegex = /^\[([^\]\s#]+#\d+)\] (.*?): (.*)$/;
 const otherSrcRegex = /^(.*?): (.*)$/;
 const dividerRegex = /^======== .* - (\d{1,2})\/(\d{1,2})\/(\d{4}), (\d{1,2}):(\d{2}):(\d{2})(?:[\s  ]?([AaPp])[Mm])?\s*$/;
-const rotatedNameRegex = /^server_(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})(?:_(\d+))?\.log$/;
 const DAY_SECONDS = 24 * 60 * 60;
 //A time going backwards by less than this is a clock change, not a new day
 const ROLLOVER_THRESHOLD_SECONDS = 2 * 60 * 60;
@@ -73,9 +72,10 @@ export function inferEventType(isPlayer: boolean, msg: string) {
 }
 
 /**
- * Stateful parser for the lines of one log file, read from the start.
+ * Tracks the date while reading the lines of one log file from the start.
+ * Shared by every log written with `[time]` prefixes and getLogDivider() dividers.
  */
-export class LogFileLineParser {
+export class LogClock {
     private dayStart: Date;
     private lastSecond: number | null = null;
 
@@ -83,7 +83,24 @@ export class LogFileLineParser {
         this.dayStart = new Date(fallbackDayStart.getFullYear(), fallbackDayStart.getMonth(), fallbackDayStart.getDate());
     }
 
-    private advanceTo(secondOfDay: number) {
+    /**
+     * Returns true when the line is a divider, which sets the date.
+     */
+    readDivider(line: string) {
+        const divider = dividerRegex.exec(line);
+        if (!divider) return false;
+        const [, month, day, year, h, m, s, meridiem] = divider;
+        this.dayStart = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        this.lastSecond = toSecondOfDay(h, m, s, meridiem);
+        return true;
+    }
+
+    /**
+     * Returns the timestamp of a line's time of day, or null when it is not a valid time.
+     */
+    stamp(hours: string, minutes: string, seconds: string, meridiem: string | undefined) {
+        const secondOfDay = toSecondOfDay(hours, minutes, seconds, meridiem);
+        if (secondOfDay >= DAY_SECONDS) return null;
         if (this.lastSecond !== null && secondOfDay < this.lastSecond - ROLLOVER_THRESHOLD_SECONDS) {
             this.dayStart = new Date(this.dayStart.getFullYear(), this.dayStart.getMonth(), this.dayStart.getDate() + 1);
         }
@@ -97,25 +114,29 @@ export class LogFileLineParser {
             secondOfDay,
         ).getTime();
     }
+}
+
+/**
+ * Stateful parser for the lines of one log file, read from the start.
+ */
+export class LogFileLineParser {
+    private clock: LogClock;
+
+    constructor(fallbackDayStart: Date) {
+        this.clock = new LogClock(fallbackDayStart);
+    }
 
     /**
      * Returns the event of a line, or null for dividers, blank and unparseable lines.
      */
     parse(line: string): ServerLogEventType | null {
-        const divider = dividerRegex.exec(line);
-        if (divider) {
-            const [, month, day, year, h, m, s, meridiem] = divider;
-            this.dayStart = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-            this.lastSecond = toSecondOfDay(h, m, s, meridiem);
-            return null;
-        }
+        if (this.clock.readDivider(line)) return null;
 
         const timeMatch = timeRegex.exec(line);
         if (!timeMatch) return null;
         const [, h, m, s, meridiem, rest] = timeMatch;
-        const secondOfDay = toSecondOfDay(h, m, s, meridiem);
-        if (secondOfDay >= DAY_SECONDS) return null;
-        const ts = this.advanceTo(secondOfDay);
+        const ts = this.clock.stamp(h, m, s, meridiem);
+        if (ts === null) return null;
 
         const playerMatch = playerSrcRegex.exec(rest);
         if (playerMatch) {
@@ -223,7 +244,7 @@ export function searchEventList(
 
 
 //MARK: Files
-type LogFileInfo = {
+export type LogFileInfo = {
     filePath: string;
     //start of the file's time span, from its name (0 for the active file)
     startTs: number;
@@ -233,9 +254,11 @@ type LogFileInfo = {
 };
 
 /**
- * Lists the server log files (active and rotated), newest first.
+ * Lists the files of a log (active and rotated, such as `server.log` and
+ * `server_2026-10-10_00-00-00_1.log`), newest first.
  */
-export async function listServerLogFiles(basePath: string) {
+export async function listLogFiles(basePath: string, logName: string) {
+    const rotatedNameRegex = new RegExp(`^${logName}_(\\d{4})-(\\d{2})-(\\d{2})_(\\d{2})-(\\d{2})-(\\d{2})(?:_(\\d+))?\\.log$`);
     //persistent logging may be disabled, leaving no folder
     const entries = await fsp.readdir(basePath, { withFileTypes: true }).catch((error: unknown) => {
         if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return [];
@@ -244,7 +267,7 @@ export async function listServerLogFiles(basePath: string) {
     const files: LogFileInfo[] = [];
     for (const entry of entries) {
         if (!entry.isFile()) continue;
-        const isActive = entry.name === 'server.log';
+        const isActive = entry.name === `${logName}.log`;
         const nameMatch = rotatedNameRegex.exec(entry.name);
         if (!isActive && !nameMatch) continue;
         const filePath = path.join(basePath, entry.name);
@@ -272,7 +295,7 @@ export async function listServerLogFiles(basePath: string) {
  * Yields the lines of a file without loading it whole. Breaking out of the loop
  * destroys the stream.
  */
-async function* readLines(filePath: string) {
+export async function* readLines(filePath: string) {
     const stream = fs.createReadStream(filePath, { encoding: 'utf8', highWaterMark: 64 * 1024 });
     let partial = '';
     try {
@@ -350,7 +373,7 @@ export async function searchServerLog(opts: {
     if (collected <= cap && fileTo >= from) {
         const fileQuery = { ...query, to: fileTo };
         let bytesRead = 0;
-        const files = await listServerLogFiles(basePath);
+        const files = await listLogFiles(basePath, 'server');
         for (const file of files) {
             if (collected > cap) break;
             if (file.mtimeTs < from || file.startTs > fileTo) continue;
@@ -365,12 +388,20 @@ export async function searchServerLog(opts: {
         }
     }
 
-    const all = chunks.reverse().flat();
+    return takeNewestPage(chunks.reverse().flat(), cap, budgetCursor);
+}
+
+
+/**
+ * Turns the chronological matches of a search into its newest page of at most `cap` items.
+ * `stopCursor` is where the search stopped early (byte budget), if it did.
+ */
+export function takeNewestPage<T extends { ts: number }>(all: T[], cap: number, stopCursor: number | null = null) {
     if (all.length <= cap) {
         return {
             log: all,
-            truncated: budgetCursor !== null,
-            cursor: budgetCursor,
+            truncated: stopCursor !== null,
+            cursor: stopCursor,
         };
     }
 
@@ -379,7 +410,7 @@ export async function searchServerLog(opts: {
     const page = all.slice(-cap);
     const edgeTs = page[0].ts;
     const splitsGroup = all[all.length - cap - 1].ts === edgeTs;
-    const withoutEdge = splitsGroup ? page.filter((event) => event.ts !== edgeTs) : [];
+    const withoutEdge = splitsGroup ? page.filter((item) => item.ts !== edgeTs) : [];
     if (withoutEdge.length) {
         return { log: withoutEdge, truncated: true, cursor: edgeTs };
     }

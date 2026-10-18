@@ -7,7 +7,7 @@ import {
     LogFileLineParser,
     createEventMatcher,
     inferEventType,
-    listServerLogFiles,
+    listLogFiles,
     searchServerLog,
 } from './serverLogSearch';
 
@@ -131,7 +131,7 @@ suite('createEventMatcher', () => {
 
 suite('searchServerLog', () => {
     it('lists only server log files, newest first', async () => {
-        const files = await listServerLogFiles(basePath);
+        const files = await listLogFiles(basePath, 'server');
         expect(files.map((file) => path.basename(file.filePath))).toEqual([
             'server.log',
             'server_2026-10-10_00-00-00_1.log',
