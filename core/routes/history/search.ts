@@ -168,6 +168,7 @@ export default async function HistorySearch(ctx: AuthedCtx) {
             noteCount: visibleNotes(a.notes).length,
             banExpiration,
             warnAcked,
+            sanction: a.type === 'sanction' ? (a.length ? `${a.kind} (${a.length})` : a.kind) : undefined,
         } satisfies HistoryTableActionType;
     });
 

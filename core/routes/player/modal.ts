@@ -27,6 +27,7 @@ const processHistoryLog = (hist: DatabaseActionType[]) => {
                 revokedAt: log.revocation.timestamp ? log.revocation.timestamp : undefined,
                 noteCount: visibleNotes(log.notes).length || undefined,
                 presetId: log.presetId,
+                sanction: log.type === 'sanction' ? (log.length ? `${log.kind} (${log.length})` : log.kind) : undefined,
                 offenseUntil: log.presetId ? log.timestamp + txConfig.banlist.offenseWindowDays * 86400 : undefined,
             };
         });

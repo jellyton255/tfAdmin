@@ -178,7 +178,7 @@ const schemas: Record<string, Schema> = {
         id: str(), text: str(), author: str(), createdAt: epochMs(), editedAt: nullable(epochMs('Last edit, null when never edited')),
     }),
     Action: obj({
-        id: str(), type: { ...enumOf(['ban', 'warn', 'kick']), description: 'Kicks are a record only: never active and never revoked' },
+        id: str(), type: { ...enumOf(['ban', 'warn', 'kick', 'sanction']), description: 'Kicks and game sanctions are a record only: never active and never revoked' },
         playerName: nullable(str()), ids: arr(str()), hwids: arr(str()),
         reason: str(), author: str(), createdAt: epochMs(), expiresAt: nullable(epochMs('Bans only, null = permanent')),
         banStatus: nullable(enumOf(['active', 'expired', 'permanent'])), acked: nullable(bool()),
@@ -188,6 +188,10 @@ const schemas: Record<string, Schema> = {
         externalRef: nullable(str({ description: 'Idempotency key of bans recorded via POST /actions/import-ban, else null' })),
         presetId: nullable(str({ description: 'Punishment preset (ban template) the ban or warn was issued from, else null' })),
         lengthChanges: { ...arr(ref('BanLengthChange')), description: 'Bans only: every change of the length, oldest first. Empty otherwise' },
+        sanction: {
+            ...nullable(obj({ kind: str({ description: 'Such as Jail or Community Service' }), length: nullable(str({ description: 'Free text from the resource, such as 30 months' })) })),
+            description: 'Game sanctions only: what a game resource applied, recorded through the RecordSanction export. Else null',
+        },
         appeal: { ...nullable(ref('BanAppeal')), description: 'Bans only: where the appeal stands, else null. Accepting does not lift the ban by itself' },
     }),
     BanAppeal: obj({
@@ -452,9 +456,9 @@ const paths: Record<string, Schema> = {
             params: [
                 paramQ('q', str({ maxLength: 256 })),
                 paramQ('type', enumOf(['id', 'reason', 'name', 'ids']), 'What `q` matches (default ids); `reason` also searches staff notes; `name` is a fuzzy player name search'),
-                paramQ('kind', enumOf(['ban', 'warn', 'kick'])),
+                paramQ('kind', enumOf(['ban', 'warn', 'kick', 'sanction'])),
                 paramQ('author', str()),
-                paramQ('status', enumOf(['active', 'revoked']), '`active` = not revoked; kicks are never active'),
+                paramQ('status', enumOf(['active', 'revoked']), '`active` = not revoked; kicks and game sanctions are never active'),
                 paramQ('hasNotes', enumOf(['true', 'false']), 'Only actions with (true) or without (false) staff notes'),
                 ...paginationParams,
             ],

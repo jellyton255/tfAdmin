@@ -106,14 +106,15 @@ export default async (interaction: CommandInteraction) => {
         if (includeAdminInfo) {
             //Counting bans/warns/kicks
             const actionHistory = player.getHistory();
-            const actionCount = { ban: 0, warn: 0, kick: 0 };
+            const actionCount = { ban: 0, warn: 0, kick: 0, sanction: 0 };
             for (const log of actionHistory) {
                 actionCount[log.type]++;
             }
             const banText = (actionCount.ban === 1) ? '1 ban' : `${actionCount.ban} bans`;
             const warnText = (actionCount.warn === 1) ? '1 warn' : `${actionCount.warn} warns`;
             const kickText = (actionCount.kick === 1) ? '1 kick' : `${actionCount.kick} kicks`;
-            bodyText['Log'] = `${banText}, ${warnText}, ${kickText}`;
+            const sanctionText = (actionCount.sanction === 1) ? '1 game sanction' : `${actionCount.sanction} game sanctions`;
+            bodyText['Log'] = `${banText}, ${warnText}, ${kickText}, ${sanctionText}`;
 
             //Filling notes + identifiers
             const notesText = newestNote(dbData.noteHistory)?.text ?? 'nothing here';

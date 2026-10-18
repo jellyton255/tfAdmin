@@ -97,7 +97,15 @@ export type DatabaseActionKickType = {
     type: 'kick';
     expiration: false; //kicks never block joins and are never active
 } & DatabaseActionBaseType;
-export type DatabaseActionType = DatabaseActionBanType | DatabaseActionWarnType | DatabaseActionKickType;
+//everfall: a punishment a game resource applied (jail, community service, mute), recorded for the history.
+//The resource owns it, so like a kick it is never active and cannot be revoked here.
+export type DatabaseActionSanctionType = {
+    type: 'sanction';
+    expiration: false;
+    kind: string; //such as "Jail" or "Community Service"
+    length?: string; //free text from the resource, such as "30 months" or "20 tasks"
+} & DatabaseActionBaseType;
+export type DatabaseActionType = DatabaseActionBanType | DatabaseActionWarnType | DatabaseActionKickType | DatabaseActionSanctionType;
 
 export type DatabaseWhitelistApprovalsType = {
     identifier: string;

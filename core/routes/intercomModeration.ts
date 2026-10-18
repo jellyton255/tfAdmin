@@ -8,6 +8,7 @@ import { addActionNote, type NoteWriter } from '@modules/ApiServer/services/acti
  * everfall: moderation requested by game scripts through the monitor resource's server exports
  * (resource/sv_exports.lua). tfAdmin owns every ban, so scripts write here directly instead of
  * keeping their own ban tables. Authors are labels such as "Anti-Cheat", never admin names.
+ * Sanctions are punishments a resource applied itself (jail, community service), recorded for the history.
  */
 
 const authorSchema = z.string().trim().min(1).max(64);
@@ -42,6 +43,16 @@ const requestSchema = z.discriminatedUnion('action', [
         resource: z.string().max(128),
         author: authorSchema,
         reason: z.string().trim().max(2048).default(''),
+        note: noteSchema,
+        target: targetSchema,
+    }),
+    z.object({
+        action: z.literal('sanction'),
+        resource: z.string().max(128),
+        author: authorSchema,
+        kind: z.string().trim().min(1).max(32),
+        reason: reasonSchema,
+        length: z.string().trim().max(64).optional(),
         note: noteSchema,
         target: targetSchema,
     }),
@@ -134,6 +145,29 @@ export const handleGameModeration = (body: unknown): GameModerationResult => {
     const ids = normalizeIds(target.ids);
     if (!ids.length) {
         return { success: false, error: 'The player has no valid identifiers.' };
+    }
+
+    if (req.action === 'sanction') {
+        let actionId: string;
+        try {
+            actionId = txCore.database.actions.registerSanction(ids, req.author, req.kind, req.reason, target.name, req.length || undefined);
+        } catch (error) {
+            return { success: false, error: `Failed to record sanction: ${(error as Error).message}` };
+        }
+        const lengthSuffix = req.length ? ` (${req.length})` : '';
+        logLine(req, `Recorded ${req.kind}${lengthSuffix} for "${target.name}": ${req.reason}`);
+        addSanctionNote(noteWriter(req), actionId, req.note);
+        txCore.apiServer.publishEvent('player.sanctioned', {
+            actionId,
+            kind: req.kind,
+            length: req.length || null,
+            reason: req.reason,
+            author: req.author,
+            resource: req.resource,
+            targetName: target.name,
+            targetIds: ids,
+        });
+        return { success: true, actionId };
     }
 
     if (req.action === 'warn') {

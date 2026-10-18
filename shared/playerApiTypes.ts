@@ -4,7 +4,8 @@ import { BanTemplatesDataType } from "./otherTypes";
 //Already compliant with new db specs
 export type PlayerHistoryItem = {
     id: string;
-    type: "ban" | "warn" | "kick";
+    type: "ban" | "warn" | "kick" | "sanction";
+    sanction?: string; //everfall: game sanctions only, such as "Jail (30 months)"
     noteCount?: number; //staff notes on the action, absent when none
     author: string;
     reason: string;

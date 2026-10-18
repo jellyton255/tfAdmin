@@ -1883,7 +1883,8 @@
               "enum": [
                 "ban",
                 "warn",
-                "kick"
+                "kick",
+                "sanction"
               ]
             }
           },
@@ -1906,7 +1907,7 @@
                 "revoked"
               ]
             },
-            "description": "`active` = not revoked; kicks are never active"
+            "description": "`active` = not revoked; kicks and game sanctions are never active"
           },
           {
             "name": "hasNotes",
@@ -5368,9 +5369,10 @@
             "enum": [
               "ban",
               "warn",
-              "kick"
+              "kick",
+              "sanction"
             ],
-            "description": "Kicks are a record only: never active and never revoked"
+            "description": "Kicks and game sanctions are a record only: never active and never revoked"
           },
           "playerName": {
             "oneOf": [
@@ -5508,6 +5510,39 @@
             },
             "description": "Bans only: every change of the length, oldest first. Empty otherwise"
           },
+          "sanction": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "description": "Such as Jail or Community Service"
+                  },
+                  "length": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "description": "Free text from the resource, such as 30 months"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "length"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Game sanctions only: what a game resource applied, recorded through the RecordSanction export. Else null"
+          },
           "appeal": {
             "oneOf": [
               {
@@ -5539,6 +5574,7 @@
           "externalRef",
           "presetId",
           "lengthChanges",
+          "sanction",
           "appeal"
         ],
         "additionalProperties": false
@@ -6027,6 +6063,7 @@
           "player.banned",
           "player.warned",
           "player.kicked",
+          "player.sanctioned",
           "player.directMessage",
           "player.watchJoined",
           "player.possibleBanEvasion",

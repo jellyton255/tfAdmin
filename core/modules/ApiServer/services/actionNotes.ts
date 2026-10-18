@@ -23,6 +23,7 @@ export const ACTION_NOTE_SCOPES: Record<DatabaseActionType['type'], string> = {
     ban: 'players.ban',
     warn: 'players.warn',
     kick: 'players.kick',
+    sanction: 'players.note',
 };
 
 export const toApiActionNote = (note: DatabaseNoteType): ApiActionNote => ({

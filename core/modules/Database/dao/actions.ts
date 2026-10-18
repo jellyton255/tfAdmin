@@ -1,6 +1,6 @@
 import { cloneDeep } from 'lodash-es';
 import { DbInstance, SavePriority } from "../instance";
-import { DatabaseActionBanType, DatabaseActionKickType, DatabaseBanAppealType, DatabaseActionType, DatabaseActionWarnType, DatabaseNoteType } from "../databaseTypes";
+import { DatabaseActionBanType, DatabaseActionKickType, DatabaseActionSanctionType, DatabaseBanAppealType, DatabaseActionType, DatabaseActionWarnType, DatabaseNoteType } from "../databaseTypes";
 import { genActionID } from "../dbUtils";
 import { now } from '@lib/misc';
 import { appendNote, editNote, softDeleteNote } from '@lib/notes';
@@ -319,6 +319,44 @@ export default class ActionsDao {
 
 
     /**
+     * everfall: records a sanction a game resource applied and returns its id. Like kicks, a record only.
+     */
+    registerSanction(
+        ids: string[],
+        author: string,
+        kind: string,
+        reason: string,
+        playerName: string | false,
+        length?: string,
+    ): string {
+        if (!Array.isArray(ids) || !ids.length) throw new Error('Invalid ids array.');
+        if (typeof kind !== 'string' || !kind.length) throw new Error('Invalid kind.');
+        const actionID = genActionID(this.dbo, 'sanction');
+        const toDB: DatabaseActionSanctionType = {
+            id: actionID,
+            type: 'sanction',
+            ids,
+            playerName,
+            kind,
+            ...(length ? { length } : {}),
+            reason,
+            author,
+            timestamp: now(),
+            expiration: false,
+            revocation: {
+                timestamp: null,
+                author: null,
+            },
+        };
+        this.chain.get('actions')
+            .push(toDB)
+            .value();
+        this.db.writeFlag(SavePriority.HIGH);
+        return actionID;
+    }
+
+
+    /**
      * Applies a change to the notes of an action and returns the changed note.
      */
     private changeNotes(
@@ -406,7 +444,7 @@ export default class ActionsDao {
 
 
     /**
-     * Revoke an action (ban, warn). Kicks cannot be revoked.
+     * Revoke an action (ban, warn). Kicks and game sanctions cannot be revoked.
      */
     revoke(
         actionId: string,
@@ -425,6 +463,7 @@ export default class ActionsDao {
 
             if (!action) throw new Error(`action not found`);
             if (action.type === 'kick') throw new Error(`kicks cannot be revoked`);
+            if (action.type === 'sanction') throw new Error(`game sanctions cannot be revoked`);
             if (allowedTypes !== true && !allowedTypes.includes(action.type)) {
                 throw new Error(`you do not have permission to revoke this action`);
             }

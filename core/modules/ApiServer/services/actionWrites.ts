@@ -154,8 +154,8 @@ export const revokeAction = (admin: AuthedAdmin, actionId: string, reasonInput?:
     if (!existing) {
         throw new ApiError(404, 'NOT_FOUND', 'Action not found.', { id: actionId });
     }
-    if (existing.type === 'kick') {
-        throw new ApiError(409, 'CONFLICT', 'Kicks cannot be revoked.', { id: actionId });
+    if (existing.type === 'kick' || existing.type === 'sanction') {
+        throw new ApiError(409, 'CONFLICT', 'Kicks and game sanctions cannot be revoked.', { id: actionId });
     }
     const neededPermission = existing.type === 'ban' ? 'players.ban' : 'players.warn';
     if (!admin.hasPermission(neededPermission)) {

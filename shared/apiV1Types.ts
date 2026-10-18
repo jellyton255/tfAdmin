@@ -241,8 +241,8 @@ export type ApiActionNote = {
 };
 export type ApiActionRecord = {
     id: string;
-    /** Kicks are a record only: never active and never revoked. */
-    type: 'ban' | 'warn' | 'kick';
+    /** Kicks and game sanctions are a record only: never active and never revoked. */
+    type: 'ban' | 'warn' | 'kick' | 'sanction';
     playerName: string | null;
     ids: string[];
     hwids: string[];
@@ -268,6 +268,8 @@ export type ApiActionRecord = {
     lengthChanges: ApiBanLengthChange[];
     /** Bans only: where the ban's appeal stands, else null. Accepting does not lift the ban by itself. */
     appeal: ApiBanAppeal | null;
+    /** Game sanctions only: what a game resource applied (jail, community service, mute). Else null. */
+    sanction: { kind: string; length: string | null } | null;
 };
 export type ApiBanAppeal = {
     status: 'open' | 'denied' | 'accepted';
@@ -433,6 +435,7 @@ export const API_EVENT_TYPES = [
     'player.banned',
     'player.warned',
     'player.kicked',
+    'player.sanctioned',
     'player.directMessage',
     'player.watchJoined',
     'player.possibleBanEvasion',

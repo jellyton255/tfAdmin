@@ -9,6 +9,7 @@ let adminLog: string[];
 let registerBan: ReturnType<typeof vi.fn>;
 let registerWarn: ReturnType<typeof vi.fn>;
 let registerKick: ReturnType<typeof vi.fn>;
+let registerSanction: ReturnType<typeof vi.fn>;
 let addNote: ReturnType<typeof vi.fn>;
 let published: { type: string; data: any }[];
 
@@ -25,6 +26,7 @@ beforeEach(() => {
     registerBan = vi.fn(() => 'BXXXX-XXXX');
     registerWarn = vi.fn(() => 'WXXXX-XXXX');
     registerKick = vi.fn(() => 'KXXXX-XXXX');
+    registerSanction = vi.fn(() => 'SXXXX-XXXX');
     addNote = vi.fn((actionId: string, text: string, author: string) => ({ id: 'N1', text, author, ts: 100 }));
     published = [];
     vi.stubGlobal('txCore', {
@@ -34,6 +36,7 @@ beforeEach(() => {
                 registerBan,
                 registerWarn,
                 registerKick,
+                registerSanction,
                 addNote,
                 findOne: (id: string) => ({ id, type: id.startsWith('B') ? 'ban' : 'kick', playerName: 'Cheater', ids: [] }),
             },
@@ -62,6 +65,19 @@ describe('handleGameModeration', () => {
             data: { author: 'Anti-Cheat', targetNetId: 7, targetIds: [`license:${LICENSE}`, 'fivem:42'], actionId: 'BXXXX-XXXX' },
         });
         expect(adminLog[0]).toBe('Anti-Cheat: [ef_mining] Banned player "Cheater": Exploit Attempt: TEST');
+    });
+
+    it('records a game sanction with its kind and length, without an in-game event', () => {
+        const result = handleGameModeration({
+            action: 'sanction', resource: 'ef_police', author: 'Police', kind: 'Jail', length: '30 months', reason: 'Armed robbery', target,
+        });
+        expect(result).toEqual({ success: true, actionId: 'SXXXX-XXXX' });
+        expect(registerSanction).toHaveBeenCalledWith(
+            [`license:${LICENSE}`, 'fivem:42'], 'Police', 'Jail', 'Armed robbery', 'Cheater', '30 months',
+        );
+        expect(events).toEqual([]);
+        expect(published[0]).toMatchObject({ type: 'player.sanctioned', data: { actionId: 'SXXXX-XXXX', kind: 'Jail', resource: 'ef_police' } });
+        expect(adminLog[0]).toBe('Police: [ef_police] Recorded Jail (30 months) for "Cheater": Armed robbery');
     });
 
     it('refuses an author that is a tfAdmin admin name', () => {

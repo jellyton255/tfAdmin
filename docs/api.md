@@ -142,7 +142,7 @@ All of these work with any valid key, mirroring the panel pages every admin can 
 | `GET /api/v1/players` | any valid key | Database search, paginated. Query: `q` with `type=name\|ids\|notes\|tag` (`tag` matches one whole tag, any case), `filter=isOnline,isAdmin,isWhitelisted,hasNote,isWatched`, `sort=tsLastConnection\|tsJoined\|playTime`, `order=desc\|asc` |
 | `GET /api/v1/players/{license}` | any valid key | One player: database record, identifiers, notes, the current session when online, and the full action history. `noteHistory` lists every note newest first; `notes`, `notesLastEditedBy` and `notesLastEditedAt` describe the newest one. Every player record also has `tags` (staff labels as typed) and `watch` (`{ reason, author, createdAt }` while on the watchlist, else `null`) |
 | `GET /api/v1/players/{license}/linked` | any valid key | Up to 50 other players that share an identifier (never an IP) or a HWID, with what matched and their ban state. HWIDs shared by more than 25 players are skipped and listed in `ignoredHwids`; `truncated` flags a cut list |
-| `GET /api/v1/actions` | any valid key | Bans, warns and kicks, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`reason` also searches staff notes; `name` is a fuzzy player name search), `kind=ban\|warn\|kick`, `author`, `status=active\|revoked` (kicks are never active), `hasNotes=true\|false`, `order` |
+| `GET /api/v1/actions` | any valid key | Bans, warns, kicks and game sanctions, paginated. Query: `q` with `type=ids\|id\|reason\|name` (`reason` also searches staff notes; `name` is a fuzzy player name search), `kind=ban\|warn\|kick\|sanction`, `author`, `status=active\|revoked` (kicks and sanctions are never active), `hasNotes=true\|false`, `order` |
 | `GET /api/v1/actions/stats` | any valid key | Totals for the last 7 days and all time, plus a per-admin count |
 | `GET /api/v1/actions/{id}` | any valid key | One action |
 | `GET /api/v1/whitelist/approvals` | any valid key | Approved identifiers, paginated, `q` searches identifier, name and approver |
@@ -160,6 +160,11 @@ for a ban with an appeal (`open`, `denied` or `accepted`), else `null`.
 Every kick is stored as a `kick` action (panel, API, in-game menu and the `KickPlayer` export). A kick is
 a record only: it never blocks joins, is never active and cannot be revoked. Kick-all and restarts are
 not recorded.
+
+A `sanction` action is a punishment a game resource applied, such as jail, community service or a mute,
+recorded through the `RecordSanction` export (see `docs/game-exports.md`). `sanction` is `{ kind, length }`
+on those actions and `null` on every other. Like kicks, sanctions are never active and cannot be revoked;
+the resource that applied one owns it. Staff notes on them need `players.note`.
 
 `notes` lists the action's staff notes, newest first: `{ id, text, author, createdAt, editedAt }`.
 Players never see them. Deleted notes are left out of the API; the panel keeps them, with who deleted
@@ -248,6 +253,7 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 | `player.watchJoined` | A player on the watchlist joined. `{ staffNetIds, netid, displayName, license, reason, watchedBy, watchedAt }` |
 | `player.possibleBanEvasion` | A player joined whose linked accounts (shared identifiers or HWIDs, as in Linked Accounts) have an active ban the join check did not match. `{ staffNetIds, netid, displayName, license, bannedLinkCount, bannedLinks: [{ license, displayName, matchedIdTypes, matchedHwidCount }] }` (at most 5 links) |
 | `whitelist.player`, `whitelist.preApproval`, `whitelist.request` | Whitelist changes |
+| `player.sanctioned` | A game resource recorded a sanction. `{ actionId, kind, length, reason, author, resource, targetName, targetIds }` |
 | `action.revoked` | `{ actionId, actionType, actionReason, actionAuthor, playerName, playerIds, playerHwids, revokedBy }` |
 | `action.noteAdded` | A staff note was added to a ban, warn or kick. `{ actionId, actionType, playerName, playerIds, note }` |
 | `action.appealChanged` | A ban's appeal status was set or cleared. `{ actionId, playerName, playerIds, status, ticket, changedBy }` |
