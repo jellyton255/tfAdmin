@@ -133,6 +133,11 @@ export default class WebSocket {
      * Handles incoming connection requests,
      */
     handleConnection(socket: SocketWithSession) {
+        //Panels retry while txAdmin shuts down; keep them in the restarting state until the new process answers
+        if (txManager.isShuttingDown) {
+            return sendShutdown(socket);
+        }
+
         //Check the UI version
         if (socket.handshake.query.uiVersion && socket.handshake.query.uiVersion !== txEnv.txaVersion) {
             return forceUiReload(socket);

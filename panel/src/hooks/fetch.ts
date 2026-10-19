@@ -29,6 +29,30 @@ export class BackendApiError extends Error {
 }
 
 
+//Thrown when txAdmin can't be reached, such as while it restarts behind the reverse proxy
+export class ServerUnavailableError extends Error {
+    constructor() {
+        super('tfAdmin is restarting or offline. Try again in a moment.');
+    }
+}
+
+//Reads the JSON body, turning network failures and proxy error pages into ServerUnavailableError
+async function readJsonResponse(request: Promise<Response>) {
+    let resp: Response;
+    try {
+        resp = await request;
+    } catch (error) {
+        //fetch() rejects with a TypeError only when the request could not be sent
+        if (error instanceof TypeError) throw new ServerUnavailableError();
+        throw error;
+    }
+    if (resp.status === 502 || resp.status === 503 || resp.status === 504) {
+        throw new ServerUnavailableError();
+    }
+    return await resp.json();
+}
+
+
 /**
  * Returns a function to make authenticated fetch requests
  */
@@ -56,7 +80,7 @@ export const useAuthedFetcher = () => {
         }
 
         fetchOpts.method ??= 'GET';
-        const resp = await fetch(fetchUrl, {
+        const data = await readJsonResponse(fetch(fetchUrl, {
             method: fetchOpts.method,
             headers: {
                 ...defaultHeaders,
@@ -65,8 +89,7 @@ export const useAuthedFetcher = () => {
             },
             body: fetchOpts.body ? JSON.stringify(fetchOpts.body) : undefined,
             signal: abortController?.signal,
-        });
-        const data = await resp.json();
+        }));
         if (data?.logout) {
             expireSess('useAuthedFetcher', data?.reason ?? 'unknown');
             throw new Error('Session expired');
@@ -89,14 +112,14 @@ export const fetchWithTimeout = async <Resp = any, Req = any>(url: string, fetch
     const body = method === 'POST' && fetchOpts.body
         ? JSON.stringify(fetchOpts.body)
         : undefined;
-    const response = await fetch(url, {
+    const data = await readJsonResponse(fetch(url, {
         headers: defaultHeaders,
         signal: AbortSignal.timeout(fetchOpts.timeout ?? ApiTimeout.DEFAULT),
         ...fetchOpts,
         method,
         body,
-    });
-    return await response.json() as Resp;
+    }));
+    return data as Resp;
 };
 
 

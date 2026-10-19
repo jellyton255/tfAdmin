@@ -4,6 +4,7 @@ import { CardFooter } from "@/components/ui/card";
 import { ApiOauthCallbackErrorResp } from "@shared/authApiTypes";
 import { ArrowLeftIcon } from "lucide-react";
 import { Link } from "wouter";
+import { ServerUnavailableError } from "@/hooks/fetch";
 
 
 //Shortcut component
@@ -117,7 +118,12 @@ export const checkCommonOauthErrors = () => {
  * Process fetch errors and return a common error object.
  */
 export const processFetchError = (error: any) => {
-    if (error.message?.startsWith('NetworkError')) {
+    if (error instanceof ServerUnavailableError) {
+        return {
+            errorTitle: 'Server Unavailable',
+            errorMessage: error.message,
+        };
+    } else if (error.message?.startsWith('NetworkError')) {
         return {
             errorTitle: 'Network Error',
             errorMessage: 'If you closed txAdmin, please restart it and try again.',

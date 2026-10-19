@@ -2,10 +2,12 @@ import { Button } from "@/components/ui/button";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import useWarningBar from "@/hooks/useWarningBar";
+import { connectionStateAtom } from "@/hooks/connection";
+import { useAtom } from "jotai";
 
 export default function TmpWarningBarState() {
+    const [connectionState, setConnectionState] = useAtom(connectionStateAtom);
     const {
-        offlineWarning, setOfflineWarning,
         txUpdateData, setTxUpdateData,
         fxUpdateData, setFxUpdateData,
     } = useWarningBar();
@@ -18,15 +20,18 @@ export default function TmpWarningBarState() {
             <CardContent className="space-y-4">
                 <div className="space-y-2 divide-y-2 rounded border p-2">
                     <div className="flex justify-start gap-3">
-                        <Button size="sm" onClick={() => setOfflineWarning(false)}>
-                            Socket On
+                        <Button size="sm" onClick={() => setConnectionState('online')}>
+                            Online
                         </Button>
-                        <Button size="sm" onClick={() => setOfflineWarning(true)}>
-                            Socket Off
+                        <Button size="sm" onClick={() => setConnectionState('restarting')}>
+                            Restarting
+                        </Button>
+                        <Button size="sm" onClick={() => setConnectionState('reconnecting')}>
+                            Reconnecting
                         </Button>
                     </div>
                     <pre className="bg-muted p-2">
-                        {JSON.stringify(offlineWarning, null, 2)}
+                        {JSON.stringify(connectionState, null, 2)}
                     </pre>
                 </div>
 

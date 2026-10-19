@@ -2,7 +2,10 @@ import { useEffect, useRef } from 'react';
 import { getSocket } from '@/lib/utils';
 import { useExpireAuthData, useSetAuthData } from '@/hooks/auth';
 import { useSetGlobalStatus } from '@/hooks/status';
-import { useProcessUpdateAvailableEvent, useSetOfflineWarning } from '@/hooks/useWarningBar';
+import { useProcessUpdateAvailableEvent } from '@/hooks/useWarningBar';
+import { connectionStateAtom } from '@/hooks/connection';
+import { useSetAtom } from 'jotai';
+import { mutate } from 'swr';
 import { useProcessPlayerlistEvents } from '@/hooks/playerlist';
 import { LogoutReasonHash } from '@/pages/auth/Login';
 
@@ -15,7 +18,7 @@ export default function MainSocket() {
     const expireSession = useExpireAuthData();
     const setAuthData = useSetAuthData();
     const socketStateChangeCounter = useRef(0);
-    const setIsSocketOffline = useSetOfflineWarning();
+    const setConnectionState = useSetAtom(connectionStateAtom);
     const setGlobalStatus = useSetGlobalStatus();
     const processPlayerlistEvents = useProcessPlayerlistEvents();
     const processUpdateAvailableEvent = useProcessUpdateAvailableEvent();
@@ -25,19 +28,31 @@ export default function MainSocket() {
         //SocketIO
         const rooms = window.txConsts.isWebInterface ? ['status', 'playerlist'] : ['status'];
         const socket = getSocket(rooms);
+        let hasConnected = false;
+        let isRestarting = false;
         socket.on('connect', () => {
             console.log("Main Socket.IO Connected.");
-            setIsSocketOffline(false);
+            socketStateChangeCounter.current++;
+            isRestarting = false;
+            setConnectionState('online');
+            //Pages hold data from before the outage
+            if (hasConnected) mutate(() => true);
+            hasConnected = true;
         });
         socket.on('disconnect', (message) => {
             console.log("Main Socket.IO Disonnected:", message);
+            //socket.io only retries by itself after transport drops, not when the server closed the socket
+            if (isRestarting && message === 'io server disconnect') {
+                setTimeout(() => socket.connect(), 1000);
+                return;
+            }
             //Grace period of 500ms to allow for quick reconnects
             //Tracking the state change ID for the timeout not to overwrite a reconnection
             const newId = socketStateChangeCounter.current + 1;
             socketStateChangeCounter.current = newId;
             setTimeout(() => {
-                if (socketStateChangeCounter.current === newId) {
-                    setIsSocketOffline(true);
+                if (socketStateChangeCounter.current === newId && !isRestarting) {
+                    setConnectionState('reconnecting');
                 }
             }, 500);
         });
@@ -51,7 +66,9 @@ export default function MainSocket() {
             expireSession('main socketio', 'got refreshToUpdate', LogoutReasonHash.UPDATED);
         });
         socket.on('txAdminShuttingDown', function () {
-            expireSession('main socketio', 'got txAdminShuttingDown', LogoutReasonHash.SHUTDOWN);
+            //The session survives the restart, so wait for the new process instead of logging out
+            isRestarting = true;
+            setConnectionState('restarting');
         });
         socket.on('status', function (status) {
             setGlobalStatus(status);
@@ -72,6 +89,7 @@ export default function MainSocket() {
             socket.removeAllListeners();
             socket.disconnect();
             setGlobalStatus(null);
+            setConnectionState('online');
         }
     }, []);
 

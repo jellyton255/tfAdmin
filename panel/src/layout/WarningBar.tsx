@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAdminPerms } from "@/hooks/auth";
 import { useAuthedFetcher } from "@/hooks/fetch";
 import type { TfadminStatusResp } from "@shared/tfadminStatusTypes";
-import { BellOffIcon, CircleAlertIcon, CloudOffIcon, DownloadCloudIcon, GitMergeIcon } from "lucide-react";
+import { BellOffIcon, CircleAlertIcon, DownloadCloudIcon, GitMergeIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 
@@ -126,21 +126,10 @@ function useTfadminNotice() {
 
 
 export default function WarningBar() {
-    const { offlineWarning, fxUpdateData } = useWarningBar();
+    const { fxUpdateData } = useWarningBar();
     const tfadminNotice = useTfadminNotice();
 
-    if (offlineWarning) {
-        return <InnerWarningBar
-            titleIcon={<CloudOffIcon className="inline h-[1.2rem] -mt-1 mr-1" />}
-            title="Socket connection lost."
-            description={<>
-                The connection to the txAdmin server has been lost. <br />
-                If you closed FXServer, please restart it.
-            </>}
-            isImportant={true}
-            canPostpone={false}
-        />
-    } else if (tfadminNotice) {
+    if (tfadminNotice) {
         return <InnerWarningBar
             titleIcon={tfadminNotice.icon}
             title={tfadminNotice.title}

@@ -25,6 +25,7 @@ import { useEffect } from 'react';
 import { actionModalUrlParam, useOpenActionModal } from '@/hooks/actionModal';
 import { useSetAtom } from 'jotai';
 import QuickSearchDialog from './QuickSearchDialog';
+import ConnectionOverlay from './ConnectionOverlay';
 
 
 export default function MainShell() {
@@ -104,6 +105,7 @@ export default function MainShell() {
             <ActionModal />
             <QuickSearchDialog />
             <MainSocket />
+            <ConnectionOverlay />
             {/* <BreakpointDebugger /> */}
 
             {/* 1080p monitor screen height indicator */}
