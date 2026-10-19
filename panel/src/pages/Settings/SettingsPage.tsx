@@ -19,6 +19,7 @@ import ConfigCardGameMenu from "./tabCards/gameMenu";
 import ConfigCardGameNotifications from "./tabCards/gameNotifications";
 import ConfigCardGeneral from "./tabCards/general";
 import ConfigCardWhitelist from "./tabCards/whitelist";
+import ConfigCardStaffActivity from "./tabCards/staffActivity";
 import SettingsCardTemplate from "./tabCards/_template";
 import SettingsCardBlank from "./tabCards/_blank";
 import { PageHeader, PageHeaderChangelog } from "@/components/page-header";
@@ -39,6 +40,7 @@ const settingsTabsBase = [
             { name: 'Notifications', Component: ConfigCardGameNotifications },
         ]
     },
+    { name: 'Staff Activity', Component: ConfigCardStaffActivity }, //everfall
     //Dev only
     // { name: 'Template', Component: SettingsCardTemplate },
     // { name: 'Blank', Component: SettingsCardBlank },
