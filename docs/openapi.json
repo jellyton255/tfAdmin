@@ -3530,7 +3530,7 @@
     "/staff/activity": {
       "get": {
         "summary": "Staff activity per week",
-        "description": "Each admin's bans, warns, kicks, revokes, notes and time in game per UTC week (Monday start). Authors that are not on the admin roster (API keys, game scripts) are left out, so game sanctions are not counted.\n\nRequires the `manage.admins` scope.",
+        "description": "Each admin's bans, warns, kicks, revokes, notes and time in game per UTC week (Monday start), plus ticket and Discord activity matched by the admin's Discord ID when those sources are set up. Authors that are not on the admin roster (API keys, game scripts) are left out, so game sanctions are not counted.\n\nRequires the `manage.admins` scope.",
         "tags": [
           "Admins"
         ],
@@ -3573,11 +3573,28 @@
                           "items": {
                             "$ref": "#/components/schemas/StaffActivityMember"
                           }
+                        },
+                        "sources": {
+                          "type": "object",
+                          "properties": {
+                            "tickets": {
+                              "$ref": "#/components/schemas/StaffActivitySource"
+                            },
+                            "discord": {
+                              "$ref": "#/components/schemas/StaffActivitySource"
+                            }
+                          },
+                          "required": [
+                            "tickets",
+                            "discord"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
                         "weekStarts",
-                        "staff"
+                        "staff",
+                        "sources"
                       ],
                       "additionalProperties": false
                     }
@@ -6239,6 +6256,28 @@
           "minutesOnline": {
             "type": "integer",
             "description": "Minutes in game, counted since tfAdmin started tracking staff time"
+          },
+          "ticketReplies": {
+            "type": "integer",
+            "description": "Public ticket replies, not counting their own tickets"
+          },
+          "ticketNotes": {
+            "type": "integer",
+            "description": "Internal notes on tickets"
+          },
+          "staffThreadMessages": {
+            "type": "integer"
+          },
+          "ticketsClosed": {
+            "type": "integer"
+          },
+          "discordMessages": {
+            "type": "integer",
+            "description": "Messages in the Discord server, counted by EF Bot"
+          },
+          "voiceMinutes": {
+            "type": "integer",
+            "description": "Minutes in Discord voice, counted by EF Bot"
           }
         },
         "required": [
@@ -6247,9 +6286,60 @@
           "kicks",
           "revokes",
           "notes",
-          "minutesOnline"
+          "minutesOnline",
+          "ticketReplies",
+          "ticketNotes",
+          "staffThreadMessages",
+          "ticketsClosed",
+          "discordMessages",
+          "voiceMinutes"
         ],
         "additionalProperties": false
+      },
+      "StaffActivitySource": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "state": {
+                "const": "ok"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "state": {
+                "const": "off"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "state": {
+                "const": "error"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "state",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        ],
+        "description": "`off` = not configured in Settings > Staff Activity"
       },
       "StaffActivityMember": {
         "type": "object",

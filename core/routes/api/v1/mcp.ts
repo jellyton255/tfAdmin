@@ -450,7 +450,7 @@ export const MCP_TOOLS: ToolDefinition[] = [
     {
         name: 'tfadmin_staff_activity',
         title: 'Staff Activity',
-        description: 'Each admin\'s bans, warns, kicks, revokes, notes and minutes in game per UTC week (Monday start), for the last `weeks` weeks (default 8, max 26).',
+        description: 'Each admin\'s bans, warns, kicks, revokes, notes and minutes in game per UTC week (Monday start), plus ticket replies, internal notes, staff thread messages, closed tickets, Discord messages and voice minutes when those sources are set up, for the last `weeks` weeks (default 8, max 26).',
         scopes: ['manage.admins'],
         input: staffActivityQuerySchema.shape,
         annotations: readOnly,

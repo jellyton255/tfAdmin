@@ -239,7 +239,20 @@ const schemas: Record<string, Schema> = {
     StaffActivityCounts: obj({
         bans: int(), warns: int(), kicks: int(), revokes: int(), notes: int(),
         minutesOnline: int({ description: 'Minutes in game, counted since tfAdmin started tracking staff time' }),
+        ticketReplies: int({ description: 'Public ticket replies, not counting their own tickets' }),
+        ticketNotes: int({ description: 'Internal notes on tickets' }),
+        staffThreadMessages: int(), ticketsClosed: int(),
+        discordMessages: int({ description: 'Messages in the Discord server, counted by EF Bot' }),
+        voiceMinutes: int({ description: 'Minutes in Discord voice, counted by EF Bot' }),
     }),
+    StaffActivitySource: {
+        oneOf: [
+            obj({ state: { const: 'ok' } }),
+            obj({ state: { const: 'off' } }),
+            obj({ state: { const: 'error' }, message: str() }),
+        ],
+        description: '`off` = not configured in Settings > Staff Activity',
+    },
     StaffActivityMember: obj({
         name: str(),
         weeks: arr(ref('StaffActivityCounts')),
@@ -615,11 +628,12 @@ const paths: Record<string, Schema> = {
     '/staff/activity': {
         get: op({
             tag: 'Admins', summary: 'Staff activity per week', permission: 'manage.admins',
-            description: 'Each admin\'s bans, warns, kicks, revokes, notes and time in game per UTC week (Monday start). Authors that are not on the admin roster (API keys, game scripts) are left out, so game sanctions are not counted.',
+            description: 'Each admin\'s bans, warns, kicks, revokes, notes and time in game per UTC week (Monday start), plus ticket and Discord activity matched by the admin\'s Discord ID when those sources are set up. Authors that are not on the admin roster (API keys, game scripts) are left out, so game sanctions are not counted.',
             params: [paramQ('weeks', int({ minimum: 1, maximum: 26, default: 8 }))],
             response: obj({
                 weekStarts: arr(epochMs('Monday 00:00 UTC')),
                 staff: arr(ref('StaffActivityMember')),
+                sources: obj({ tickets: ref('StaffActivitySource'), discord: ref('StaffActivitySource') }),
             }),
         }),
     },
