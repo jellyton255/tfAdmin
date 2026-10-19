@@ -132,6 +132,7 @@ beforeAll(async () => {
         whitelist: { mode: 'disabled' },
         banlist: { requiredHwidMatches: 1, templates: [] },
         server: { dataPath: '/srv/data' },
+        staffActivity: { ticketsUrl: 'https://example.invalid/agent', ticketsToken: null, discordUrl: 'http://127.0.0.1:1', discordSecret: null },
     });
     vi.stubGlobal('txManager', {
         globalStatus: {
@@ -404,6 +405,7 @@ describe('admins and resources', () => {
         const byName = Object.fromEntries(activity.json.data.staff.map((m: any) => [m.name, m.total]));
         expect(byName.julian).toMatchObject({ bans: 2, notes: 1 });
         expect(byName.casey).toMatchObject({ warns: 1, notes: 2 });
+        expect(activity.json.data.sources).toEqual({ tickets: { state: 'off' }, discord: { state: 'off' } });
 
         const log = await get('/api/v1/audit-log?categories=ban,kick');
         expect(log.status).toBe(200);

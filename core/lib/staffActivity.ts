@@ -1,5 +1,6 @@
 import type { DatabaseActionType, DatabasePlayerType, DatabaseStaffPlayDayType } from '@modules/Database/databaseTypes';
 import type { StaffActivityCounts, StaffActivityData, StaffActivityMember } from '@shared/staffActivityApiTypes';
+import { fetchDiscordActivity, fetchTicketActivity, SOURCE_COUNT_KEYS, type SourceActivityRow } from '@lib/staffActivitySources';
 
 /*
     Staff activity: what each admin did per week, for promotions and spotting inactive staff.
@@ -7,6 +8,7 @@ import type { StaffActivityCounts, StaffActivityData, StaffActivityMember } from
     Time online comes from `staffPlayDays`, which players only collect while they are admins.
     Game sanctions (jail, community service) are left out: game scripts record them under their own
     author label, never an admin's name.
+    Ticket and Discord counts come from the ticket API and EF Bot, matched by each admin's Discord ID.
 */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -47,6 +49,12 @@ const emptyCounts = (): StaffActivityCounts => ({
     revokes: 0,
     notes: 0,
     minutesOnline: 0,
+    ticketReplies: 0,
+    ticketNotes: 0,
+    staffThreadMessages: 0,
+    ticketsClosed: 0,
+    discordMessages: 0,
+    voiceMinutes: 0,
 });
 
 const actionCountKey = {
@@ -71,7 +79,7 @@ export function buildStaffActivity(opts: {
     players: DatabasePlayerType[];
     weeks: number;
     nowMs: number;
-}): StaffActivityData {
+}) {
     const { admins, actions, players, weeks, nowMs } = opts;
     const firstWeek = utcWeekStart(nowMs) - (weeks - 1) * WEEK_MS;
     const weekStarts = Array.from({ length: weeks }, (_, i) => firstWeek + i * WEEK_MS);
@@ -135,15 +143,51 @@ export function buildStaffActivity(opts: {
 }
 
 
+/**
+ * The Discord user ids of an admin's identifiers, without the `discord:` prefix.
+ */
+export const discordIdsOf = (admin: StaffActivityAdmin) => admin.identifiers
+    .map((id) => /^discord:(\d{17,20})$/i.exec(id)?.[1])
+    .filter((id): id is string => !!id);
+
+
+/**
+ * Adds an outside source's weekly counts to the members built from `admins` (same order).
+ * Rows are matched by Discord ID; weeks are in the same order as the members' weeks.
+ */
+export function addSourceRows(
+    admins: StaffActivityAdmin[],
+    members: StaffActivityMember[],
+    rows: SourceActivityRow[],
+) {
+    const byDiscordId = new Map(rows.map((row) => [row.discordId, row]));
+    admins.forEach((admin, i) => {
+        const member = members[i];
+        for (const discordId of discordIdsOf(admin)) {
+            const row = byDiscordId.get(discordId);
+            if (!row) continue;
+            row.weeks.forEach((counts, week) => {
+                if (!member.weeks[week]) return;
+                for (const key of SOURCE_COUNT_KEYS) {
+                    const value = counts[key] ?? 0;
+                    member.weeks[week][key] += value;
+                    member.total[key] += value;
+                }
+            });
+        }
+    });
+}
+
+
 type VaultAdmin = {
     name: string;
     providers: Record<string, { identifier?: string } | undefined>;
 };
 
 /**
- * Staff activity of the current admin roster from the live database.
+ * Staff activity of the current admin roster from the live database, the ticket API and EF Bot.
  */
-export function getStaffActivity(weeks: number) {
+export async function getStaffActivity(weeks: number) {
     const admins = (txCore.adminStore.getAdminsList() as VaultAdmin[]).map((admin) => ({
         name: admin.name,
         identifiers: Object.values(admin.providers ?? {})
@@ -151,11 +195,28 @@ export function getStaffActivity(weeks: number) {
             .filter((id): id is string => typeof id === 'string' && id.length > 0),
     }));
     const dbo = txCore.database.getDboRef();
-    return buildStaffActivity({
+    const { weekStarts, staff } = buildStaffActivity({
         admins,
         actions: dbo.chain.get('actions').value(),
         players: dbo.chain.get('players').value(),
         weeks,
         nowMs: Date.now(),
     });
+
+    const discordIds = [...new Set(admins.flatMap(discordIdsOf))];
+    const [tickets, discord] = await Promise.all([
+        fetchTicketActivity(discordIds, weekStarts),
+        fetchDiscordActivity(discordIds, weekStarts),
+    ]);
+    if (tickets.state === 'ok') addSourceRows(admins, staff, tickets.rows);
+    if (discord.state === 'ok') addSourceRows(admins, staff, discord.rows);
+
+    return {
+        weekStarts,
+        staff,
+        sources: {
+            tickets: tickets.state === 'ok' ? { state: 'ok' as const } : tickets,
+            discord: discord.state === 'ok' ? { state: 'ok' as const } : discord,
+        },
+    } satisfies StaffActivityData;
 }

@@ -78,6 +78,13 @@ const restructureOldConfig = (old: any) => {
             fxserver: old?.logger?.fxserver,
             server: old?.logger?.server,
         },
+        //everfall: no v1 equivalent
+        staffActivity: {
+            ticketsUrl: ConfigSchemas_v2.staffActivity.ticketsUrl.default,
+            ticketsToken: null,
+            discordUrl: ConfigSchemas_v2.staffActivity.discordUrl.default,
+            discordSecret: null,
+        },
     }
 
     return remapped;

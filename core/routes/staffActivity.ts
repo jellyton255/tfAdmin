@@ -21,5 +21,5 @@ export default async function StaffActivity(ctx: AuthedCtx) {
     if (!query.success) {
         return sendTypedResp({ error: query.error.issues[0]?.message ?? 'Invalid request.' });
     }
-    return sendTypedResp(getStaffActivity(query.data.weeks));
+    return sendTypedResp(await getStaffActivity(query.data.weeks));
 };

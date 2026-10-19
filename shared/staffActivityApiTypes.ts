@@ -10,6 +10,14 @@ export type StaffActivityCounts = {
     revokes: number;
     notes: number;
     minutesOnline: number;
+    //everfall tickets, matched by the admin's Discord ID
+    ticketReplies: number;
+    ticketNotes: number; //internal notes on tickets
+    staffThreadMessages: number;
+    ticketsClosed: number;
+    //EF Bot, matched by the admin's Discord ID
+    discordMessages: number;
+    voiceMinutes: number;
 };
 
 export type StaffActivityMember = {
@@ -22,10 +30,22 @@ export type StaffActivityMember = {
     lastInGameTs: number | null;
 };
 
+/**
+ * Whether an outside source (tickets, Discord) answered. `off` = not configured.
+ */
+export type StaffActivitySourceStatus =
+    | { state: 'ok' }
+    | { state: 'off' }
+    | { state: 'error'; message: string };
+
 export type StaffActivityData = {
     //epoch ms of each week's start (Monday 00:00 UTC), oldest first
     weekStarts: number[];
     staff: StaffActivityMember[];
+    sources: {
+        tickets: StaffActivitySourceStatus;
+        discord: StaffActivitySourceStatus;
+    };
 };
 
 export type StaffActivityResp = StaffActivityData | GenericApiErrorResp;

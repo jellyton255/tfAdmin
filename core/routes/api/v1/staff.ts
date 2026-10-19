@@ -24,9 +24,9 @@ export async function auditLog(ctx: ApiKeyCtx) {
 
 /**
  * GET /api/v1/staff/activity?weeks=8
- * Each admin's bans, warns, kicks, revokes, notes and time in game per UTC week.
+ * Each admin's bans, warns, kicks, revokes, notes and time in game per UTC week, plus ticket and Discord activity.
  */
 export async function activity(ctx: ApiKeyCtx) {
     const { weeks } = staffActivityQuerySchema.parse(ctx.query);
-    return sendData(ctx, getStaffActivity(weeks));
+    return sendData(ctx, await getStaffActivity(weeks));
 };

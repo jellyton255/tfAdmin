@@ -51,6 +51,7 @@ const cardNamesMap = {
     discord: 'Discord',
     'game-menu': 'Game Menu',
     'game-notifications': 'Game Notifications',
+    'staff-activity': 'Staff Activity', //everfall
 } as const;
 const validCardIds = Object.keys(cardNamesMap) as [keyof typeof cardNamesMap];
 

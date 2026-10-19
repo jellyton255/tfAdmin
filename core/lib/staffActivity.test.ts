@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DatabaseActionBaseType, DatabaseActionType, DatabasePlayerType } from '@modules/Database/databaseTypes';
-import { addStaffMinute, buildStaffActivity, utcWeekStart } from './staffActivity';
+import { addSourceRows, addStaffMinute, buildStaffActivity, discordIdsOf, utcWeekStart } from './staffActivity';
 
 //Wednesday 2026-10-14 12:00 UTC
 const NOW = Date.UTC(2026, 9, 14, 12);
@@ -94,5 +94,29 @@ describe('buildStaffActivity', () => {
 
         expect(carol.total).toMatchObject({ revokes: 1, notes: 1, minutesOnline: 0 });
         expect(carol.lastInGameTs).toBeNull();
+    });
+});
+
+describe('addSourceRows', () => {
+    it('adds ticket and Discord counts to the admin with that Discord ID', () => {
+        const admins = [
+            { name: 'Alice', identifiers: ['discord:111111111111111111', 'fivem:1'] },
+            { name: 'Carol', identifiers: ['fivem:2'] },
+        ];
+        expect(discordIdsOf(admins[0])).toEqual(['111111111111111111']);
+        const { staff } = buildStaffActivity({ admins, actions: [], players: [], weeks: 2, nowMs: NOW });
+        addSourceRows(admins, staff, [
+            { discordId: '111111111111111111', weeks: [{ ticketReplies: 2 }, { ticketReplies: 1, ticketsClosed: 3 }] },
+            { discordId: '999999999999999999', weeks: [{ ticketReplies: 9 }, {}] },
+        ]);
+        addSourceRows(admins, staff, [
+            { discordId: '111111111111111111', weeks: [{ discordMessages: 5, voiceMinutes: 30 }, {}] },
+        ]);
+
+        const [alice, carol] = staff;
+        expect(alice.weeks[0]).toMatchObject({ ticketReplies: 2, discordMessages: 5, voiceMinutes: 30 });
+        expect(alice.weeks[1]).toMatchObject({ ticketReplies: 1, ticketsClosed: 3 });
+        expect(alice.total).toMatchObject({ ticketReplies: 3, ticketsClosed: 3, discordMessages: 5, voiceMinutes: 30 });
+        expect(carol.total.ticketReplies).toBe(0);
     });
 });
