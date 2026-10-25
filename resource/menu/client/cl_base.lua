@@ -24,12 +24,34 @@ local function displayAuthRejectedError()
   end
 end
 
+-- This needs to run even when menu is disabled so the ServerCtx
+-- is updated for react, needed by the Warn page
+RegisterSecureNuiCallback('reactLoaded', function(_, cb)
+  debugPrint("React loaded, requesting ServerCtx.")
+
+  CreateThread(function()
+    updateServerCtx()
+    while ServerCtx == false do Wait(0) end
+    debugPrint("ServerCtx loaded, sending variables.")
+    sendMenuMessage('setGameName', GAME_NAME)
+    sendMenuMessage('setDebugMode', TX_DEBUG_MODE)
+    sendMenuMessage('setServerCtx', ServerCtx)
+    sendMenuMessage('setPermissions', menuPermissions)
+  end)
+
+  cb({})
+end)
+
+
+-- =============================================
+--  The rest of the file will only run if menu is enabled
+-- =============================================
+
+-- Prevent running if menu is disabled
+if not TX_MENU_ENABLED then return end
+
 --- Tests for menu accessibility and displays error snackbar if needed
 local function checkMenuAccessible()
-  if not TX_MENU_ENABLED then
-    sendSnackbarMessage('error', 'nui_menu.misc.not_enabled', true)
-    return false
-  end
   if not menuIsAccessible then
     displayAuthRejectedError()
     return false
@@ -62,32 +84,6 @@ RegisterCommand('txAdmin:menu:openPlayersPage', function()
   SetNuiFocus(true, true)
 end)
 
-
--- This needs to run even when menu is disabled so the ServerCtx
--- is updated for react, needed by the Warn page
-RegisterSecureNuiCallback('reactLoaded', function(_, cb)
-  debugPrint("React loaded, requesting ServerCtx.")
-
-  CreateThread(function()
-    updateServerCtx()
-    while ServerCtx == false do Wait(0) end
-    debugPrint("ServerCtx loaded, sending variables.")
-    sendMenuMessage('setGameName', GAME_NAME)
-    sendMenuMessage('setDebugMode', TX_DEBUG_MODE)
-    sendMenuMessage('setServerCtx', ServerCtx)
-    sendMenuMessage('setPermissions', menuPermissions)
-  end)
-
-  cb({})
-end)
-
-
--- =============================================
---  The rest of the file will only run if menu is enabled
--- =============================================
-
--- Prevent running if menu is disabled
-if not TX_MENU_ENABLED then return end
 
 -- Checking with server if we are an admin
 TriggerServerEvent('txsv:checkIfAdmin')
