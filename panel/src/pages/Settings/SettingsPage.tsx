@@ -15,7 +15,6 @@ import SettingsTab from "./SettingsTab";
 import ConfigCardBans from "./tabCards/bans";
 import ConfigCardDiscord from "./tabCards/discord";
 import ConfigCardFxserver from "./tabCards/fxserver";
-import ConfigCardGameMenu from "./tabCards/gameMenu";
 import ConfigCardGameNotifications from "./tabCards/gameNotifications";
 import ConfigCardGeneral from "./tabCards/general";
 import ConfigCardWhitelist from "./tabCards/whitelist";
@@ -36,7 +35,6 @@ const settingsTabsBase = [
     {
         name: 'Game',
         cards: [
-            { name: 'Menu', Component: ConfigCardGameMenu },
             { name: 'Notifications', Component: ConfigCardGameNotifications },
         ]
     },

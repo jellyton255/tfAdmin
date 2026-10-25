@@ -36,7 +36,6 @@ export default class TxRuntimeMetrics {
     public readonly loginOrigins = new MultipleCounter();
     public readonly loginMethods = new MultipleCounter();
     public readonly botCommands = new MultipleCounter();
-    public readonly menuCommands = new MultipleCounter();
     public readonly banCheckTime = new QuantileArray(5000, 50);
     public readonly whitelistCheckTime = new QuantileArray(5000, 50);
     public readonly playersTableSearchTime = new QuantileArray(5000, 50);
@@ -170,9 +169,6 @@ export default class TxRuntimeMetrics {
                 loginMethods: this.loginMethods,
                 botCommands: txConfig.discordBot.enabled
                     ? this.botCommands
-                    : false,
-                menuCommands: txConfig.gameFeatures.menuEnabled
-                    ? this.menuCommands
                     : false,
                 banCheckTime: txConfig.banlist.enabled
                     ? this.banCheckTime

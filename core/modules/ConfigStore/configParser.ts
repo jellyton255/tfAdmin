@@ -16,6 +16,10 @@ const RETIRED_CONFIGS = new Set([
     'gameFeatures.hideDefaultDirectMessage',
     'gameFeatures.hideDefaultWarning',
     'gameFeatures.hideDefaultScheduledRestartWarning',
+    'gameFeatures.menuEnabled',
+    'gameFeatures.menuAlignRight',
+    'gameFeatures.menuPageKey',
+    'gameFeatures.playerModePtfx',
 ]);
 
 

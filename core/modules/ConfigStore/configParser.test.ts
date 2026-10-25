@@ -129,6 +129,7 @@ suite('bootstrapConfigProcessor', () => {
     it('should drop retired config items', () => {
         const parsedInput = [
             { scope: 'gameFeatures', key: 'hideDefaultAnnouncement', value: true },
+            { scope: 'gameFeatures', key: 'menuEnabled', value: false },
         ];
         const result = bootstrapConfigProcessor(parsedInput, allConfigScopes, defaultConfigs);
         expect(result.unknown.gameFeatures).toBeUndefined();

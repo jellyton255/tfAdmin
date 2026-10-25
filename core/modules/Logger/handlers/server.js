@@ -246,12 +246,6 @@ export default class ServerLogger extends LoggerBase {
                 ? `Debug Message: ${eventData.data}`
                 : 'Debug Message: unknown';
 
-        } else if (eventData.type === 'MenuEvent') {
-            txCore.metrics.txRuntime.menuCommands.count(eventData.data?.action ?? 'unknown');
-            eventMessage = (typeof eventData.data.message === 'string')
-                ? `${eventData.data.message}`
-                : 'did unknown action';
-
         } else {
             console.verbose.warn(`Unrecognized event: ${eventData.type}`);
             console.verbose.dir(eventData);

@@ -36,9 +36,6 @@ export const getMutableConvars = (isCmdLine = false) => {
         ['setr', 'locale', txConfig.general.language ?? 'en'],
         ['set', 'serverName', txConfig.general.serverName ?? 'txAdmin'],
         ['set', 'checkPlayerJoin', checkPlayerJoin],
-        ['set', 'menuAlignRight', txConfig.gameFeatures.menuAlignRight],
-        ['set', 'menuPageKey', txConfig.gameFeatures.menuPageKey],
-        ['set', 'playerModePtfx', txConfig.gameFeatures.playerModePtfx],
         ['set', 'hideAdminInPunishments', txConfig.gameFeatures.hideAdminInPunishments],
         ['set', 'hideAdminInMessages', txConfig.gameFeatures.hideAdminInMessages],
 
@@ -128,7 +125,6 @@ export const getFxSpawnVariables = (): FxSpawnVariables => {
         txConfig.server.startupArgs,
         '+set', 'onesync', txConfig.server.onesync,
         '+sets', 'txAdmin-version', txEnv.txaVersion,
-        '+setr', 'txAdmin-menuEnabled', txConfig.gameFeatures.menuEnabled,
         sentryConfig ? [
             '+set', 'txAdmin-sentryDsn', sentryConfig.dsn,
             '+set', 'txAdmin-sentryEnvironment', sentryConfig.environment,
