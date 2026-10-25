@@ -6,12 +6,11 @@
   "type": "module",
   "workspaces": [
     "core",
-    "nui",
     "panel",
     "shared"
   ],
   "scripts": {
-    "build": "rimraf dist tmp_core_tsc && pnpm --filter txadmin-nui build && pnpm --filter txadmin-panel build && pnpm --filter txadmin-core build && pnpm run license:distfile",
+    "build": "rimraf dist tmp_core_tsc && pnpm --filter txadmin-panel build && pnpm --filter txadmin-core build && pnpm run license:distfile",
     "prepare": "husky install",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

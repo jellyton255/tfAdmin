@@ -23,8 +23,6 @@ end
 -- =============================================
 -- MARK: Variables stuff
 -- =============================================
-TX_ADMINS = {}
-TX_PLAYERLIST = {}
 TX_LUACOMHOST = GetConvar("txAdmin-luaComHost", "invalid")
 TX_LUACOMTOKEN = GetConvar("txAdmin-luaComToken", "invalid")
 TX_VERSION = GetResourceMetadata('monitor', 'version') -- for now, only used in the start print
@@ -170,13 +168,11 @@ local cvHideAdminInPunishments = GetConvarBool('txAdmin-hideAdminInPunishments')
 local cvHideAdminInMessages = GetConvarBool('txAdmin-hideAdminInMessages')
 -- Adding all known events to the list so txaEvent can do whitelist checking
 TX_EVENT_HANDLERS = {
-    -- Handled by another file
-    adminsUpdated = false, -- sv_admins.lua
-    configChanged = false, -- sv_ctx.lua
-
     -- Known NO-OP
     actionRevoked = false,
     adminAuth = false,
+    adminsUpdated = false,
+    configChanged = false,
     consoleCommand = false,
     healedPlayer = false,
     playerHealed = false,

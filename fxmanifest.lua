@@ -10,7 +10,6 @@ ui_label 'txAdmin'
 
 fx_version 'cerulean'
 game 'common'
--- nui_callback_strict_mode 'true' --FIXME: menu iframe doesn't work
 -- lua54 'yes' --TODO: check if it works
 -- node_version '22'
 
@@ -24,54 +23,16 @@ shared_scripts {
 server_scripts {
     'entrypoint.js',
     'resource/sv_main.lua', --must run first
-    'resource/sv_admins.lua',
     'resource/sv_logger.lua',
     'resource/sv_resources.lua',
-    'resource/sv_playerlist.lua',
-    'resource/sv_ctx.lua',
     'resource/sv_initialData.lua',
     'resource/sv_characters.lua',
     'resource/sv_services.lua',
-    'resource/sv_exports.lua',
-    'resource/menu/server/sv_webpipe.lua',
-    'resource/menu/server/sv_functions.lua',
-    'resource/menu/server/sv_main_page.lua',
-    'resource/menu/server/sv_vehicle.lua',
-    'resource/menu/server/sv_freeze_player.lua',
-    'resource/menu/server/sv_trollactions.lua',
-    'resource/menu/server/sv_player_modal.lua',
-    'resource/menu/server/sv_spectate.lua',
-    'resource/menu/server/sv_player_mode.lua'
+    'resource/sv_exports.lua'
 }
 
 client_scripts {
     'resource/cl_main.lua',
-    'resource/cl_logger.lua',
-    'resource/cl_playerlist.lua',
-    'resource/menu/client/cl_webpipe.lua',
-    'resource/menu/client/cl_base.lua',
-    'resource/menu/client/cl_functions.lua',
-    'resource/menu/client/cl_instructional_ui.lua',
-    'resource/menu/client/cl_main_page.lua',
-    'resource/menu/client/cl_vehicle.lua',
-    'resource/menu/client/cl_player_ids.lua',
-    'resource/menu/client/cl_ptfx.lua', --must run before cl_player_mode
-    'resource/menu/client/cl_player_mode.lua',
-    'resource/menu/client/cl_spectate.lua',
-    'resource/menu/client/cl_trollactions.lua',
-    'resource/menu/client/cl_freeze.lua',
-    'resource/menu/vendor/freecam/utils.lua',
-    'resource/menu/vendor/freecam/config.lua',
-    'resource/menu/vendor/freecam/main.lua',
-    'resource/menu/vendor/freecam/camera.lua',
+    'resource/cl_logger.lua'
 }
 
-ui_page 'nui/index.html'
-
-files {
-    'nui/**/*',
-
-    -- WebPipe optimization:
-    'panel/**/*',
-    'web/public/**/*',
-}
