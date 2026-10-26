@@ -1,10 +1,9 @@
 import { useState } from "react";
 import useSWR from "swr";
-import { KeyRoundIcon, Loader2Icon, PencilIcon, PlusIcon, Trash2Icon, UserCogIcon, UsersIcon, XIcon } from "lucide-react";
+import { ChevronRightIcon, Loader2Icon, LockIcon, PlusIcon, UserCogIcon, UsersIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { txToast } from "@/components/TxToaster";
 import { useBackendApi } from "@/hooks/fetch";
@@ -25,6 +24,7 @@ const LIST_SWR_KEY = '/adminManager/list';
 type FormState = {
     mode: 'add' | 'edit';
     initialValues: AdminFormValues;
+    admin?: AdminManagerAdmin;
 };
 
 /**
@@ -61,84 +61,49 @@ function getPermsSummary(admin: AdminManagerAdmin) {
 }
 
 
-function AdminRow({ admin, onEdit, onDelete, onRemovePasskeys, onOpenAccount }: {
+function AdminRow({ admin, onEdit, onOpenAccount }: {
     admin: AdminManagerAdmin;
     onEdit: (admin: AdminManagerAdmin) => void;
-    onDelete: (admin: AdminManagerAdmin) => void;
-    onRemovePasskeys: (admin: AdminManagerAdmin) => void;
     onOpenAccount: () => void;
 }) {
+    const loginMethods = [
+        admin.citizenfxIdentifier && 'Cfx.re',
+        admin.discordId && 'Discord',
+        admin.passkeyCount && (admin.passkeyCount === 1 ? '1 Passkey' : `${admin.passkeyCount} Passkeys`),
+    ].filter(Boolean).join(' · ');
+    const isClickable = admin.isSelf || admin.canEdit;
+
     return (
-        <TableRow>
-            <TableCell>
-                <div className="flex items-center gap-2 font-semibold">
-                    {admin.name}
-                    {admin.isMaster && <Badge variant="outline" className="border-warning/40 text-warning">Master</Badge>}
-                    {admin.isSelf && <Badge variant="secondary">You</Badge>}
-                </div>
-            </TableCell>
-            <TableCell>
-                {admin.citizenfxIdentifier || admin.discordId ? (
-                    <div className="flex flex-col gap-0.5 font-mono text-xs text-muted-foreground">
-                        {admin.citizenfxIdentifier && <span title="Cfx.re">{admin.citizenfxIdentifier}</span>}
-                        {admin.discordId && <span title="Discord">discord:{admin.discordId}</span>}
-                    </div>
-                ) : (
-                    <span className="text-muted-foreground">&ndash;</span>
-                )}
-            </TableCell>
-            <TableCell className="text-muted-foreground whitespace-nowrap">{getPermsSummary(admin)}</TableCell>
-            <TableCell className="whitespace-nowrap">
-                {admin.passkeyCount ? (
-                    <div className="inline-flex items-center gap-1.5 text-muted-foreground">
-                        <KeyRoundIcon className="size-4" />
-                        {admin.passkeyCount}
-                        {!admin.isSelf && admin.canEdit && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-1.5 text-destructive hover:text-destructive"
-                                title="Remove Passkeys"
-                                onClick={() => onRemovePasskeys(admin)}
-                            >
-                                <XIcon className="size-4" />
-                            </Button>
-                        )}
-                    </div>
-                ) : (
-                    <span className="text-muted-foreground">&ndash;</span>
-                )}
-            </TableCell>
-            <TableCell className="text-right whitespace-nowrap">
+        <button
+            type="button"
+            disabled={!isClickable}
+            title={isClickable ? undefined : 'Only the master account can edit a master admin.'}
+            onClick={() => admin.isSelf ? onOpenAccount() : onEdit(admin)}
+            className="group w-full grid grid-cols-[1fr_auto] md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_1.5rem] items-center gap-x-4 gap-y-1
+                px-4 py-3 text-left transition-colors hover:bg-muted/50 disabled:hover:bg-transparent
+                focus-visible:outline-none focus-visible:bg-muted/50"
+        >
+            <div className="flex items-center gap-2 min-w-0">
+                <span className="font-semibold truncate">{admin.name}</span>
+                {admin.isMaster && <Badge variant="outline" className="border-warning/40 text-warning shrink-0">Master</Badge>}
+                {admin.isSelf && <Badge variant="secondary" className="shrink-0">You</Badge>}
+            </div>
+            <div className="row-start-2 md:row-start-auto text-sm text-muted-foreground truncate">
+                {getPermsSummary(admin)}
+            </div>
+            <div className="row-start-3 md:row-start-auto text-sm text-muted-foreground truncate">
+                {loginMethods || 'Password Only'}
+            </div>
+            <div className="row-span-3 md:row-span-1 col-start-2 md:col-start-auto row-start-1 justify-self-end text-muted-foreground">
                 {admin.isSelf ? (
-                    <Button size="sm" variant="outline" onClick={onOpenAccount}>
-                        <UserCogIcon className="size-4 mr-1" /> Your Account
-                    </Button>
+                    <UserCogIcon className="size-4 group-hover:text-foreground" />
+                ) : admin.canEdit ? (
+                    <ChevronRightIcon className="size-4 group-hover:text-foreground" />
                 ) : (
-                    <div className="inline-flex gap-1">
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={!admin.canEdit}
-                            title={admin.canEdit ? 'Edit' : 'Only the master account can edit a master admin.'}
-                            onClick={() => onEdit(admin)}
-                        >
-                            <PencilIcon className="size-4 mr-1" /> Edit
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            disabled={!admin.canDelete}
-                            title={admin.canDelete ? 'Delete' : 'The master admin cannot be deleted.'}
-                            onClick={() => onDelete(admin)}
-                        >
-                            <Trash2Icon className="size-4 mr-1" /> Delete
-                        </Button>
-                    </div>
+                    <LockIcon className="size-4 opacity-60" />
                 )}
-            </TableCell>
-        </TableRow>
+            </div>
+        </button>
     );
 }
 
@@ -188,6 +153,7 @@ export default function AdminsPage() {
     const handleEdit = (admin: AdminManagerAdmin) => {
         setFormState({
             mode: 'edit',
+            admin,
             initialValues: {
                 name: admin.name,
                 citizenfxID: admin.citizenfxId ?? '',
@@ -197,7 +163,9 @@ export default function AdminsPage() {
         });
     };
 
+    //The confirm dialog replaces the edit dialog instead of stacking on it
     const handleDelete = (admin: AdminManagerAdmin) => {
+        closeForm();
         openConfirmDialog({
             title: `Delete ${admin.name}?`,
             message: 'This admin will lose access to the panel immediately.',
@@ -215,6 +183,7 @@ export default function AdminsPage() {
     };
 
     const handleRemovePasskeys = (admin: AdminManagerAdmin) => {
+        closeForm();
         openConfirmDialog({
             title: `Remove ${admin.name}'s passkeys?`,
             message: `All ${admin.passkeyCount} passkey(s) will stop working, and sessions started with them will be signed out.`,
@@ -239,7 +208,7 @@ export default function AdminsPage() {
     };
 
     return (
-        <div className="flex flex-col h-full w-full gap-4 max-w-screen-xl mx-auto">
+        <div className="flex flex-col w-full gap-4 pb-4 [&>header]:mb-0">
             <PageHeader title="Admins" icon={<UsersIcon />}>
                 <Button size="sm" disabled={!swr.data} onClick={handleAdd}>
                     <PlusIcon className="size-4 mr-1" /> Add Admin
@@ -247,7 +216,7 @@ export default function AdminsPage() {
             </PageHeader>
 
             {swr.error ? (
-                <Alert variant="destructive" className="mx-2 w-auto">
+                <Alert variant="destructive" className="mx-2 md:mx-0 w-auto">
                     <AlertTitle>Failed to Load Admins</AlertTitle>
                     <AlertDescription>{(swr.error as Error).message}</AlertDescription>
                 </Alert>
@@ -256,30 +225,22 @@ export default function AdminsPage() {
                     <Loader2Icon className="animate-spin size-6 mr-2" /> Loading...
                 </div>
             ) : (
-                <div className="border rounded-lg mx-2 overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Username</TableHead>
-                                <TableHead>Identifiers</TableHead>
-                                <TableHead>Permissions</TableHead>
-                                <TableHead>Passkeys</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {swr.data.admins.map((admin) => (
-                                <AdminRow
-                                    key={admin.name}
-                                    admin={admin}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDelete}
-                                    onRemovePasskeys={handleRemovePasskeys}
-                                    onOpenAccount={() => openAccountModal()}
-                                />
-                            ))}
-                        </TableBody>
-                    </Table>
+                <div className="mx-2 md:mx-0 border rounded-lg bg-card overflow-hidden">
+                    <div className="hidden md:grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_1.5rem] gap-x-4 px-4 py-2.5 border-b text-sm font-medium text-muted-foreground">
+                        <span>Admin</span>
+                        <span>Permissions</span>
+                        <span>Login</span>
+                    </div>
+                    <div className="divide-y">
+                        {swr.data.admins.map((admin) => (
+                            <AdminRow
+                                key={admin.name}
+                                admin={admin}
+                                onEdit={handleEdit}
+                                onOpenAccount={() => openAccountModal()}
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -287,6 +248,9 @@ export default function AdminsPage() {
                 <AdminFormDialog
                     mode={formState.mode}
                     initialValues={formState.initialValues}
+                    admin={formState.admin}
+                    onDelete={handleDelete}
+                    onRemovePasskeys={handleRemovePasskeys}
                     permissionsList={swr.data.permissions}
                     onClose={closeForm}
                     onSaved={handleSaved}

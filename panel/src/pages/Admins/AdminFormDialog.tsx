@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2Icon } from "lucide-react";
+import { KeyRoundIcon, Loader2Icon, Trash2Icon } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { useAdminPerms } from "@/hooks/auth";
 import { cn } from "@/lib/utils";
 import consts from "@shared/consts";
 import type {
+    AdminManagerAdmin,
     AdminManagerAddResp,
     AdminManagerEditResp,
     AdminManagerPermission,
@@ -23,6 +24,9 @@ export type AdminFormValues = AdminManagerSaveReq;
 type Props = {
     mode: 'add' | 'edit';
     initialValues: AdminFormValues;
+    admin?: AdminManagerAdmin;
+    onDelete: (admin: AdminManagerAdmin) => void;
+    onRemovePasskeys: (admin: AdminManagerAdmin) => void;
     permissionsList: AdminManagerPermission[];
     onClose: () => void;
     onSaved: (name: string, password: string | null) => void;
@@ -35,7 +39,7 @@ const permGroups = [
 
 
 //Mounted only while open, so the form state starts fresh every time
-export default function AdminFormDialog({ mode, initialValues, permissionsList, onClose, onSaved }: Props) {
+export default function AdminFormDialog({ mode, initialValues, admin, onDelete, onRemovePasskeys, permissionsList, onClose, onSaved }: Props) {
     const { hasPerm } = useAdminPerms();
     const [name, setName] = useState(initialValues.name);
     const [citizenfxID, setCitizenfxID] = useState(initialValues.citizenfxID);
@@ -191,13 +195,42 @@ export default function AdminFormDialog({ mode, initialValues, permissionsList, 
                         ))}
                     </div>
 
+                    {admin && admin.passkeyCount > 0 && (
+                        <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+                            <span className="inline-flex items-center gap-2">
+                                <KeyRoundIcon className="size-4 text-muted-foreground" />
+                                {admin.passkeyCount === 1 ? '1 Passkey' : `${admin.passkeyCount} Passkeys`}
+                            </span>
+                            <Button
+                                type="button"
+                                size="xs"
+                                variant="ghost-destructive"
+                                disabled={isSaving}
+                                onClick={() => onRemovePasskeys(admin)}
+                            >
+                                Remove Passkeys
+                            </Button>
+                        </div>
+                    )}
+
                     {error && (
                         <Alert variant="destructive">
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
 
-                    <DialogFooter>
+                    <DialogFooter className="gap-2 sm:space-x-0">
+                        {admin?.canDelete && (
+                            <Button
+                                type="button"
+                                variant="ghost-destructive"
+                                className="sm:mr-auto"
+                                disabled={isSaving}
+                                onClick={() => onDelete(admin)}
+                            >
+                                <Trash2Icon className="size-4 mr-1" /> Delete Admin
+                            </Button>
+                        )}
                         <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancel</Button>
                         <Button type="submit" disabled={isSaving}>
                             {isSaving && <Loader2Icon className="animate-spin size-4 mr-1" />}
