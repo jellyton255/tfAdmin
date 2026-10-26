@@ -1,11 +1,10 @@
 import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { CheckIcon, Loader2Icon, SearchIcon, XIcon } from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Avatar from "@/components/Avatar";
+import AllowlistSection from "./AllowlistSection";
 import { useBackendApi } from "@/hooks/fetch";
 import { useOpenConfirmDialog } from "@/hooks/dialogs";
 import { tsToLocaleDateTimeString } from "@/lib/dateTime";
@@ -99,154 +98,122 @@ export default function AllowlistRequestsCard({ canManage }: { canManage: boolea
 
     const data = swr.data;
     const isFiltered = !!data && data.cntFiltered !== data.cntTotal;
-    const counter = !data ? '' : isFiltered ? `${data.cntFiltered} of ${data.cntTotal}` : data.cntTotal.toString();
+    const counter = !data ? undefined : isFiltered ? `${data.cntFiltered} of ${data.cntTotal}` : data.cntTotal.toString();
+    const emptyMessage = data && !data.requests.length
+        ? activeSearch ? 'No requests match this search.' : 'No pending requests.'
+        : null;
 
     return (
-        <Card className="flex flex-col">
-            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
-                <div className="space-y-1.5">
-                    <CardTitle className="text-lg">
-                        Requests {counter && <span className="text-muted-foreground font-normal">({counter})</span>}
-                    </CardTitle>
-                    <CardDescription>Players who tried to join without being allowlisted.</CardDescription>
-                </div>
-                <form className="flex items-center gap-2" onSubmit={handleSearchSubmit}>
-                    <Input
-                        className="h-8 w-48"
-                        placeholder="Player name, R1234"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                    />
-                    {activeSearch ? (
-                        <Button type="button" size="sm" variant="outline" onClick={() => applySearch('')}>
-                            <XIcon className="size-4 mr-1" /> Clear
-                        </Button>
-                    ) : (
-                        <Button type="submit" size="sm" variant="outline">
-                            <SearchIcon className="size-4 mr-1" /> Search
+        <AllowlistSection
+            title="Requests"
+            count={counter}
+            error={swr.error}
+            isLoading={!data}
+            emptyMessage={emptyMessage}
+            controls={(
+                <div className="flex items-center gap-2 max-sm:w-full">
+                    <form className="relative max-sm:flex-1" onSubmit={handleSearchSubmit}>
+                        <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                            className="h-8 w-full sm:w-56 pl-8 pr-8"
+                            placeholder="Name or Request ID"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                        />
+                        {activeSearch && (
+                            <button
+                                type="button"
+                                title="Clear Search"
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+                                onClick={() => applySearch('')}
+                            >
+                                <XIcon className="size-4" />
+                            </button>
+                        )}
+                    </form>
+                    {canManage && !!data?.requests.length && !isFiltered && (
+                        <Button size="xs" variant="outline-destructive" className="h-8" onClick={handleDenyAll}>
+                            Deny All
                         </Button>
                     )}
-                </form>
-            </CardHeader>
-
-            <CardContent className="flex-1">
-                {swr.error ? (
-                    <div className="text-center py-10 text-destructive">
-                        {(swr.error as Error).message}
-                    </div>
-                ) : !data ? (
-                    <div className="flex items-center justify-center py-10 text-muted-foreground">
-                        <Loader2Icon className="animate-spin size-6 mr-2" /> Loading...
-                    </div>
-                ) : !data.requests.length ? (
-                    <div className="text-center py-10 text-muted-foreground border rounded-lg border-dashed">
-                        {activeSearch ? 'No requests match this search.' : 'No pending requests.'}
-                    </div>
-                ) : (
-                    <div className="border rounded-lg overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>ID</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Discord</TableHead>
-                                    <TableHead>Last Attempt</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {data.requests.map((req) => (
-                                    <TableRow key={req.id}>
-                                        <TableCell className="font-mono">{req.id}</TableCell>
-                                        <TableCell
-                                            className="max-w-[10rem] truncate"
-                                            title={`${req.playerDisplayName}\nlicense:${req.license}`}
-                                        >
-                                            {req.playerDisplayName}
-                                        </TableCell>
-                                        <TableCell className="max-w-[12rem]" title={req.discordTag}>
-                                            {req.discordTag ? (
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <Avatar
-                                                        className="size-6 text-xs shrink-0"
-                                                        username={req.discordTag}
-                                                        profilePicture={req.discordAvatar}
-                                                    />
-                                                    <span className="truncate">{req.discordTag}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted-foreground">Not Available</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell
-                                            className="whitespace-nowrap text-muted-foreground"
-                                            title={tsToLocaleDateTimeString(req.tsLastAttempt, 'long', 'long')}
-                                        >
-                                            {tsToLocaleDateTimeString(req.tsLastAttempt, 'short', 'short')}
-                                        </TableCell>
-                                        <TableCell className="text-right whitespace-nowrap">
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="size-8 text-success hover:text-success"
-                                                disabled={!canManage}
-                                                title={canManage ? 'Approve' : 'You do not have this permission.'}
-                                                onClick={() => handleApprove(req)}
-                                            >
-                                                <CheckIcon className="size-4" />
-                                            </Button>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="size-8 text-destructive hover:text-destructive"
-                                                disabled={!canManage}
-                                                title={canManage ? 'Deny' : 'You do not have this permission.'}
-                                                onClick={() => handleDeny(req)}
-                                            >
-                                                <XIcon className="size-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )}
-            </CardContent>
-
-            <CardFooter className="justify-between gap-2">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-destructive hover:text-destructive"
-                    disabled={!canManage || !data?.requests.length || isFiltered}
-                    title={isFiltered ? 'Clear the search to deny all requests.' : undefined}
-                    onClick={handleDenyAll}
-                >
-                    <XIcon className="size-4 mr-1" /> Deny All
-                </Button>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                </div>
+            )}
+            footer={data && data.totalPages > 1 && (
+                <div className="flex items-center justify-end gap-2 px-4 py-2 border-t text-sm text-muted-foreground">
+                    <span className="tabular-nums mr-1">Page {data.currPage} of {data.totalPages}</span>
                     <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!data || data.currPage <= 1}
+                        size="icon"
+                        variant="ghost-muted"
+                        className="size-8"
+                        title="Previous Page"
+                        disabled={data.currPage <= 1}
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
-                        Previous
+                        <ChevronLeftIcon className="size-4" />
                     </Button>
-                    <span className="tabular-nums">
-                        Page {data?.currPage ?? page} of {Math.max(1, data?.totalPages ?? 1)}
-                    </span>
                     <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!data || data.currPage >= data.totalPages}
+                        size="icon"
+                        variant="ghost-muted"
+                        className="size-8"
+                        title="Next Page"
+                        disabled={data.currPage >= data.totalPages}
                         onClick={() => setPage((p) => p + 1)}
                     >
-                        Next
+                        <ChevronRightIcon className="size-4" />
                     </Button>
                 </div>
-            </CardFooter>
-        </Card>
+            )}
+        >
+            {data?.requests.map((req) => (
+                <div
+                    key={req.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[4.5rem_minmax(0,1.2fr)_minmax(0,1.2fr)_9rem_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5"
+                >
+                    <span className="hidden md:block font-mono text-sm text-muted-foreground">{req.id}</span>
+                    <div className="min-w-0 truncate" title={`${req.playerDisplayName}\nlicense:${req.license}`}>
+                        <span className="font-medium">{req.playerDisplayName}</span>
+                        <span className="md:hidden ml-2 font-mono text-sm text-muted-foreground">{req.id}</span>
+                    </div>
+                    <div className="row-start-2 md:row-start-auto flex items-center gap-2 min-w-0 text-sm text-muted-foreground" title={req.discordTag}>
+                        {req.discordTag ? (<>
+                            <Avatar
+                                className="size-5 text-[0.6rem] shrink-0"
+                                username={req.discordTag}
+                                profilePicture={req.discordAvatar}
+                            />
+                            <span className="truncate">{req.discordTag}</span>
+                        </>) : 'No Discord'}
+                    </div>
+                    <span
+                        className="row-start-3 md:row-start-auto text-sm text-muted-foreground whitespace-nowrap"
+                        title={tsToLocaleDateTimeString(req.tsLastAttempt, 'long', 'long')}
+                    >
+                        {tsToLocaleDateTimeString(req.tsLastAttempt, 'short', 'short')}
+                    </span>
+                    {canManage && (
+                        <div className="col-start-2 row-start-1 row-span-3 md:col-start-auto md:row-start-auto md:row-span-1 flex gap-1 justify-self-end">
+                            <Button
+                                size="icon"
+                                variant="ghost-success"
+                                className="size-8"
+                                title="Approve"
+                                onClick={() => handleApprove(req)}
+                            >
+                                <CheckIcon className="size-4" />
+                            </Button>
+                            <Button
+                                size="icon"
+                                variant="ghost-destructive"
+                                className="size-8"
+                                title="Deny"
+                                onClick={() => handleDeny(req)}
+                            >
+                                <XIcon className="size-4" />
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </AllowlistSection>
     );
 }
