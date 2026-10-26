@@ -41,26 +41,26 @@ type NavButtonProps = {
 };
 const navButtonClasses = `h-11 w-11 sm:h-10 sm:min-w-max sm:px-2 lg:px-3
     flex justify-center items-center gap-2
-    transition-all ring-offset-background 
-    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-    rounded-md text-sm border
-   
-    bg-zinc-100 hover:bg-zinc-200 border-zinc-200
-    dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:border-zinc-800
+    rounded-md border text-sm text-muted-foreground transition-colors
+    hover:bg-muted hover:text-foreground hover:border-input
+    ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
 `;
+
+const quickSearchShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K';
 
 function ButtonQuickSearch({ className }: NavButtonProps) {
     const setQuickSearchOpen = useSetAtom(quickSearchOpenAtom);
     return (
         <button
-            className={cn(navButtonClasses, className)}
-            title="Search (Ctrl+K)"
+            className={cn(navButtonClasses, 'sm:w-44 sm:justify-start lg:px-2.5', className)}
+            title={`Search (${quickSearchShortcut})`}
             onClick={() => setQuickSearchOpen(true)}
         >
-            <SearchIcon className="h-6 w-6 sm:h-5 sm:w-5" />
-            <div className="hidden sm:flex flex-row min-w-max">
-                Search
-            </div>
+            <SearchIcon className="h-6 w-6 sm:h-4 sm:w-4 shrink-0" />
+            <span className="hidden sm:inline">Search</span>
+            <kbd className="hidden sm:inline ml-auto rounded border bg-background/60 px-1.5 py-0.5 font-mono text-xs tracking-wide">
+                {quickSearchShortcut}
+            </kbd>
         </button>
     );
 }
