@@ -7,6 +7,8 @@ import type { DiagnosticsDataApiResp } from "@shared/diagnosticsTypes";
 import useSWR from "swr";
 import { useBackendApi } from "@/hooks/fetch";
 import CardContentOverlay from "@/components/CardContentOverlay";
+import { PageHeader } from "@/components/page-header";
+import { StethoscopeIcon } from "lucide-react";
 
 
 export default function DiagnosticsPage() {
@@ -35,8 +37,9 @@ export default function DiagnosticsPage() {
         )
     }
     return (
-        <div className="w-full space-y-4">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="w-full space-y-4 pb-4 [&>header]:mb-0">
+            <PageHeader title="Diagnostics" icon={<StethoscopeIcon />} />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 px-2 md:px-0">
                 <div className="space-y-4">
                     {/* Runtime Card */}
                     <Card>

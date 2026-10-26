@@ -201,7 +201,7 @@ export default function SystemLogPage({ pageName }: SystemLogPageProps) {
 
     //Rendering stuff
     const pageTitle = 'Console Log';
-    const pageSubtitle = 'Output of txAdmin to it\'s parent terminal, including usually hidden debug messages.';
+    const pageSubtitle = 'Output of txAdmin to its parent terminal, including usually hidden debug messages.';
 
     return (
         <div className="text-primary flex flex-col h-full w-full bg-card border md:rounded-xl overflow-clip">
