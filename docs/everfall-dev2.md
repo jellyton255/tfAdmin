@@ -6,6 +6,7 @@ that ships inside the FXServer artifact.
 | What | Where |
 | --- | --- |
 | Working checkout | `/var/fxservers/dev2/tfAdmin` (`origin` = jellyton255/tfAdmin, `upstream` = citizenfx/txAdmin) |
+| Staged build | `/var/fxservers/dev2/tfadmin-staged` (Main: `/var/fxservers/main/tfadmin`) |
 | Installed build | `/var/fxservers/dev2/FxServer/opt/cfx-server/citizen/system_resources/monitor` |
 | Build marker | `monitor/.tfadmin-build` (txAdmin base version, build number, commit, deploy time) |
 | txData | `/var/fxservers/dev2/txData` (untouched by deploys) |
@@ -29,22 +30,23 @@ their platform binaries come in as optional dependencies.
 ## Build and deploy loop
 
 ```sh
-scripts/everfall/deploy-dev2.sh            # build, then sync dist/ into Dev2's monitor
+scripts/everfall/deploy-dev2.sh            # build, then stage dist/ in dev2/tfadmin-staged
 scripts/everfall/deploy-dev2.sh --restart  # same, then pm2 restart fxserver-dev2
-scripts/everfall/deploy-dev2.sh --no-build # sync the current dist/ only
+scripts/everfall/deploy-dev2.sh --no-build # stage the current dist/ only
 ```
+
+Each server's `run.sh` exports `TFADMIN_STAGE_DIR` and copies the staged folder into the monitor
+on every launch. When the staged commit differs from the running one, any server restart (scheduled,
+the panel's Restart button, the API, or a crash restart) stops the game server and exits the
+txAdmin process instead; pm2 relaunches `run.sh`, which installs the build. With nothing new staged,
+a restart is a normal game server restart. The nightly job replaces a hand-staged Dev2 build with
+`master` when `master` moves.
 
 The build is stamped `8.1.1` (override with `TX_VERSION=x.y.z`). Avoid pre-release versions such as
 `8.1.1-tf.1`: txAdmin treats them as expiring pre-releases and stops working after 21 days.
 
-What each kind of change needs to go live:
-
-- `core/`, `panel/`, `web/`: deploy, then restart `fxserver-dev2` in pm2. The core runs in the
-  txAdmin host process, which only a pm2 restart replaces.
-- `resource/`, `nui/`: deploy, then restart the game server from the txAdmin panel. The host process
-  keeps running; the child server reloads the monitor resource from disk.
-
-Restarting either kicks everyone on Dev2, so check who is on first.
+Any server restart loads a staged build, whichever part of tfAdmin changed. Restarting kicks
+everyone on Dev2, so check who is on first.
 
 Confirm what is running. The panel sidebar shows it as `tf: r<build>`; the build number counts
 master's commits since the fork, so it rises by one with every commit and needs no release step.
@@ -83,14 +85,15 @@ pm2 restart fxserver-dev2
 ## Nightly build, smoke test, and upstream tracking
 
 `/usr/local/sbin/tfadmin-nightly` (systemd `tfadmin-nightly.timer`, 03:30 UTC) builds `origin/master`
-in `/var/lib/tfadmin-nightly/src` and stages it in `/var/fxservers/main/tfadmin`. Main installs it on
-its next scheduled restart. The job never pushes, restarts, or signals anything.
+in `/var/lib/tfadmin-nightly/src` and stages it in `/var/fxservers/main/tfadmin` and
+`/var/fxservers/dev2/tfadmin-staged`. Each server installs it on its next restart. The job never
+pushes, restarts, or signals anything.
 
 - **Smoke test.** Before staging, the job runs `scripts/everfall/smoke-core-bundle.mjs` (falls back to
   `/usr/local/lib/tfadmin-nightly/smoke-core-bundle.mjs` for commits that predate it). It fails the
   build when `dist/core/index.js` references an undefined free identifier, such as a missing import
   that esbuild turned into `txEnv` next to `txEnv2`. It then boots a copy headlessly on a free
-  loopback port and waits for `/login`. A failed build is not staged and Main keeps its build.
+  loopback port and waits for `/login`. A failed build is not staged and each server keeps its build.
   Run it locally after `pnpm run build`: `node scripts/everfall/smoke-core-bundle.mjs`.
 - **Upstream check.** Every run fetches `citizenfx/txAdmin` `master` and trial-merges it into
   `origin/master` with `git merge-tree` (no worktree change). Results go to
@@ -107,7 +110,7 @@ git switch master && git pull --ff-only origin master
 git merge upstream/master        # resolve the files the status lists as conflicting
 pnpm install && pnpm -r test && GITHUB_REF=refs/tags/v8.1.1 pnpm run build
 node scripts/everfall/smoke-core-bundle.mjs
-git push origin master           # the next nightly stages it for Main
+git push origin master           # the next nightly stages it for Main and Dev2
 ```
 
 Keep the `8.1.1` stamp unless a merged upstream release needs a newer one; do not use pre-release
