@@ -220,7 +220,7 @@ export default function StaffActivityPage() {
         : false;
 
     return (
-        <div className="flex flex-col h-full w-full gap-4 max-w-screen-xl mx-auto">
+        <div className="flex flex-col w-full gap-4 pb-4 [&>header]:mb-0">
             <PageHeader title="Staff Activity" icon={<UserCheckIcon />}>
                 <Select value={String(weeks)} onValueChange={(value) => setWeeks(Number(value))}>
                     <SelectTrigger className="w-36 h-8">
@@ -237,14 +237,14 @@ export default function StaffActivityPage() {
             </PageHeader>
 
             {sourceErrors.map(({ source, message }) => (
-                <Alert key={source} variant="destructive" className="mx-2 w-auto">
+                <Alert key={source} variant="destructive" className="mx-2 md:mx-0 w-auto">
                     <AlertTitle>{sourceLabels[source]} Unavailable</AlertTitle>
                     <AlertDescription>{message}</AlertDescription>
                 </Alert>
             ))}
 
             {swr.error ? (
-                <Alert variant="destructive" className="mx-2 w-auto">
+                <Alert variant="destructive" className="mx-2 md:mx-0 w-auto">
                     <AlertTitle>Failed to Load Staff Activity</AlertTitle>
                     <AlertDescription>{swr.error instanceof Error ? swr.error.message : String(swr.error)}</AlertDescription>
                 </Alert>
@@ -253,7 +253,7 @@ export default function StaffActivityPage() {
                     <Loader2Icon className="animate-spin size-6 mr-2" /> Loading...
                 </div>
             ) : (
-                <div className="flex flex-col gap-3 mx-2">
+                <div className="flex flex-col gap-3 mx-2 md:mx-0">
                     <Tabs value={view.key} onValueChange={setViewKey}>
                         <TabsList>
                             {shownViews.map((item) => (
@@ -292,7 +292,7 @@ export default function StaffActivityPage() {
             )}
 
             {isSourceOff && (
-                <p className="mx-2 text-sm text-muted-foreground">
+                <p className="mx-2 md:mx-0 text-sm text-muted-foreground">
                     Connect tickets and Discord in{' '}
                     <MainPageLink href="/settings#staff-activity" className="text-accent hover:underline">
                         Settings

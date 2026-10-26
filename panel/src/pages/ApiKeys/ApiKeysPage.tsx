@@ -175,22 +175,17 @@ export default function ApiKeysPage() {
     };
 
     return (
-        <div className="flex flex-col h-full w-full gap-4 max-w-screen-xl mx-auto">
+        <div className="flex flex-col w-full gap-4 pb-4 [&>header]:mb-0">
             <PageHeader title="API Keys" icon={<KeyRoundIcon />}>
                 <Button size="sm" disabled={!canManage || !swr.data} onClick={() => setIsCreateOpen(true)}>
-                    <PlusIcon className="size-4 mr-1" /> New key
+                    <PlusIcon className="size-4 mr-1" /> New Key
                 </Button>
             </PageHeader>
 
-            <p className="text-sm text-muted-foreground px-2 -mt-2">
-                API keys let external tools (bots, websites, scripts) call the <code className="font-mono">/api/v1</code> endpoints
-                with a <code className="font-mono">Authorization: Bearer</code> header. Every key can read; each one only carries the write scopes you
-                give it, and every action it takes is logged under <code className="font-mono">api:&lt;key name&gt;</code>.
-            </p>
 
             {swr.error ? (
-                <Alert variant="destructive" className="mx-2">
-                    <AlertTitle>Failed to load API keys</AlertTitle>
+                <Alert variant="destructive" className="mx-2 md:mx-0 w-auto">
+                    <AlertTitle>Failed to Load API Keys</AlertTitle>
                     <AlertDescription>{(swr.error as Error).message}</AlertDescription>
                 </Alert>
             ) : !swr.data ? (
@@ -198,11 +193,11 @@ export default function ApiKeysPage() {
                     <Loader2Icon className="animate-spin size-6 mr-2" /> Loading...
                 </div>
             ) : !sortedKeys.length ? (
-                <div className="text-center py-16 text-muted-foreground border rounded-lg mx-2 border-dashed">
+                <div className="text-center py-16 text-muted-foreground border rounded-lg mx-2 md:mx-0 bg-card">
                     No API keys yet. {canManage ? 'Create one to get started.' : 'Ask an admin with the Manage Admins permission to create one.'}
                 </div>
             ) : (
-                <div className="border rounded-lg mx-2 overflow-x-auto">
+                <div className="border rounded-lg mx-2 md:mx-0 bg-card overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -210,7 +205,7 @@ export default function ApiKeysPage() {
                                 <TableHead>Status</TableHead>
                                 <TableHead>Scopes</TableHead>
                                 <TableHead>Created</TableHead>
-                                <TableHead>Last used</TableHead>
+                                <TableHead>Last Used</TableHead>
                                 <TableHead>Expires</TableHead>
                                 <TableHead></TableHead>
                             </TableRow>

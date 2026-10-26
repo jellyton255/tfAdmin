@@ -95,7 +95,7 @@ export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, scopes 
             <DialogContent className="max-w-lg">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <DialogHeader>
-                        <DialogTitle>New API key</DialogTitle>
+                        <DialogTitle>New API Key</DialogTitle>
                         <DialogDescription>
                             The token is shown once after creation. Every key can read; tick only the write scopes it needs.
                         </DialogDescription>
@@ -136,7 +136,7 @@ export default function ApiKeyCreateDialog({ isOpen, onClose, onCreated, scopes 
                             </Select>
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="apikey-ips">Allowed IPs <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                            <Label htmlFor="apikey-ips">Allowed IPs <span className="text-muted-foreground font-normal">(Optional)</span></Label>
                             <Textarea
                                 id="apikey-ips"
                                 className="font-mono text-xs min-h-[2.5rem]"

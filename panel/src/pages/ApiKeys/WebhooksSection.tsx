@@ -32,7 +32,7 @@ function SecretDialog({ data, onClose }: { data: { name: string; secret: string 
         <Dialog open={!!data} onOpenChange={(open) => { if (!open) { setCopied(false); onClose(); } }}>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Webhook created</DialogTitle>
+                    <DialogTitle>Webhook Created</DialogTitle>
                     <DialogDescription>
                         Copy the signing secret for <span className="font-semibold">{data?.name}</span> now. It will not be shown again.
                     </DialogDescription>
@@ -46,7 +46,7 @@ function SecretDialog({ data, onClose }: { data: { name: string; secret: string 
                     </Button>
                 </div>
                 <Alert>
-                    <AlertTitle>Verifying deliveries</AlertTitle>
+                    <AlertTitle>Verifying Deliveries</AlertTitle>
                     <AlertDescription className="text-xs">
                         Every POST carries <code className="font-mono">X-TxAdmin-Signature: t=&lt;ms&gt;,v1=&lt;hex&gt;</code>.
                         Compute HMAC-SHA256 over <code className="font-mono">{'`${t}.${rawBody}`'}</code> with this secret and compare it to <code className="font-mono">v1</code>.
@@ -200,23 +200,19 @@ export default function WebhooksSection({ canManage }: { canManage: boolean }) {
     };
 
     return (
-        <div className="flex flex-col gap-3 mt-6">
-            <div className="flex items-center justify-between px-2">
+        <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center justify-between px-2 md:px-0">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <WebhookIcon className="size-5" /> Webhooks
                 </h2>
                 <Button size="sm" disabled={!canManage || !swr.data} onClick={() => setIsCreateOpen(true)}>
-                    <PlusIcon className="size-4 mr-1" /> New webhook
+                    <PlusIcon className="size-4 mr-1" /> New Webhook
                 </Button>
             </div>
-            <p className="text-sm text-muted-foreground px-2">
-                Webhooks push events (bans, warns, joins, server status...) to your own services as signed POSTs (HTTPS, or plain HTTP for local hosts only).
-                Failed deliveries are retried for about an hour. Consumers that can't receive callbacks can poll <code className="font-mono">GET /api/v1/events</code> instead.
-            </p>
 
             {swr.error ? (
-                <Alert variant="destructive" className="mx-2">
-                    <AlertTitle>Failed to load webhooks</AlertTitle>
+                <Alert variant="destructive" className="mx-2 md:mx-0 w-auto">
+                    <AlertTitle>Failed to Load Webhooks</AlertTitle>
                     <AlertDescription>{(swr.error as Error).message}</AlertDescription>
                 </Alert>
             ) : !swr.data ? (
@@ -224,18 +220,18 @@ export default function WebhooksSection({ canManage }: { canManage: boolean }) {
                     <Loader2Icon className="animate-spin size-6 mr-2" /> Loading...
                 </div>
             ) : !swr.data.webhooks.length ? (
-                <div className="text-center py-10 text-muted-foreground border rounded-lg mx-2 border-dashed">
+                <div className="text-center py-10 text-muted-foreground border rounded-lg mx-2 md:mx-0 bg-card">
                     No webhooks yet.
                 </div>
             ) : (
-                <div className="border rounded-lg mx-2 overflow-x-auto">
+                <div className="border rounded-lg mx-2 md:mx-0 bg-card overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Webhook</TableHead>
                                 <TableHead>Enabled</TableHead>
                                 <TableHead>Events</TableHead>
-                                <TableHead>Last delivery</TableHead>
+                                <TableHead>Last Delivery</TableHead>
                                 <TableHead></TableHead>
                             </TableRow>
                         </TableHeader>

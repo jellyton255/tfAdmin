@@ -99,7 +99,7 @@ export default function WebhookCreateDialog({ isOpen, onClose, onCreated, eventT
             <DialogContent className="max-w-lg">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <DialogHeader>
-                        <DialogTitle>New webhook</DialogTitle>
+                        <DialogTitle>New Webhook</DialogTitle>
                         <DialogDescription>
                             txAdmin will POST a signed JSON body to this URL for every selected event. The signing secret is shown once after creation.
                         </DialogDescription>
@@ -118,7 +118,7 @@ export default function WebhookCreateDialog({ isOpen, onClose, onCreated, eventT
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="webhook-secret">Secret <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                            <Label htmlFor="webhook-secret">Secret <span className="text-muted-foreground font-normal">(Optional)</span></Label>
                             <Input
                                 id="webhook-secret"
                                 className="font-mono text-xs"
@@ -148,7 +148,7 @@ export default function WebhookCreateDialog({ isOpen, onClose, onCreated, eventT
                         <Label>Events</Label>
                         <label className="flex items-center gap-2 text-sm cursor-pointer">
                             <Checkbox checked={allEvents} onCheckedChange={(c) => setAllEvents(c === true)} />
-                            <span className="font-semibold">All events</span>
+                            <span className="font-semibold">All Events</span>
                             <span className="text-muted-foreground">(including ones added later)</span>
                         </label>
                         {!allEvents && (

@@ -29,7 +29,7 @@ export default function ApiKeyTokenDialog({ data, onClose }: Props) {
         <Dialog open={!!data} onOpenChange={(open) => { if (!open) { setCopied(false); onClose(); } }}>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>API key created</DialogTitle>
+                    <DialogTitle>API Key Created</DialogTitle>
                     <DialogDescription>
                         Copy the token for <span className="font-semibold">{data?.name}</span> now. It will not be shown again.
                     </DialogDescription>
@@ -45,7 +45,7 @@ export default function ApiKeyTokenDialog({ data, onClose }: Props) {
                 </div>
 
                 <Alert>
-                    <AlertTitle>How to use it</AlertTitle>
+                    <AlertTitle>How to Use It</AlertTitle>
                     <AlertDescription className="font-mono text-xs break-all">
                         curl -H "Authorization: Bearer {data?.token}" {window.location.origin}/api/v1/me
                     </AlertDescription>

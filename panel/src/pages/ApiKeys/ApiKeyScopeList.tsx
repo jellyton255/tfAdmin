@@ -32,7 +32,7 @@ export default function ApiKeyScopeList({ scopes, selected, onChange, isLocked }
             <div className="flex items-start gap-2 p-3 text-sm bg-muted/40">
                 <Checkbox className="mt-0.5" checked disabled />
                 <div>
-                    <div className="font-medium">Read access</div>
+                    <div className="font-medium">Read Access</div>
                     <div className="text-xs text-muted-foreground">
                         Always included: status, players, bans and warns, whitelist, resources and events.
                         A key with nothing else ticked is read-only.

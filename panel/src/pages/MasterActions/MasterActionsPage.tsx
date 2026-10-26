@@ -114,7 +114,7 @@ function GeneralTab({ disabled }: { disabled: boolean }) {
                             This option is in the FXServer tab of the Settings page.
                         </p>
                     </div>
-                    <Button size="sm" variant="outline-muted" asChild>
+                    <Button size="sm" variant="secondary" asChild>
                         <Link href="/settings#fxserver">Go to Settings</Link>
                     </Button>
                 </div>
@@ -127,11 +127,11 @@ function GeneralTab({ disabled }: { disabled: boolean }) {
                         </p>
                     </div>
                     {disabled ? (
-                        <Button size="sm" variant="outline-destructive" disabled>
+                        <Button size="sm" variant="secondary" disabled>
                             <DatabaseBackupIcon className="size-4 mr-1.5" /> Back Up Database
                         </Button>
                     ) : (
-                        <Button size="sm" variant="outline-destructive" asChild>
+                        <Button size="sm" variant="secondary" asChild>
                             <a href="/masterActions/backupDatabase" download>
                                 <DatabaseBackupIcon className="size-4 mr-1.5" /> Back Up Database
                             </a>
@@ -311,7 +311,7 @@ export default function MasterActionsPage() {
     const disabled = !isMaster || !isWebInterface;
 
     return (
-        <div className="flex flex-col w-full max-w-screen-lg mx-auto">
+        <div className="flex flex-col w-full pb-4">
             <PageHeader title="Master Actions" icon={<ShieldAlertIcon />} />
             <div className="flex flex-col gap-4 px-2 md:px-0">
                 {!isMaster && (

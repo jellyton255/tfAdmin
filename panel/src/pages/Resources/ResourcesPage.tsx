@@ -312,7 +312,7 @@ export default function ResourcesPage() {
     }
 
     return (
-        <div className="flex flex-col w-full max-w-screen-lg mx-auto">
+        <div className="flex flex-col w-full">
             <PageHeader title="Resources" icon={<PackageIcon />}>
                 <Button
                     size="sm"
