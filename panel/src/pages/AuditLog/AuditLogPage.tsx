@@ -143,93 +143,97 @@ export default function AuditLogPage() {
             <PageHeader title="Audit Log" icon={<ShieldCheckIcon />} />
 
             <div className="flex flex-col grow min-h-0 gap-3 px-2 md:px-0">
-                <form className="flex flex-wrap items-center gap-2" onSubmit={handleSubmit}>
-                    <Input
-                        className="h-9 grow basis-48 max-w-sm"
-                        placeholder="Search Messages"
-                        maxLength={128}
-                        value={fields.text}
-                        onChange={(e) => setFields((prev) => ({ ...prev, text: e.target.value }))}
-                    />
-                    <Input
-                        className="h-9 grow basis-40 max-w-56"
-                        placeholder="Admin Name"
-                        maxLength={128}
-                        value={fields.admin}
-                        onChange={(e) => setFields((prev) => ({ ...prev, admin: e.target.value }))}
-                    />
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="auditlog-from" className="text-muted-foreground">From</Label>
+                <form className="flex flex-col gap-2 p-3 rounded-lg border bg-card" onSubmit={handleSubmit}>
+                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]">
                         <Input
-                            id="auditlog-from"
-                            type="datetime-local"
-                            className="h-9 w-auto"
-                            value={fields.from}
-                            onChange={(e) => setFields((prev) => ({ ...prev, from: e.target.value }))}
+                            className="h-9"
+                            placeholder="Search Messages"
+                            maxLength={128}
+                            value={fields.text}
+                            onChange={(e) => setFields((prev) => ({ ...prev, text: e.target.value }))}
                         />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="auditlog-to" className="text-muted-foreground">To</Label>
                         <Input
-                            id="auditlog-to"
-                            type="datetime-local"
-                            className="h-9 w-auto"
-                            value={fields.to}
-                            onChange={(e) => setFields((prev) => ({ ...prev, to: e.target.value }))}
+                            className="h-9"
+                            placeholder="Admin Name"
+                            maxLength={128}
+                            value={fields.admin}
+                            onChange={(e) => setFields((prev) => ({ ...prev, admin: e.target.value }))}
                         />
+                        <label htmlFor="auditlog-from" className="flex items-center h-9 rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background">
+                            <span className="pl-3 pr-1 text-sm text-muted-foreground">From</span>
+                            <input
+                                id="auditlog-from"
+                                type="datetime-local"
+                                className="h-full min-w-0 grow bg-transparent pr-2 text-sm focus-visible:outline-none"
+                                value={fields.from}
+                                onChange={(e) => setFields((prev) => ({ ...prev, from: e.target.value }))}
+                            />
+                        </label>
+                        <label htmlFor="auditlog-to" className="flex items-center h-9 rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background">
+                            <span className="pl-3 pr-1 text-sm text-muted-foreground">To</span>
+                            <input
+                                id="auditlog-to"
+                                type="datetime-local"
+                                className="h-full min-w-0 grow bg-transparent pr-2 text-sm focus-visible:outline-none"
+                                value={fields.to}
+                                onChange={(e) => setFields((prev) => ({ ...prev, to: e.target.value }))}
+                            />
+                        </label>
                     </div>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button type="button" size="sm" variant="outline-muted">
-                                <FilterIcon className="size-4 mr-1.5" />
-                                Categories
-                                {categories.length > 0 && (
-                                    <span className="ml-1.5 text-muted-foreground tabular-nums">{categories.length}</span>
-                                )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button type="button" size="sm" variant="outline-muted">
+                                    <FilterIcon className="size-4 mr-1.5" />
+                                    Categories
+                                    {categories.length > 0 && (
+                                        <span className="ml-1.5 text-muted-foreground tabular-nums">{categories.length}</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 max-h-[70vh] overflow-y-auto" align="start">
+                                <div className="grid gap-3">
+                                    {ADMIN_LOG_CATEGORIES.map((category) => (
+                                        <div key={category.key} className="flex items-center justify-between gap-4">
+                                            <Label htmlFor={`auditlog-category-${category.key}`}>{category.label}</Label>
+                                            <Switch
+                                                id={`auditlog-category-${category.key}`}
+                                                checked={categories.includes(category.key)}
+                                                onCheckedChange={(checked) => toggleCategory(category.key, checked)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Button type="submit" size="sm">
+                            <SearchIcon className="size-4 mr-1.5" /> Search
+                        </Button>
+                        {isFiltered && (
+                            <Button type="button" size="sm" variant="outline-muted" onClick={clearSearch}>
+                                <XIcon className="size-4 mr-1.5" /> Clear
                             </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 max-h-[70vh] overflow-y-auto" align="start">
-                            <div className="grid gap-3">
-                                {ADMIN_LOG_CATEGORIES.map((category) => (
-                                    <div key={category.key} className="flex items-center justify-between gap-4">
-                                        <Label htmlFor={`auditlog-category-${category.key}`}>{category.label}</Label>
-                                        <Switch
-                                            id={`auditlog-category-${category.key}`}
-                                            checked={categories.includes(category.key)}
-                                            onCheckedChange={(checked) => toggleCategory(category.key, checked)}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                    <Button type="submit" size="sm">
-                        <SearchIcon className="size-4 mr-1.5" /> Search
-                    </Button>
-                    {isFiltered && (
-                        <Button type="button" size="sm" variant="outline-muted" onClick={clearSearch}>
-                            <XIcon className="size-4 mr-1.5" /> Clear
-                        </Button>
-                    )}
-                    <div className="flex items-center gap-2 ml-auto">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline-muted"
-                            disabled={pageTos.length < 2 || swr.isLoading}
-                            onClick={() => setPageTos((prev) => prev.slice(0, -1))}
-                        >
-                            <ChevronLeftIcon className="size-4 mr-1" /> Newer
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline-muted"
-                            disabled={swr.data?.cursor == null || swr.isLoading}
-                            onClick={loadOlder}
-                        >
-                            Older <ChevronRightIcon className="size-4 ml-1" />
-                        </Button>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2 ml-auto">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline-muted"
+                                disabled={pageTos.length < 2 || swr.isLoading}
+                                onClick={() => setPageTos((prev) => prev.slice(0, -1))}
+                            >
+                                <ChevronLeftIcon className="size-4 mr-1" /> Newer
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline-muted"
+                                disabled={swr.data?.cursor == null || swr.isLoading}
+                                onClick={loadOlder}
+                            >
+                                Older <ChevronRightIcon className="size-4 ml-1" />
+                            </Button>
+                        </div>
                     </div>
                 </form>
 

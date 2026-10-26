@@ -11,7 +11,7 @@ const buttonVariants = cva(
       variant: {
         //Default behaviors
         default: "bg-primary text-primary-foreground hover:bg-primary/75",
-        muted: "bg-muted text-muted-foreground hover:bg-secondary hover:text-seconbg-secondary-foreground",
+        muted: "bg-muted text-muted-foreground hover:bg-secondary hover:text-secondary-foreground",
         link: "text-accent underline-offset-4 hover:underline",
 
         //Semantic variants
@@ -56,7 +56,7 @@ const buttonVariants = cva(
         "outline-secondary":
           "border border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground",
         "outline-muted":
-          "border border-muted text-muted-foreground hover:bg-muted hover:text-muted-foreground",
+          "border border-input text-muted-foreground hover:bg-muted hover:text-foreground",
       },
       size: {
         default: "h-10 px-4 py-2",

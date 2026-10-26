@@ -338,49 +338,53 @@ export default function ServerLogPage() {
             </PageHeader>
 
             <div className="flex flex-col grow min-h-0 gap-3 px-2 md:px-0">
-                <form className="flex flex-wrap items-center gap-2" onSubmit={handleSearchSubmit}>
-                    <Input
-                        className="h-9 grow basis-48 max-w-sm"
-                        placeholder="Search Messages"
-                        maxLength={128}
-                        value={searchDraft.text}
-                        onChange={(e) => setSearchDraft((prev) => ({ ...prev, text: e.target.value }))}
-                    />
-                    <Input
-                        className="h-9 grow basis-48 max-w-sm"
-                        placeholder="Player Name or Identifier"
-                        maxLength={128}
-                        value={searchDraft.player}
-                        onChange={(e) => setSearchDraft((prev) => ({ ...prev, player: e.target.value }))}
-                    />
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="serverlog-search-from" className="text-muted-foreground">From</Label>
+                <form className="p-3 rounded-lg border bg-card" onSubmit={handleSearchSubmit}>
+                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto]">
                         <Input
-                            id="serverlog-search-from"
-                            type="datetime-local"
-                            className="h-9 w-auto"
-                            value={searchDraft.from}
-                            onChange={(e) => setSearchDraft((prev) => ({ ...prev, from: e.target.value }))}
+                            className="h-9"
+                            placeholder="Search Messages"
+                            maxLength={128}
+                            value={searchDraft.text}
+                            onChange={(e) => setSearchDraft((prev) => ({ ...prev, text: e.target.value }))}
                         />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="serverlog-search-to" className="text-muted-foreground">To</Label>
                         <Input
-                            id="serverlog-search-to"
-                            type="datetime-local"
-                            className="h-9 w-auto"
-                            value={searchDraft.to}
-                            onChange={(e) => setSearchDraft((prev) => ({ ...prev, to: e.target.value }))}
+                            className="h-9"
+                            placeholder="Player Name or Identifier"
+                            maxLength={128}
+                            value={searchDraft.player}
+                            onChange={(e) => setSearchDraft((prev) => ({ ...prev, player: e.target.value }))}
                         />
+                        <label htmlFor="serverlog-search-from" className="flex items-center h-9 rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background">
+                            <span className="pl-3 pr-1 text-sm text-muted-foreground">From</span>
+                            <input
+                                id="serverlog-search-from"
+                                type="datetime-local"
+                                className="h-full min-w-0 grow bg-transparent pr-2 text-sm focus-visible:outline-none"
+                                value={searchDraft.from}
+                                onChange={(e) => setSearchDraft((prev) => ({ ...prev, from: e.target.value }))}
+                            />
+                        </label>
+                        <label htmlFor="serverlog-search-to" className="flex items-center h-9 rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background">
+                            <span className="pl-3 pr-1 text-sm text-muted-foreground">To</span>
+                            <input
+                                id="serverlog-search-to"
+                                type="datetime-local"
+                                className="h-full min-w-0 grow bg-transparent pr-2 text-sm focus-visible:outline-none"
+                                value={searchDraft.to}
+                                onChange={(e) => setSearchDraft((prev) => ({ ...prev, to: e.target.value }))}
+                            />
+                        </label>
+                        <div className="flex flex-wrap items-center gap-2 sm:col-span-2 2xl:col-span-1">
+                            <Button type="submit" size="sm" disabled={isLoading && mode === 'search'}>
+                                <SearchIcon className="size-4 mr-1.5" /> Search Logs
+                            </Button>
+                            {(mode === 'search' || hasSearchDraft) && (
+                                <Button type="button" size="sm" variant="outline-muted" onClick={clearSearch}>
+                                    <XIcon className="size-4 mr-1.5" /> Clear Search
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                    <Button type="submit" size="sm" disabled={isLoading && mode === 'search'}>
-                        <SearchIcon className="size-4 mr-1.5" /> Search Logs
-                    </Button>
-                    {(mode === 'search' || hasSearchDraft) && (
-                        <Button type="button" size="sm" variant="outline-muted" onClick={clearSearch}>
-                            <XIcon className="size-4 mr-1.5" /> Clear Search
-                        </Button>
-                    )}
                 </form>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -418,7 +422,7 @@ export default function ServerLogPage() {
                             </div>
                         </PopoverContent>
                     </Popover>
-                    <div className="flex items-center gap-2 ml-auto">
+                    <div className="flex flex-wrap items-center gap-2 ml-auto">
                         <Button
                             size="sm"
                             variant="outline-muted"
