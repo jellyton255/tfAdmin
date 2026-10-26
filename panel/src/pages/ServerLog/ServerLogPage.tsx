@@ -339,7 +339,7 @@ export default function ServerLogPage() {
 
             <div className="flex flex-col grow min-h-0 gap-3 px-2 md:px-0">
                 <form className="p-3 rounded-lg border bg-card" onSubmit={handleSearchSubmit}>
-                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto]">
+                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 3xl:grid-cols-4">
                         <Input
                             className="h-9"
                             placeholder="Search Messages"
@@ -374,7 +374,7 @@ export default function ServerLogPage() {
                                 onChange={(e) => setSearchDraft((prev) => ({ ...prev, to: e.target.value }))}
                             />
                         </label>
-                        <div className="flex flex-wrap items-center gap-2 sm:col-span-2 2xl:col-span-1">
+                        <div className="flex flex-wrap items-center gap-2 col-span-full">
                             <Button type="submit" size="sm" disabled={isLoading && mode === 'search'}>
                                 <SearchIcon className="size-4 mr-1.5" /> Search Logs
                             </Button>
