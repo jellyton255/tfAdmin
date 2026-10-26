@@ -12,7 +12,8 @@ import { childProcessEventBlackHole, getFxSpawnVariables, getMutableConvars, isV
 import ProcessManager, { ChildProcessStateInfo } from './ProcessManager';
 import handleFd3Messages from './handleFd3Messages';
 import ConsoleLineEnum from '@modules/Logger/FXServerLogger/ConsoleLineEnum';
-import { txHostConfig } from '@core/globalData';
+import { txEnv, txHostConfig } from '@core/globalData';
+import { formatBuild, getPendingStagedBuild } from '@lib/stagedBuild';
 import path from 'node:path';
 const console = consoleFactory('FxRunner');
 const genMutex = customAlphabet(dict49, 5);
@@ -268,6 +269,15 @@ export default class FxRunner {
             //Restart server
             const killError = await this.killServer(reason, author, true);
             if (killError) return killError;
+
+            //A newer tfAdmin build is staged: exit, so the host launcher
+            //installs the build and starts everything again
+            const staged = getPendingStagedBuild(txEnv.txaPath, process.env.TFADMIN_STAGE_DIR);
+            if (staged) {
+                txCore.logger.admin.write('SYSTEM', `Exiting to load tfAdmin build ${formatBuild(staged)}`);
+                await txManager.gracefulShutdown(`tfAdmin build ${formatBuild(staged)}`);
+                return null;
+            }
 
             //Give time for the OS to release the ports
 
