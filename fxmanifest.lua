@@ -25,6 +25,7 @@ server_scripts {
     'resource/sv_main.lua', --must run first
     'resource/sv_logger.lua',
     'resource/sv_resources.lua',
+    'resource/sv_playerlist.lua',
     'resource/sv_initialData.lua',
     'resource/sv_characters.lua',
     'resource/sv_services.lua',
