@@ -632,15 +632,20 @@ export default class AdminStore {
 
     /**
      * Publish in-game authentication for anti-cheats independently of the retired menu.
+     * Only broadcasts when the player's admin state changed since the last broadcast.
      * @param {number} netid
+     * @param {boolean} [force] re-broadcast an admin's auth even if unchanged
      */
-    refreshPlayerAuth(netid) {
+    refreshPlayerAuth(netid, force = false) {
         const player = txCore.fxPlayerlist.getPlayerById(netid);
         if (!player?.isConnected) return;
 
-        const admin = this.getAdminByIdentifiers(player.idsOnline);
-        txCore.fxRunner.sendEvent('adminAuth', admin
-            ? { netid, isAdmin: true, username: admin.name }
+        const adminName = this.getAdminByIdentifiers(player.idsOnline)?.name;
+        if (adminName === player.authedAdminName && !(force && adminName)) return;
+
+        player.authedAdminName = adminName;
+        txCore.fxRunner.sendEvent('adminAuth', adminName
+            ? { netid, isAdmin: true, username: adminName }
             : { netid, isAdmin: false });
     }
 
@@ -655,7 +660,6 @@ export default class AdminStore {
 
         try {
             txCore.fxRunner.sendEvent('adminsUpdated', this.getOnlineAdminNetIds());
-            txCore.fxRunner.sendEvent('adminAuth', { netid: -1, isAdmin: false });
             for (const player of txCore.fxPlayerlist.getPlayerList()) {
                 this.refreshPlayerAuth(player.netid);
             }

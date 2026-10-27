@@ -185,6 +185,8 @@ export class ServerPlayer extends BasePlayer {
     readonly tsConnected: number = now();
     readonly isRegistered: boolean;
     readonly #minuteCronInterval?: ReturnType<typeof setInterval>;
+    /** Admin name last broadcast through `adminAuth`, so only changes are re-sent. */
+    authedAdminName?: string;
     // #offlineDbDataCacheTimeout?: ReturnType<typeof setTimeout>;
 
     constructor(

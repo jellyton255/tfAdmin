@@ -39,9 +39,17 @@ describe('in-game admin authentication without the retired menu', () => {
         expect(sendEvent).toHaveBeenCalledWith('adminAuth', { netid: 7, isAdmin: true, username: 'staff' });
     });
 
-    it('does not authenticate a regular player', async () => {
+    it('does not broadcast for a regular player', async () => {
         await join(8, 'fivem:99');
-        expect(sendEvent).toHaveBeenCalledWith('adminAuth', { netid: 8, isAdmin: false });
+        expect(sendEvent).not.toHaveBeenCalledWith('adminAuth', expect.anything());
+    });
+
+    it('does not re-broadcast unchanged auth when admin records refresh', async () => {
+        await join(7, 'fivem:42');
+        await join(8, 'fivem:99');
+        sendEvent.mockClear();
+        await adminStore.refreshOnlineAdmins();
+        expect(sendEvent).not.toHaveBeenCalledWith('adminAuth', expect.anything());
     });
 
     it('revokes removed staff and authenticates newly linked staff after admin updates', async () => {
@@ -51,7 +59,6 @@ describe('in-game admin authentication without the retired menu', () => {
         sendEvent.mockClear();
         await adminStore.refreshOnlineAdmins();
         expect(sendEvent).toHaveBeenCalledWith('adminsUpdated', [8]);
-        expect(sendEvent).toHaveBeenCalledWith('adminAuth', { netid: -1, isAdmin: false });
         expect(sendEvent).toHaveBeenCalledWith('adminAuth', { netid: 7, isAdmin: false });
         expect(sendEvent).toHaveBeenCalledWith('adminAuth', { netid: 8, isAdmin: true, username: 'replacement' });
         expect(sendEvent.mock.calls.some(([name, data]) => name === 'adminAuth' && data.username === 'staff')).toBe(false);

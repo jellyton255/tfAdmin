@@ -181,9 +181,9 @@ Event Data:
 Broadcasted whenever an admin is authenticated in game, or loses the admin permissions.  
 This event is particularly useful for anti-cheats to be able to ignore txAdmin admins.  
 Authentication uses the connected player's server-reported identifiers and the current tfAdmin admin records.
-It runs on player join and refreshes when admin records change, independently of any in-game menu.
+It runs when an admin joins and when admin record changes grant, rename or revoke a connected player's admin, independently of any in-game menu. Regular players joining do not trigger it.
 Event Data:
-- `netid` (number): The ID of the player or `-1` when revoking the permission of all admins (forced reauth).
+- `netid` (number): The ID of the player.
 - `isAdmin` (boolean): If the player is an admin or not.
 - `username?` (string): The txAdmin username of the admin that was just authenticated.
 
