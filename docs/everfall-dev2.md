@@ -84,10 +84,15 @@ pm2 restart fxserver-dev2
 
 ## Nightly build, smoke test, and upstream tracking
 
-`/usr/local/sbin/tfadmin-nightly` (systemd `tfadmin-nightly.timer`, 03:30 UTC) builds `origin/master`
-in `/var/lib/tfadmin-nightly/src` and stages it in `/var/fxservers/main/tfadmin` and
-`/var/fxservers/dev2/tfadmin-staged`. Each server installs it on its next restart. The job never
-pushes, restarts, or signals anything.
+`/usr/local/sbin/tfadmin-nightly` builds `origin/master` in `/var/lib/tfadmin-nightly/src` and stages
+it in `/var/fxservers/main/tfadmin` and `/var/fxservers/dev2/tfadmin-staged`. Each server installs it
+on its next restart. The job never pushes, restarts, or signals anything.
+
+- `tfadmin-stage.timer` runs `tfadmin-nightly --poll` every 2 minutes, so a push to `master` is staged
+  within a few minutes. Poll runs skip the upstream check, log nothing when there is nothing new, and
+  do not retry a commit that failed (`/var/lib/tfadmin-nightly/failed-commit`).
+- `tfadmin-nightly.timer` (03:30 UTC) runs the full job, including the upstream check, and retries a
+  failed commit.
 
 - **Smoke test.** Before staging, the job runs `scripts/everfall/smoke-core-bundle.mjs` (falls back to
   `/usr/local/lib/tfadmin-nightly/smoke-core-bundle.mjs` for commits that predate it). It fails the
@@ -110,7 +115,7 @@ git switch master && git pull --ff-only origin master
 git merge upstream/master        # resolve the files the status lists as conflicting
 pnpm install && pnpm -r test && GITHUB_REF=refs/tags/v8.1.1 pnpm run build
 node scripts/everfall/smoke-core-bundle.mjs
-git push origin master           # the next nightly stages it for Main and Dev2
+git push origin master           # staged for Main and Dev2 within 2 minutes
 ```
 
 Keep the `8.1.1` stamp unless a merged upstream release needs a newer one; do not use pre-release
