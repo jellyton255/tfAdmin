@@ -130,4 +130,5 @@ export type ListenEventsMap = {
 
     //Standalone events
     updateAvailable: (event: UpdateAvailableEventType) => void
+    runningBuild: (commit: string) => void;
 };

@@ -3,7 +3,7 @@ import { getSocket } from '@/lib/utils';
 import { useExpireAuthData, useSetAuthData } from '@/hooks/auth';
 import { useSetGlobalStatus } from '@/hooks/status';
 import { useProcessUpdateAvailableEvent } from '@/hooks/useWarningBar';
-import { connectionStateAtom } from '@/hooks/connection';
+import { connectionStateAtom, panelOutdatedAtom } from '@/hooks/connection';
 import { useSetAtom } from 'jotai';
 import { mutate } from 'swr';
 import { useProcessPlayerlistEvents } from '@/hooks/playerlist';
@@ -19,6 +19,7 @@ export default function MainSocket() {
     const setAuthData = useSetAuthData();
     const socketStateChangeCounter = useRef(0);
     const setConnectionState = useSetAtom(connectionStateAtom);
+    const setPanelOutdated = useSetAtom(panelOutdatedAtom);
     const setGlobalStatus = useSetGlobalStatus();
     const processPlayerlistEvents = useProcessPlayerlistEvents();
     const processUpdateAvailableEvent = useProcessUpdateAvailableEvent();
@@ -79,6 +80,10 @@ export default function MainSocket() {
         });
         socket.on('updateAvailable', function (data) {
             processUpdateAvailableEvent(data);
+        });
+        socket.on('runningBuild', function (commit) {
+            const loadedCommit = window.txConsts.tfaBuild?.commit;
+            setPanelOutdated(!!loadedCommit && commit !== loadedCommit);
         });
         socket.on('updateAuthData', function (authData) {
             console.warn('Got updateAuthData from websocket', authData);

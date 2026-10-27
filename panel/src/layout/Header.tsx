@@ -4,7 +4,7 @@ import {
     DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { KeyRoundIcon, LogOutIcon, Menu, Monitor, MoonIcon, PersonStanding, SearchIcon, SunIcon } from "lucide-react";
+import { KeyRoundIcon, LogOutIcon, Menu, Monitor, MoonIcon, PersonStanding, RotateCwIcon, SearchIcon, SunIcon } from "lucide-react";
 import DesktopNavbar from "./DesktopNavbar";
 import Avatar from "@/components/Avatar";
 import { useAuth } from "@/hooks/auth";
@@ -16,6 +16,7 @@ import { playerCountAtom } from "@/hooks/playerlist";
 import { quickSearchOpenAtom, useAccountModal } from "@/hooks/dialogs";
 import { LogoSquareGreen, LogoFullSquareGreen } from "@/components/Logos";
 import { NavLink } from "@/components/MainPageLink";
+import { panelOutdatedAtom } from "@/hooks/connection";
 
 
 function ServerTitle() {
@@ -61,6 +62,22 @@ function ButtonQuickSearch({ className }: NavButtonProps) {
             <kbd className="hidden sm:inline ml-auto rounded border bg-background/60 px-1.5 py-0.5 font-mono text-xs tracking-wide">
                 {quickSearchShortcut}
             </kbd>
+        </button>
+    );
+}
+
+function ButtonReloadUpdate({ className }: NavButtonProps) {
+    const panelOutdated = useAtomValue(panelOutdatedAtom);
+    if (!panelOutdated) return null;
+    return (
+        <button
+            className={cn(navButtonClasses, 'border-info/40 bg-info/10 text-info-inline hover:border-info hover:bg-info/20 hover:text-info-inline', className)}
+            title="tfAdmin was updated. Reload to load the new version."
+            onClick={() => window.location.reload()}
+        >
+            <RotateCwIcon className="h-6 w-6 sm:h-4 sm:w-4 shrink-0" />
+            <span className="hidden sm:inline">Update Available</span>
+            <span className="hidden sm:inline font-semibold">Reload</span>
         </button>
     );
 }
@@ -203,6 +220,7 @@ export function Header() {
                 </div>
 
                 <div className="flex flex-row items-center gap-2 sm:gap-3">
+                    <ButtonReloadUpdate />
                     <ButtonQuickSearch />
                     <ButtonToggleServerSheet className="lg:hidden" />
                     <ButtonToggleGlobalMenu className="lg:hidden" />

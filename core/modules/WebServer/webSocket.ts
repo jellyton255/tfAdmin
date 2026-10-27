@@ -10,6 +10,7 @@ import { AuthedAdminType, checkRequestAuth } from './authLogic';
 import { SocketWithSession } from './ctxTypes';
 import { isIpAddressLocal } from '@lib/host/isIpAddressLocal';
 import { txEnv } from '@core/globalData';
+import { readBuildCommit } from '@lib/stagedBuild';
 const console = consoleFactory(modulename);
 
 //Types
@@ -45,6 +46,10 @@ const terminateSession = (socket: SocketWithSession, reason: string, shouldLog =
         }
     } catch (error) { }
 };
+
+//The monitor is only replaced while the process is down
+const runningCommit = readBuildCommit(txEnv.txaPath);
+
 const forceUiReload = (socket: SocketWithSession) => {
     try {
         socket.emit('refreshToUpdate');
@@ -204,6 +209,9 @@ export default class WebSocket {
                 socket.join(requestedRoomName);
                 socket.emit(room.eventName, room.initialData());
             }
+
+            //Panels loaded from an older build offer a reload
+            if (runningCommit) socket.emit('runningBuild', runningCommit);
 
             //General events
             socket.on('disconnect', (reason) => {
