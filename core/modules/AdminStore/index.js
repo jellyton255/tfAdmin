@@ -4,11 +4,11 @@ import fsp from 'node:fs/promises';
 import { cloneDeep } from 'lodash-es';
 import { nanoid } from 'nanoid';
 import { txHostConfig } from '@core/globalData';
-import CfxProvider from './providers/CitizenFX.js';
+import CfxProvider from './providers/CitizenFX';
 import { createHash } from 'node:crypto';
-import consoleFactory from '@lib/console.js';
-import fatalError from '@lib/fatalError.js';
-import { chalkInversePad } from '@lib/misc.js';
+import consoleFactory from '@lib/console';
+import fatalError from '@lib/fatalError';
+import { chalkInversePad } from '@lib/misc';
 const console = consoleFactory(modulename);
 
 //NOTE: The way I'm doing versioning right now is horrible but for now it's the best I can do
@@ -631,6 +631,21 @@ export default class AdminStore {
 
 
     /**
+     * Publish in-game authentication for anti-cheats independently of the retired menu.
+     * @param {number} netid
+     */
+    refreshPlayerAuth(netid) {
+        const player = txCore.fxPlayerlist.getPlayerById(netid);
+        if (!player?.isConnected) return;
+
+        const admin = this.getAdminByIdentifiers(player.idsOnline);
+        txCore.fxRunner.sendEvent('adminAuth', admin
+            ? { netid, isAdmin: true, username: admin.name }
+            : { netid, isAdmin: false });
+    }
+
+
+    /**
      * Notify game server about admin changes
      * FIXME: doesn't need to be async, just make sure it never throws
      */
@@ -640,6 +655,10 @@ export default class AdminStore {
 
         try {
             txCore.fxRunner.sendEvent('adminsUpdated', this.getOnlineAdminNetIds());
+            txCore.fxRunner.sendEvent('adminAuth', { netid: -1, isAdmin: false });
+            for (const player of txCore.fxPlayerlist.getPlayerList()) {
+                this.refreshPlayerAuth(player.netid);
+            }
         } catch (error) {
             console.verbose.error('Failed to refreshOnlineAdmins() with error:');
             console.verbose.dir(error);

@@ -66,6 +66,9 @@ const forceReauthRecentPlayers: AdvancedCommandHandler = async (ctx, args) => {
     }
     const netIds = txCore.fxPlayerlist.getPlayerList().map((p) => p.netid).slice(-numPlayers);
     txCore.fxRunner.sendEvent('adminsUpdated', netIds);
+    for (const netid of netIds) {
+        txCore.adminStore.refreshPlayerAuth(netid);
+    }
     return {
         type: 'md',
         data: `Refreshed players with NetIDs: ${netIds.join(', ')}`,

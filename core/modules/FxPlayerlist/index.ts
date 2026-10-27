@@ -215,6 +215,7 @@ export default class FxPlayerlist {
                 if (this.#playerlist[payload.id] !== undefined) throw new Error(`duplicated player id`);
                 const svPlayer = new ServerPlayer(payload.id, payload.player, this);
                 this.#playerlist[payload.id] = svPlayer;
+                txCore.adminStore.refreshPlayerAuth(svPlayer.netid);
                 this.joinLeaveLog.push([currTs, true]);
                 txCore.logger.server.write([{
                     type: 'playerJoining',
