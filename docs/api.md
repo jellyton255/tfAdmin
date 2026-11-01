@@ -270,6 +270,18 @@ epoch ms, and `data` matches the in-game event table in `docs/events.md` for the
 | `GET /api/v1/events?since={cursor}&types=a,b&limit=100` | any valid key | Last 1000 events (`admin.login`, `apiKey.firstUse` and `webhook.test` only for keys with `manage.admins`). `meta.cursor` is what to pass back as `since`; `meta.hasMore` means call again now; `meta.dropped` means `since` was older than the buffer and events were lost |
 | `GET /api/v1/events/types` | any valid key | The catalogue above |
 
+### MCP resources and subscriptions
+
+`POST /api/v1/mcp` supports stateful Streamable HTTP sessions as well as the existing one-request tool
+exchange. The server advertises MCP resources for `tfadmin://status`, `tfadmin://resources`,
+`tfadmin://players/online`, and the `tfadmin://events/{type}` template (`all` reads the current ring-buffer
+page). Clients may use `resources/read`, `resources/subscribe`, and `resources/unsubscribe`; updates are sent
+as `notifications/resources/updated` and must be followed by `resources/read`. Event subscriptions use the
+same admin-only filtering as `GET /events`. The session is bound to the authenticated API key id, and revoked
+or expired keys stop delivery. MCP sessions use the `Mcp-Session-Id` header for subsequent POST, GET, and
+DELETE requests; bearer authentication remains required on every request. Stateful sessions expire after 15
+minutes without a request, so clients must reconnect or send an active request before that limit.
+
 ### Webhooks
 
 | Method and path | Scope | Notes |

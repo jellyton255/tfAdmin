@@ -161,7 +161,7 @@
     "/mcp": {
       "post": {
         "summary": "MCP endpoint for agents",
-        "description": "Model Context Protocol over stateless Streamable HTTP (JSON-RPC in, JSON out; send `Accept: application/json, text/event-stream`). Each tool replays one route of this API with the same key, so it needs that route's scope; `tools/list` only shows the tools the key can use. Any valid key.",
+        "description": "Model Context Protocol over Streamable HTTP (JSON-RPC in, JSON out; send `Accept: application/json, text/event-stream`). Each tool replays one route of this API with the same key, so it needs that route's scope; `tools/list` only shows the tools the key can use. An `initialize` request opens a stateful session (returned in `Mcp-Session-Id`) with resource subscriptions; other requests without that header stay stateless. Any valid key.",
         "tags": [
           "Meta"
         ],
@@ -200,6 +200,89 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "get": {
+        "summary": "MCP session event stream",
+        "description": "Opens the server-sent event stream of a stateful MCP session, which carries `notifications/resources/updated`. Needs the `Mcp-Session-Id` from `initialize` and the same key and actor.",
+        "tags": [
+          "Meta"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
+            "name": "Mcp-Session-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session id returned by the MCP `initialize` response"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-sent event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Close an MCP session",
+        "description": "Ends a stateful MCP session. Needs the `Mcp-Session-Id` from `initialize` and the same key and actor.",
+        "tags": [
+          "Meta"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActorId"
+          },
+          {
+            "name": "Mcp-Session-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Session id returned by the MCP `initialize` response"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session closed"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }

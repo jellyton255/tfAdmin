@@ -32,6 +32,10 @@ const paramQ = (name: string, schema: Schema, description?: string): Schema => (
 const paramPath = (name: string, schema: Schema, description?: string): Schema => ({
     name, in: 'path', required: true, schema, ...(description ? { description } : {}),
 });
+const mcpSessionParam: Schema = {
+    name: 'Mcp-Session-Id', in: 'header', required: true, schema: str(),
+    description: 'Session id returned by the MCP `initialize` response',
+};
 const paginationParams = [
     paramQ('limit', int({ minimum: 1, maximum: API_PAGE_MAX_LIMIT, default: API_PAGE_DEFAULT_LIMIT })),
     paramQ('cursor', str(), 'Opaque cursor from meta.nextCursor'),
@@ -335,7 +339,7 @@ const paths: Record<string, Schema> = {
     '/mcp': {
         post: {
             summary: 'MCP endpoint for agents',
-            description: 'Model Context Protocol over stateless Streamable HTTP (JSON-RPC in, JSON out; send `Accept: application/json, text/event-stream`). Each tool replays one route of this API with the same key, so it needs that route\'s scope; `tools/list` only shows the tools the key can use. Any valid key.',
+            description: 'Model Context Protocol over Streamable HTTP (JSON-RPC in, JSON out; send `Accept: application/json, text/event-stream`). Each tool replays one route of this API with the same key, so it needs that route\'s scope; `tools/list` only shows the tools the key can use. An `initialize` request opens a stateful session (returned in `Mcp-Session-Id`) with resource subscriptions; other requests without that header stay stateless. Any valid key.',
             tags: ['Meta'],
             parameters: [{ $ref: '#/components/parameters/ActorId' }],
             requestBody: jsonBody({ type: 'object', description: 'JSON-RPC 2.0 message' }),
@@ -344,6 +348,32 @@ const paths: Record<string, Schema> = {
                 '202': { description: 'Notification accepted' },
                 '401': errRef('Unauthorized'),
                 '429': errRef('RateLimited'),
+            },
+        },
+        get: {
+            summary: 'MCP session event stream',
+            description: 'Opens the server-sent event stream of a stateful MCP session, which carries `notifications/resources/updated`. Needs the `Mcp-Session-Id` from `initialize` and the same key and actor.',
+            tags: ['Meta'],
+            parameters: [{ $ref: '#/components/parameters/ActorId' }, mcpSessionParam],
+            responses: {
+                '200': { description: 'Server-sent event stream', content: { 'text/event-stream': { schema: { type: 'string' } } } },
+                '400': errRef('ValidationError'),
+                '401': errRef('Unauthorized'),
+                '403': errRef('Forbidden'),
+                '404': errRef('NotFound'),
+            },
+        },
+        delete: {
+            summary: 'Close an MCP session',
+            description: 'Ends a stateful MCP session. Needs the `Mcp-Session-Id` from `initialize` and the same key and actor.',
+            tags: ['Meta'],
+            parameters: [{ $ref: '#/components/parameters/ActorId' }, mcpSessionParam],
+            responses: {
+                '200': { description: 'Session closed' },
+                '400': errRef('ValidationError'),
+                '401': errRef('Unauthorized'),
+                '403': errRef('Forbidden'),
+                '404': errRef('NotFound'),
             },
         },
     },

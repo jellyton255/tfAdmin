@@ -1,10 +1,14 @@
 import { z } from 'zod';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { randomUUID } from 'node:crypto';
+import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { txEnv } from '@core/globalData';
 import got from '@lib/got';
-import { ACTOR_ID_HEADER, type ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
+import { ACTOR_ID_HEADER, ACTOR_SCOPE, buildApiKeyPrincipal, findActorAdmin, type ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
+import type { StoredApiKey } from '@modules/ApiServer/ApiKeyStore';
 import { API_EVENT_TYPES } from '@shared/apiV1Types';
+import { sendError } from '@modules/ApiServer/envelope';
 import { licenseParamSchema, searchQuerySchema as playersQuerySchema } from './players';
 import { idParamSchema as actionIdParamSchema, searchQuerySchema as actionsQuerySchema } from './actions';
 import { listQuerySchema as whitelistQuerySchema } from './whitelist';
@@ -50,6 +54,41 @@ const readOnly = { readOnlyHint: true, openWorldHint: false } as const;
 const write = { readOnlyHint: false, destructiveHint: false, openWorldHint: false } as const;
 const destructive = { readOnlyHint: false, destructiveHint: true, openWorldHint: false } as const;
 const enc = encodeURIComponent;
+
+type McpSession = {
+    keyId: string;
+    apiKey: StoredApiKey;
+    transport: StreamableHTTPServerTransport;
+    server: McpServer;
+    subscriptions: Set<string>;
+    unsubscribeEvents: () => void;
+    idleTimer: NodeJS.Timeout | null;
+    lastActivity: number;
+    closed: boolean;
+    stateful: boolean;
+    resourcePollTimer: NodeJS.Timeout | null;
+    resourceSnapshot: string | null;
+    origin: string;
+    actorId: string | null;
+    resourcePollController: AbortController | null;
+    touch: () => void;
+};
+
+const sessions = new Map<string, McpSession>();
+const MAX_SESSIONS = 64;
+const MAX_SESSIONS_PER_KEY = 16;
+const MAX_SUBSCRIPTIONS = 32;
+const SESSION_IDLE_MS = 15 * 60_000;
+const RESOURCE_POLL_MS = 5_000;
+const RESOURCE_URIS = {
+    status: 'tfadmin://status',
+    resources: 'tfadmin://resources',
+    playersOnline: 'tfadmin://players/online',
+    events: 'tfadmin://events/{type}',
+};
+const ADMIN_EVENT_TYPES = new Set(['admin.login', 'apiKey.firstUse', 'webhook.test']);
+const FIXED_RESOURCE_URIS = new Set([RESOURCE_URIS.status, RESOURCE_URIS.resources, RESOURCE_URIS.playersOnline]);
+const EVENT_RESOURCE_PREFIX = 'tfadmin://events/';
 
 const paging = 'Results are paginated: pass meta.nextCursor back as cursor for the next page.';
 const durationHelp = 'Ban length, such as "2 hours", "3 days", "1 week", or "permanent".';
@@ -479,14 +518,18 @@ export const MCP_TOOLS: ToolDefinition[] = [
 const errorBodySchema = z.object({
     error: z.object({ code: z.string(), message: z.string(), details: z.unknown().optional() }),
 });
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Replays one tool call against this server's own /api/v1 with the caller's credentials.
  */
-async function callRoute(ctx: ApiKeyCtx, req: ToolRequest) {
+const routeOrigin = (ctx: ApiKeyCtx) => {
     const local = ctx.req.socket;
     const host = (local.localAddress ?? '127.0.0.1').replace(/^::ffff:/, '');
-    const origin = `http://${host.includes(':') ? `[${host}]` : host}:${local.localPort}`;
+    return `http://${host.includes(':') ? `[${host}]` : host}:${local.localPort}`;
+};
+
+async function callRoute(ctx: ApiKeyCtx, req: ToolRequest, signal?: AbortSignal, origin = routeOrigin(ctx)) {
     const headers: Record<string, string> = { authorization: ctx.headers.authorization ?? '' };
     const actorId = ctx.headers[ACTOR_ID_HEADER];
     if (typeof actorId === 'string') headers[ACTOR_ID_HEADER] = actorId;
@@ -504,6 +547,7 @@ async function callRoute(ctx: ApiKeyCtx, req: ToolRequest) {
         throwHttpErrors: false,
         retry: { limit: 0 },
         timeout: { request: 60_000 },
+        signal,
     });
     let body: unknown = null;
     try {
@@ -520,7 +564,10 @@ async function callRoute(ctx: ApiKeyCtx, req: ToolRequest) {
             : `tfAdmin answered HTTP ${resp.statusCode}.`;
         return { isError: true, content: [{ type: 'text' as const, text }] };
     }
-    return { content: [{ type: 'text' as const, text: JSON.stringify(body, null, 2) }] };
+    return {
+        content: [{ type: 'text' as const, text: JSON.stringify(body, null, 2) }],
+        ...(isRecord(body) ? { structuredContent: body } : {}),
+    };
 }
 
 
@@ -533,35 +580,264 @@ const buildInstructions = (ctx: ApiKeyCtx) => [
     `Never use this to stop or restart the whole Main (production) server process; server control here only manages the game server child, and Main restarts are the owner's decision.`,
 ].join('\n');
 
+const resourceText = async (ctx: ApiKeyCtx, request: ToolRequest, origin: string, signal?: AbortSignal) => {
+    const result = await callRoute(ctx, request, signal, origin);
+    if (result.isError) throw new Error(result.content[0]?.text ?? 'tfAdmin resource read failed.');
+    const text = result.content[0]?.text;
+    if (!text) throw new Error('tfAdmin returned an empty resource.');
+    return text;
+};
+
+const eventTypeFromUri = (uri: string) => {
+    if (!uri.startsWith(EVENT_RESOURCE_PREFIX)) return null;
+    const type = decodeURIComponent(uri.slice(EVENT_RESOURCE_PREFIX.length));
+    if (type === 'all') return type;
+    return API_EVENT_TYPES.find((knownType) => knownType === type) ?? null;
+};
+
+const assertSubscriptionUri = (uri: string) => {
+    if (FIXED_RESOURCE_URIS.has(uri) || eventTypeFromUri(uri)) return;
+    throw new Error('Unknown or invalid resource URI.');
+};
+
+const currentKeyAllowsDelivery = (session: McpSession, ctx: ApiKeyCtx) => {
+    const key = ctx.apiKey;
+    return key.id === session.keyId
+        && key.revokedAt === null
+        && (key.expiresAt === null || key.expiresAt > Date.now());
+};
+
+function currentSessionPrincipal(session: McpSession, key: ReturnType<typeof txCore.apiServer.keyStore.get>) {
+    if (!key) return null;
+    if (key.revokedAt !== null || (key.expiresAt !== null && key.expiresAt <= Date.now())) return null;
+    const actor = session.actorId ? findActorAdmin(session.actorId) ?? undefined : undefined;
+    if (session.actorId && (!actor || !buildApiKeyPrincipal({ ...session.apiKey, permissions: key.permissions }).hasPermission(ACTOR_SCOPE))) return null;
+    return buildApiKeyPrincipal({ ...session.apiKey, permissions: key.permissions, revokedAt: key.revokedAt, expiresAt: key.expiresAt }, actor);
+}
+
+const registerResources = (ctx: ApiKeyCtx, session: McpSession) => {
+    const requireStateful = () => {
+        if (!session.stateful) throw new Error('Resource reads require a stateful MCP session.');
+    };
+    session.server.registerResource('tfadmin-status', RESOURCE_URIS.status, {
+        title: 'tfAdmin status', description: 'Current tfAdmin and FXServer status.', mimeType: 'application/json',
+    }, async (uri, extra) => { requireStateful(); return { contents: [{ uri: uri.href, mimeType: 'application/json', text: await resourceText(ctx, { method: 'GET', path: '/status' }, session.origin, extra.signal) }] }; });
+    session.server.registerResource('tfadmin-resources', RESOURCE_URIS.resources, {
+        title: 'FiveM resources', description: 'Current FiveM resource states.', mimeType: 'application/json',
+    }, async (uri, extra) => { requireStateful(); return { contents: [{ uri: uri.href, mimeType: 'application/json', text: await resourceText(ctx, { method: 'GET', path: '/resources' }, session.origin, extra.signal) }] }; });
+    session.server.registerResource('tfadmin-players-online', RESOURCE_URIS.playersOnline, {
+        title: 'Online players', description: 'Players connected to this FiveM server.', mimeType: 'application/json',
+    }, async (uri, extra) => { requireStateful(); return { contents: [{ uri: uri.href, mimeType: 'application/json', text: await resourceText(ctx, { method: 'GET', path: '/players/online' }, session.origin, extra.signal) }] }; });
+    session.server.registerResource('tfadmin-events', new ResourceTemplate(RESOURCE_URIS.events, { list: undefined }), {
+        title: 'Event feed', description: 'Recent events, optionally filtered by event type.', mimeType: 'application/json',
+    }, async (uri, _variables, extra) => {
+        requireStateful();
+        const type = eventTypeFromUri(uri.href);
+        if (!type) throw new Error('Unknown event resource URI.');
+        const result = await callRoute(ctx, {
+            method: 'GET', path: '/events', query: { limit: 100, ...(type === 'all' ? {} : { types: type }) },
+        }, extra.signal, session.origin);
+        if (result.isError) throw new Error(result.content[0]?.text ?? 'tfAdmin event resource read failed.');
+        const text = result.content[0]?.text;
+        if (!text) throw new Error('tfAdmin returned an empty event resource.');
+        return { contents: [{ uri: uri.href, mimeType: 'application/json', text }] };
+    });
+};
+
+const disposeSession = (session: McpSession) => {
+    if (session.closed) return;
+    session.closed = true;
+    if (session.idleTimer) clearTimeout(session.idleTimer);
+    if (session.resourcePollTimer) clearTimeout(session.resourcePollTimer);
+    session.resourcePollController?.abort();
+    session.resourcePollController = null;
+    session.unsubscribeEvents();
+    session.server.close().catch(() => { });
+};
+
+const closeSession = (sessionId: string) => {
+    const session = sessions.get(sessionId);
+    if (!session) return;
+    sessions.delete(sessionId);
+    disposeSession(session);
+};
+
+const makeSession = (ctx: ApiKeyCtx, stateful: boolean) => {
+    const server = new McpServer({ name: 'tfadmin', version: txEnv.txaVersion }, { instructions: buildInstructions(ctx) });
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: stateful ? randomUUID : undefined, enableJsonResponse: true });
+    const origin = routeOrigin(ctx);
+    const actorId = typeof ctx.headers[ACTOR_ID_HEADER] === 'string' ? ctx.headers[ACTOR_ID_HEADER] : null;
+    const session: McpSession = { keyId: ctx.apiKey.id, apiKey: ctx.apiKey, transport, server, subscriptions: new Set(), unsubscribeEvents: () => { }, idleTimer: null, lastActivity: Date.now(), closed: false, stateful, resourcePollTimer: null, resourceSnapshot: null, resourcePollController: null, origin, actorId, touch: () => { } };
+    const touch = () => {
+        session.lastActivity = Date.now();
+        if (session.idleTimer) clearTimeout(session.idleTimer);
+        session.idleTimer = setTimeout(() => {
+            if (Date.now() - session.lastActivity >= SESSION_IDLE_MS && transport.sessionId) closeSession(transport.sessionId);
+            else touch();
+        }, SESSION_IDLE_MS);
+    };
+    session.touch = touch;
+    if (stateful) touch();
+    let observingEvents = false;
+    const observeEvents = () => {
+        if (observingEvents) return;
+        observingEvents = true;
+        session.unsubscribeEvents = txCore.apiServer.events.onEvent((event) => {
+            const key = txCore.apiServer.keyStore.get(session.keyId);
+            const principal = currentSessionPrincipal(session, key);
+            if (!principal) {
+                if (transport.sessionId) closeSession(transport.sessionId);
+                return;
+            }
+            const canReadAdminEvents = principal.hasPermission('manage.admins');
+            if (!canReadAdminEvents && ADMIN_EVENT_TYPES.has(event.type)) return;
+            const changed = new Set<string>();
+            if (event.type.startsWith('server.') || event.type.startsWith('player.') || event.type === 'admin.login') changed.add(RESOURCE_URIS.status);
+            if (event.type.startsWith('player.')) changed.add(RESOURCE_URIS.playersOnline);
+            if (['server.configChanged', 'server.online', 'server.offline', 'server.partial'].includes(event.type)) changed.add(RESOURCE_URIS.resources);
+            for (const uri of session.subscriptions) {
+                const type = eventTypeFromUri(uri);
+                if ((type === 'all' || type === event.type) || changed.has(uri)) server.server.sendResourceUpdated({ uri }).catch(() => { });
+            }
+        });
+    };
+    const stopObservingEvents = () => {
+        if (!observingEvents) return;
+        observingEvents = false;
+        session.unsubscribeEvents();
+        session.unsubscribeEvents = () => { };
+    };
+    const pollResources = async (controller: AbortController) => {
+        if (session.closed || session.resourcePollController !== controller || !session.subscriptions.has(RESOURCE_URIS.resources)) return;
+        const key = txCore.apiServer.keyStore.get(session.keyId);
+        if (!currentSessionPrincipal(session, key)) {
+            if (transport.sessionId) closeSession(transport.sessionId);
+            return;
+        }
+        try {
+            const text = await resourceText(ctx, { method: 'GET', path: '/resources' }, session.origin, controller.signal);
+            const currentKey = txCore.apiServer.keyStore.get(session.keyId);
+            if (!currentSessionPrincipal(session, currentKey)) {
+                if (transport.sessionId) closeSession(transport.sessionId);
+                return;
+            }
+            if (!session.closed && session.resourcePollController === controller && session.subscriptions.has(RESOURCE_URIS.resources) && session.resourceSnapshot !== text) {
+                if (session.resourceSnapshot !== null) server.server.sendResourceUpdated({ uri: RESOURCE_URIS.resources }).catch(() => { });
+                session.resourceSnapshot = text;
+            }
+        } catch {
+            const currentKey = txCore.apiServer.keyStore.get(session.keyId);
+            if (!currentSessionPrincipal(session, currentKey)) {
+                if (transport.sessionId) closeSession(transport.sessionId);
+                return;
+            }
+            if (!session.closed && session.resourcePollController === controller && session.subscriptions.has(RESOURCE_URIS.resources) && session.resourceSnapshot !== null) {
+                session.resourceSnapshot = null;
+                server.server.sendResourceUpdated({ uri: RESOURCE_URIS.resources }).catch(() => { });
+            }
+        } finally {
+            if (!session.closed && session.resourcePollController === controller && session.subscriptions.has(RESOURCE_URIS.resources)) {
+                session.resourcePollTimer = setTimeout(() => { void pollResources(controller); }, RESOURCE_POLL_MS);
+            }
+        }
+    };
+    server.server.registerCapabilities({ resources: { subscribe: true } });
+    server.server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+        if (!stateful) throw new Error('Resource subscriptions require a stateful MCP session.');
+        assertSubscriptionUri(request.params.uri);
+        if (!session.subscriptions.has(request.params.uri) && session.subscriptions.size >= MAX_SUBSCRIPTIONS) {
+            throw new Error('MCP subscription limit reached.');
+        }
+        const alreadySubscribed = session.subscriptions.has(request.params.uri);
+        session.subscriptions.add(request.params.uri);
+        observeEvents();
+        if (request.params.uri === RESOURCE_URIS.resources && !alreadySubscribed) {
+            const controller = new AbortController();
+            session.resourcePollController = controller;
+            void pollResources(controller);
+        }
+        touch();
+        return {};
+    });
+    server.server.setRequestHandler(UnsubscribeRequestSchema, async (request) => {
+        session.subscriptions.delete(request.params.uri);
+        if (request.params.uri === RESOURCE_URIS.resources && session.resourcePollTimer) {
+            clearTimeout(session.resourcePollTimer);
+            session.resourcePollTimer = null;
+            session.resourceSnapshot = null;
+        }
+        if (request.params.uri === RESOURCE_URIS.resources && session.resourcePollController) {
+            session.resourcePollController.abort();
+            session.resourcePollController = null;
+        }
+        if (session.subscriptions.size === 0) stopObservingEvents();
+        touch();
+        return {};
+    });
+    registerResources(ctx, session);
+    for (const tool of MCP_TOOLS) {
+        if (tool.scopes && !tool.scopes.some((scope) => ctx.admin.hasPermission(scope))) continue;
+        server.registerTool(tool.name, {
+            title: tool.title, description: tool.description,
+            annotations: { title: tool.title, ...tool.annotations },
+            inputSchema: tool.input ?? {},
+            outputSchema: { data: z.unknown(), meta: z.unknown().optional() },
+        }, async (input, extra) => {
+            return callRoute(ctx, tool.request(input ?? {}), extra.signal, session.origin);
+        });
+    }
+    return session;
+};
+
 
 /**
  * POST /api/v1/mcp - one stateless MCP exchange for the calling key
  */
 export default async function ApiMcp(ctx: ApiKeyCtx) {
-    const server = new McpServer(
-        { name: 'tfadmin', version: txEnv.txaVersion },
-        { instructions: buildInstructions(ctx) },
-    );
-    for (const tool of MCP_TOOLS) {
-        if (tool.scopes && !tool.scopes.some((scope) => ctx.admin.hasPermission(scope))) continue;
-        server.registerTool(
-            tool.name,
-            {
-                title: tool.title,
-                description: tool.description,
-                annotations: { title: tool.title, ...tool.annotations },
-                ...(tool.input ? { inputSchema: tool.input } : {}),
-            },
-            async (input: unknown) => callRoute(ctx, tool.request(input ?? {})),
-        );
+    const requestedSession = ctx.headers['mcp-session-id'];
+    if (typeof requestedSession === 'string') {
+        const existing = sessions.get(requestedSession);
+        if (!existing) {
+            return sendError(ctx, 404, 'NOT_FOUND', 'MCP session not found.');
+        }
+        if (existing.keyId !== ctx.apiKey.id) {
+            return sendError(ctx, 403, 'FORBIDDEN', 'MCP session belongs to another API key.');
+        }
+        const actorId = typeof ctx.headers[ACTOR_ID_HEADER] === 'string' ? ctx.headers[ACTOR_ID_HEADER] : null;
+        if (existing.actorId !== actorId) {
+            return sendError(ctx, 403, 'FORBIDDEN', 'MCP session belongs to another actor.');
+        }
+        if (!currentKeyAllowsDelivery(existing, ctx)) {
+            closeSession(requestedSession);
+            return sendError(ctx, 401, 'UNAUTHORIZED', 'MCP session API key is no longer valid.');
+        }
+        existing.touch();
+        ctx.respond = false;
+        await existing.transport.handleRequest(ctx.req, ctx.res, ctx.request.body);
+        return;
     }
-
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
-    ctx.res.on('close', () => {
-        transport.close().catch(() => { });
-        server.close().catch(() => { });
-    });
-    await server.connect(transport);
+    if (ctx.method !== 'POST') return sendError(ctx, 400, 'VALIDATION_ERROR', 'MCP GET and DELETE require Mcp-Session-Id.');
+    const sessionCountForKey = [...sessions.values()].filter((session) => session.keyId === ctx.apiKey.id).length;
+    if (sessions.size >= MAX_SESSIONS || sessionCountForKey >= MAX_SESSIONS_PER_KEY) {
+        return sendError(ctx, 429, 'RATE_LIMITED', 'Too many active MCP sessions.');
+    }
+    const body = ctx.request.body;
+    const stateful = typeof body === 'object' && body !== null && 'method' in body && body.method === 'initialize';
+    const session = makeSession(ctx, stateful);
+    await session.server.connect(session.transport);
+    const previousOnClose = session.transport.onclose;
+    session.transport.onclose = () => {
+        previousOnClose?.();
+        if (session.transport.sessionId) closeSession(session.transport.sessionId);
+        else disposeSession(session);
+    };
     ctx.respond = false;
-    await transport.handleRequest(ctx.req, ctx.res, ctx.request.body);
+    try {
+        await session.transport.handleRequest(ctx.req, ctx.res, ctx.request.body);
+    } finally {
+        if (!stateful || !session.transport.sessionId) disposeSession(session);
+    }
+    if (stateful && session.transport.sessionId) {
+        sessions.set(session.transport.sessionId, session);
+    }
 };

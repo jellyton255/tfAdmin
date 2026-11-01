@@ -20,8 +20,10 @@ export default () => {
     //Identity
     router.get('/me', apiKeyAuthMw(), v1.me as any);
 
-    //MCP for agents: tools replay the routes below with the caller's key (stateless, POST only)
+    //MCP for agents: authenticated stateless-compatible tools plus stateful resource subscriptions
     router.post('/mcp', apiKeyAuthMw(), v1.mcp as any);
+    router.get('/mcp', apiKeyAuthMw(), v1.mcp as any);
+    router.delete('/mcp', apiKeyAuthMw(), v1.mcp as any);
 
     //Key management (needs manage.admins)
     router.get('/keys', apiKeyAuthMw('manage.admins'), v1.keys_list as any);
