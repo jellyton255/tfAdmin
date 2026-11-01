@@ -2,6 +2,7 @@
  * Types for the Everfall public API (/api/v1) and its key management.
  * Shared between core (routes + ApiServer module) and the panel (API Keys page).
  */
+import type { DatabaseActionType } from '../core/modules/Database/databaseTypes';
 import type { ApiScopeInfo } from './apiScopes';
 import type { AdminLogCategory, AdminLogEntry } from './adminLogApiTypes';
 import type { StaffActivityData } from './staffActivityApiTypes';
@@ -257,6 +258,7 @@ export type ApiActionRecord = {
     expiresAt: number | null;
     /** Bans only: 'active' | 'expired' | 'permanent'; warns and kicks: null */
     banStatus: 'active' | 'expired' | 'permanent' | null;
+    historical?: DatabaseActionType['historical'] | null;
     /** Warns only */
     acked: boolean | null;
     revokedAt: number | null; //epoch ms

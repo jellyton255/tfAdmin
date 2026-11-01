@@ -78,10 +78,12 @@ export default function ActionModal() {
         }
     }, [isModalOpen]);
 
-    //Kicks and game sanctions are a record only, so they have nothing to modify
+    //Kicks, game sanctions and historical records are a record only, so they have nothing to modify
     const visibleNoteCount = modalData?.action.notes?.filter((note: DatabaseNoteType) => !note.deleted).length ?? 0;
     const notesTab: ModalTabInfo = { title: 'Notes', icon: notesIcon };
-    const isRecordOnly = modalData?.action.type === 'kick' || modalData?.action.type === 'sanction';
+    const isRecordOnly = modalData?.action.type === 'kick'
+        || modalData?.action.type === 'sanction'
+        || !!modalData?.action.historical;
     const modalTabs = isRecordOnly
         ? [infoTab, notesTab, idsTab]
         : [infoTab, notesTab, idsTab, modifyTab];
@@ -149,6 +151,9 @@ export default function ActionModal() {
                 <DialogHeader className="px-4 py-3 border-b">
                     <DialogTitle className="tracking-wide line-clamp-1 leading-7 break-all mr-6">
                         {pageTitle}
+                        {modalData?.action.historical && (
+                            <span className="ml-2 text-sm font-normal text-muted-foreground">Historical</span>
+                        )}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -201,7 +206,7 @@ export default function ActionModal() {
                                 {selectedTab === 'IDs' && <ActionIdsTab
                                     action={modalData.action}
                                 />}
-                                {selectedTab === 'Modify' && modalData.action.type !== 'kick' && modalData.action.type !== 'sanction' && <ActionModifyTab
+                                {selectedTab === 'Modify' && !isRecordOnly && <ActionModifyTab
                                     action={modalData.action}
                                     refreshModalData={refreshModalData}
                                 />}

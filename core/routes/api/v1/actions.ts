@@ -50,7 +50,8 @@ export const toApiAction = (a: DatabaseActionType, currTs = now()): ApiActionRec
         author: a.author,
         createdAt: secToMs(a.timestamp) ?? 0,
         expiresAt,
-        banStatus,
+        banStatus: a.historical ? null : banStatus,
+        historical: a.historical ?? null,
         acked: a.type === 'warn' ? a.acked : null,
         revokedAt: secToMs(a.revocation.timestamp),
         revokedBy: a.revocation.author ?? null,
@@ -90,7 +91,7 @@ export async function search(ctx: ApiKeyCtx) {
     let actions = txCore.database.getDboRef().chain.get('actions').value().filter((a) => {
         if (query.kind && a.type !== query.kind) return false;
         if (query.author && a.author !== query.author) return false;
-        if (query.status === 'active' && (a.revocation.timestamp || a.type === 'kick' || a.type === 'sanction')) return false;
+        if (query.status === 'active' && (a.historical || a.revocation.timestamp || a.type === 'kick' || a.type === 'sanction')) return false;
         if (query.hasNotes !== undefined && query.hasNotes !== visibleNotes(a.notes).length > 0) return false;
         if (query.status === 'revoked' && !a.revocation.timestamp) return false;
         return true;

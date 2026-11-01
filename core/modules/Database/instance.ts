@@ -8,6 +8,7 @@ import { TextFile } from 'lowdb/node';
 import { txDevEnv, txEnv } from '@core/globalData';
 import { DatabaseDataType } from './databaseTypes.js';
 import migrations from './migrations.js';
+import { importHistoricalActions } from './historicalActions';
 import consoleFactory from '@lib/console.js';
 import fatalError from '@lib/fatalError.js';
 import { TimeCounter } from '@modules/Metrics/statsUtils.js';
@@ -176,6 +177,8 @@ export class DbInstance {
                     ['Database path', this.dbPath],
                 ]);
             }
+
+            await importHistoricalActions(this.obj!, this.dbPath, `${txEnv.profilePath}/data/historicalActionsImport.json`);
 
             this.lastWrite = Date.now();
             this.isReady = true;

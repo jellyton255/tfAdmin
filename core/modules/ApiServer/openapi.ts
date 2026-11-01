@@ -183,6 +183,7 @@ const schemas: Record<string, Schema> = {
         playerName: nullable(str()), ids: arr(str()), hwids: arr(str()),
         reason: str(), author: str(), createdAt: epochMs(), expiresAt: nullable(epochMs('Bans only, null = permanent')),
         banStatus: nullable(enumOf(['active', 'expired', 'permanent'])), acked: nullable(bool()),
+        historical: nullable(obj({ externalRef: str(), sourceUrl: str(), duration: nullable(str()), expirationKnown: bool() })),
         revokedAt: nullable(epochMs()), revokedBy: nullable(str()),
         revokeReason: nullable(str({ description: 'Staff reason given when revoking, else null' })),
         notes: { ...arr(ref('ActionNote')), description: 'Staff notes, newest first. Never shown to the player; deleted notes are left out' },

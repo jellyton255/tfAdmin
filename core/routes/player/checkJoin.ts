@@ -156,6 +156,7 @@ function checkBan(
     const filter = (action: DatabaseActionType): action is DatabaseActionBanType => {
         return (
             action.type === 'ban'
+            && !action.historical
             && (!action.expiration || action.expiration > ts)
             && (!action.revocation.timestamp)
         );

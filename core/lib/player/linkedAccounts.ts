@@ -81,7 +81,7 @@ export function summarizeSanctions(actions: DatabaseActionType[], currTs: number
     const active = actions.filter((action) => !action.revocation.timestamp);
     return {
         isBanned: active.some((action) => (
-            action.type === 'ban' && (action.expiration === false || action.expiration > currTs)
+            action.type === 'ban' && !action.historical && (action.expiration === false || action.expiration > currTs)
         )),
         banCount: active.filter((action) => action.type === 'ban').length,
         warnCount: active.filter((action) => action.type === 'warn').length,

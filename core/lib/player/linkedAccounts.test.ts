@@ -59,5 +59,9 @@ describe('summarizeSanctions', () => {
         ];
         expect(summarizeSanctions(actions, 100)).toEqual({ isBanned: false, banCount: 1, warnCount: 1 });
         expect(summarizeSanctions(actions, 10).isBanned).toBe(true);
+        actions.push({ ...base, id: 'BH', type: 'ban', expiration: false, revocation: live, historical: {
+            externalRef: 'discord:old', sourceUrl: 'https://discord.com/channels/1/2', duration: 'Permanent', expirationKnown: true,
+        } });
+        expect(summarizeSanctions(actions, 100)).toEqual({ isBanned: false, banCount: 2, warnCount: 1 });
     });
 });

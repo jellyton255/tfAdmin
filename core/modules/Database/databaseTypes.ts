@@ -68,6 +68,12 @@ export type DatabaseActionBaseType = {
         reason?: string;
     };
     notes?: DatabaseNoteType[]; //staff only, oldest first, absent when empty
+    historical?: {
+        externalRef: string;
+        sourceUrl: string;
+        duration: string | null;
+        expirationKnown: boolean;
+    };
     presetId?: string; //everfall: the punishment preset (ban template) it was issued from
 };
 //everfall: a change of a ban's length; the new length counts from when the ban was issued

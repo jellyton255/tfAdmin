@@ -31,7 +31,17 @@ function HistoryItem({ action, serverTime, preset, modalOpener }: HistoryItemPro
         borderColorClass = 'border-muted-foreground/40';
         actionMessage = `${action.sanction?.toUpperCase()} by ${action.author}`;
     }
-    if (action.revokedBy) {
+    if (action.historical) {
+        //Never enforced, so it carries no active-ban color
+        borderColorClass = 'border-muted-foreground/40';
+        if (action.type === 'ban') {
+            footerNote = !action.historical.expirationKnown
+                ? 'Original expiration unknown.'
+                : typeof action.exp === 'number'
+                    ? `Original expiration ${tsToLocaleDateTimeString(action.exp, 'medium', 'short')}.`
+                    : 'Original ban was permanent.';
+        }
+    } else if (action.revokedBy) {
         borderColorClass = '';
         const revocationDate = tsToLocaleDateTimeString(action.revokedAt ?? 0, 'medium', 'short');
         footerNote = `Revoked by ${action.revokedBy} on ${revocationDate}.`;
@@ -41,7 +51,7 @@ function HistoryItem({ action, serverTime, preset, modalOpener }: HistoryItemPro
     }
     //Preset offenses count toward the ladder for a while, then stay here without counting
     let offenseNote;
-    if (action.offenseUntil && !action.revokedBy) {
+    if (action.offenseUntil && !action.revokedBy && !action.historical) {
         offenseNote = action.offenseUntil > serverTime
             ? `Counts as an offense until ${tsToLocaleDateTimeString(action.offenseUntil, 'medium', 'short')}.`
             : 'No longer counts as an offense.';
@@ -66,6 +76,7 @@ function HistoryItem({ action, serverTime, preset, modalOpener }: HistoryItemPro
                             <StickyNoteIcon className="size-3" />{action.noteCount}
                         </span>
                     ) : null}
+                    {action.historical && <span className="text-muted-foreground">Historical</span>}
                     <InlineCode className="tracking-widest">{action.id}</InlineCode>
                     <span
                         className="opacity-75 cursor-help"

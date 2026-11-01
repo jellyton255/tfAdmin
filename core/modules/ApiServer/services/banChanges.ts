@@ -13,6 +13,9 @@ import { parseBanDuration } from './playerActions';
 
 const findBanOr409 = (actionId: string): DatabaseActionBanType => {
     const action = findActionOr404(actionId);
+    if (action.historical) {
+        throw new ApiError(409, 'CONFLICT', 'Historical actions cannot be changed.', { id: actionId });
+    }
     if (action.type !== 'ban') {
         throw new ApiError(409, 'CONFLICT', 'Only bans can be changed this way.', { id: actionId });
     }

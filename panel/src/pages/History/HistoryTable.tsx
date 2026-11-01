@@ -51,9 +51,11 @@ function HistoryRow({ action, modalOpener }: HistoryRowProps) {
         throw new Error(`Invalid action type: ${action.type}`);
     }
 
-    //Status indicator
+    //Status indicator, historical records were never enforced so they have none
     let statusIcon: React.ReactNode;
-    if (action.isRevoked) {
+    if (action.historical) {
+        statusIcon = null;
+    } else if (action.isRevoked) {
         statusIcon = <Undo2Icon className='size-4' />;
     } else if (action.banExpiration) {
         if (action.banExpiration === 'permanent') {
@@ -85,6 +87,7 @@ function HistoryRow({ action, modalOpener }: HistoryRowProps) {
                         {rowId}
                     </div>
                     <div className='flex-grow flex justify-end items-center gap-1.5 my-auto pr-2 text-muted-foreground'>
+                        {action.historical && <span className='text-xs'>Historical</span>}
                         {noteIcon}
                         {statusIcon}
                     </div>

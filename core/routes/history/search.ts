@@ -166,6 +166,7 @@ export default async function HistorySearch(ctx: AuthedCtx) {
             timestamp: a.timestamp,
             isRevoked: !!a.revocation.timestamp,
             noteCount: visibleNotes(a.notes).length,
+            historical: a.historical,
             banExpiration,
             warnAcked,
             sanction: a.type === 'sanction' ? (a.length ? `${a.kind} (${a.length})` : a.kind) : undefined,

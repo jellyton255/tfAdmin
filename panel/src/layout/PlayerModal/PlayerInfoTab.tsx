@@ -270,7 +270,7 @@ export default function PlayerInfoTab({ playerRef, player, tagSuggestions, serve
         tsFetch={tsFetch}
         isDateOnly
     />;
-    const banCount = player.actionHistory.filter((a) => a.type === 'ban' && !a.revokedAt).length;
+    const banCount = player.actionHistory.filter((a) => a.type === 'ban' && !a.revokedAt && !a.historical).length;
     const warnCount = player.actionHistory.filter((a) => a.type === 'warn' && !a.revokedAt).length;
 
     const handleWhitelistClick = () => {
@@ -350,7 +350,7 @@ export default function PlayerInfoTab({ playerRef, player, tagSuggestions, serve
         if (!player || !serverTime) return;
         let banExpiration;
         for (const action of player.actionHistory) {
-            if (action.type !== 'ban' || action.revokedAt) continue;
+            if (action.type !== 'ban' || action.revokedAt || action.historical) continue;
             if (action.exp) {
                 if (action.exp >= serverTime) {
                     banExpiration = Math.max(banExpiration ?? 0, action.exp);

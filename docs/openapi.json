@@ -5659,6 +5659,44 @@
               }
             ]
           },
+          "historical": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "externalRef": {
+                    "type": "string"
+                  },
+                  "sourceUrl": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "expirationKnown": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "externalRef",
+                  "sourceUrl",
+                  "duration",
+                  "expirationKnown"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "revokedAt": {
             "oneOf": [
               {
@@ -5795,6 +5833,7 @@
           "expiresAt",
           "banStatus",
           "acked",
+          "historical",
           "revokedAt",
           "revokedBy",
           "revokeReason",

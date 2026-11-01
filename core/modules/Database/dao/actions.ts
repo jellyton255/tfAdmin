@@ -462,6 +462,7 @@ export default class ActionsDao {
                 .value();
 
             if (!action) throw new Error(`action not found`);
+            if (action.historical) throw new Error('historical actions cannot be revoked');
             if (action.type === 'kick') throw new Error(`kicks cannot be revoked`);
             if (action.type === 'sanction') throw new Error(`game sanctions cannot be revoked`);
             if (allowedTypes !== true && !allowedTypes.includes(action.type)) {

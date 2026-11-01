@@ -154,6 +154,9 @@ export const revokeAction = (admin: AuthedAdmin, actionId: string, reasonInput?:
     if (!existing) {
         throw new ApiError(404, 'NOT_FOUND', 'Action not found.', { id: actionId });
     }
+    if (existing.historical) {
+        throw new ApiError(409, 'CONFLICT', 'Historical actions cannot be revoked.', { id: actionId });
+    }
     if (existing.type === 'kick' || existing.type === 'sanction') {
         throw new ApiError(409, 'CONFLICT', 'Kicks and game sanctions cannot be revoked.', { id: actionId });
     }

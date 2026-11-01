@@ -293,7 +293,7 @@ export class ServerPlayer extends BasePlayer {
         let oldestPendingWarn: undefined | DatabaseActionWarnType;
         const actionHistory = this.getHistory();
         for (const action of actionHistory) {
-            if (action.type !== 'warn' || action.revocation.timestamp !== null) continue;
+            if (action.type !== 'warn' || action.historical || action.revocation.timestamp !== null) continue;
             if (!action.acked) {
                 oldestPendingWarn = action;
                 break;

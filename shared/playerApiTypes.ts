@@ -1,3 +1,4 @@
+import type { DatabaseActionType } from '../core/modules/Database/databaseTypes';
 import { GenericApiErrorResp } from "./genericApiTypes";
 import { BanTemplatesDataType } from "./otherTypes";
 
@@ -6,6 +7,7 @@ export type PlayerHistoryItem = {
     id: string;
     type: "ban" | "warn" | "kick" | "sanction";
     sanction?: string; //everfall: game sanctions only, such as "Jail (30 months)"
+    historical?: DatabaseActionType['historical'];
     noteCount?: number; //staff notes on the action, absent when none
     author: string;
     reason: string;

@@ -58,9 +58,23 @@ type ActionInfoTabProps = {
 export default function ActionInfoTab({ action, serverTime, tsFetch, setSelectedTab }: ActionInfoTabProps) {
     const openPlayerModal = useOpenPlayerModal();
 
+    const historical = action.historical;
+
     let banExpirationText: React.ReactNode;
     if (action.type === 'ban') {
-        if (action.expiration === false) {
+        if (historical && !historical.expirationKnown) {
+            banExpirationText = <span className="opacity-75">Unknown</span>;
+        } else if (historical) {
+            //Never enforced, so show the original expiry as a date, never as a countdown
+            banExpirationText = action.expiration === false
+                ? <span className="opacity-75">Never</span>
+                : <DateTimeCorrected
+                    className="opacity-75 cursor-help"
+                    serverTime={serverTime}
+                    tsObject={action.expiration}
+                    tsFetch={tsFetch}
+                />;
+        } else if (action.expiration === false) {
             banExpirationText = <span className="text-destructive-inline">Never</span>;
         } else if (action.expiration > serverTime) {
             const distance = msToDuration(
@@ -79,7 +93,9 @@ export default function ActionInfoTab({ action, serverTime, tsFetch, setSelected
     }
 
     let warnAckedText: React.ReactNode;
-    if (action.type === 'warn' && action.acked) {
+    if (historical) {
+        warnAckedText = <span className="opacity-75">Unknown</span>;
+    } else if (action.type === 'warn' && action.acked) {
         warnAckedText = <span className="opacity-75">Yes</span>;
     } else {
         warnAckedText = <span className="text-warning-inline">Not yet</span>;
@@ -128,10 +144,24 @@ export default function ActionInfoTab({ action, serverTime, tsFetch, setSelected
                         />
                     </dd>
                 </div>
+                {historical && (
+                    <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                        <dt className="text-sm font-medium leading-6 text-muted-foreground">Historical</dt>
+                        <dd className="text-sm leading-6 col-span-2 mt-0 break-words">
+                            <TxAnchor href={historical.sourceUrl}>Original Discord Post</TxAnchor>
+                        </dd>
+                    </div>
+                )}
                 {action.type === 'ban' && (
                     <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
                         <dt className="text-sm font-medium leading-6 text-muted-foreground">Expiration</dt>
                         <dd className="text-sm leading-6 col-span-2 mt-0">{banExpirationText}</dd>
+                    </div>
+                )}
+                {historical?.duration && (
+                    <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
+                        <dt className="text-sm font-medium leading-6 text-muted-foreground">Original Duration</dt>
+                        <dd className="text-sm leading-6 col-span-2 mt-0 break-words">{historical.duration}</dd>
                     </div>
                 )}
                 {action.type === 'warn' && (
@@ -148,7 +178,7 @@ export default function ActionInfoTab({ action, serverTime, tsFetch, setSelected
                         </dd>
                     </div>
                 )}
-                {action.type !== 'kick' && action.type !== 'sanction' && (
+                {action.type !== 'kick' && action.type !== 'sanction' && !historical && (
                     <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
                         <dt className="text-sm font-medium leading-6 text-muted-foreground">Revoked</dt>
                         <dd className="text-sm leading-6 col-span-2 mt-0">{revokedText}</dd>

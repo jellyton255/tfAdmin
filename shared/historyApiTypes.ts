@@ -47,6 +47,7 @@ export type HistoryTableActionType = {
     timestamp: number;
     isRevoked: boolean;
     noteCount: number;
+    historical?: DatabaseActionType['historical'];
     banExpiration?: 'expired' | 'active' | 'permanent';
     warnAcked?: boolean;
     sanction?: string; //everfall: game sanctions only, such as "Jail (30 months)"
