@@ -56,18 +56,18 @@ const whitelistCommand: ApplicationCommandDataResolvable = {
 }
 const allowlistCommand: ApplicationCommandDataResolvable = {
     type: ApplicationCommandType.ChatInput,
-    name: 'allowlist',
-    description: 'Allowlist embed commands.',
+    name: 'whitelist',
+    description: 'Whitelist embed commands.',
     options: [
         {
             type: ApplicationCommandOptionType.Subcommand,
             name: 'member',
-            description: 'Adds a member to the allowlist approvals.',
+            description: 'Adds a member to the whitelist approvals.',
             options: [
                 {
                     type: ApplicationCommandOptionType.User,
                     name: 'member',
-                    description: 'The member that will be allowlisted.',
+                    description: 'The member that will be whitelisted.',
                     required: true,
                 }
             ]
@@ -75,7 +75,7 @@ const allowlistCommand: ApplicationCommandDataResolvable = {
         {
             type: ApplicationCommandOptionType.Subcommand,
             name: 'request',
-            description: 'Approves a allowlist request ID (eg R1234).',
+            description: 'Approves a whitelist request ID (eg R1234).',
             options: [
                 {
                     type: ApplicationCommandOptionType.String,

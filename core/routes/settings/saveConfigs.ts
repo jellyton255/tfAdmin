@@ -99,8 +99,6 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
     const { resetKeys, changes: inputConfig } = bodySchemaRes.data;
     const cardName = cardNamesMap[ctx.params.card as keyof typeof cardNamesMap] ?? 'UNKNOWN';
 
-    // FIXME:NEXT:UPDATE remove
-    const displayCardName = cardName === 'Whitelist' ? 'Allowlist' : cardName;
 
     //Delegate to the specific card handlers - if required
     let handlerResp: CardHandlerSuccessResp | void = { processedConfig: inputConfig };
@@ -116,7 +114,7 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
         return sendTypedResp({
             type: 'error',
             md: true,
-            title: `Error processing the ${displayCardName} changes.`,
+            title: `Error processing the ${cardName} changes.`,
             msg: (error as any).message,
         });
     }
@@ -134,7 +132,7 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
         return sendTypedResp({
             type: 'error',
             md: true,
-            title: `Error processing the ${displayCardName} changes.`,
+            title: `Error processing the ${cardName} changes.`,
             msg: (error as any).message,
         });
     }
@@ -147,7 +145,7 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
         }
         return sendTypedResp({
             type: 'success',
-            msg: `${displayCardName} Settings saved!`,
+            msg: `${cardName} Settings saved!`,
             ...(handlerResp?.successToast ?? {}),
             stored: txCore.configStore.getStoredConfig(),
             changelog: txCore.configStore.getChangelog(),
@@ -157,7 +155,7 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
         return sendTypedResp({
             type: 'error',
             md: true,
-            title: `Error saving the ${displayCardName} changes.`,
+            title: `Error saving the ${cardName} changes.`,
             msg: (error as any).message,
         });
     }

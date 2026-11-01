@@ -18,7 +18,7 @@ export default function AllowlistPage() {
 
     return (
         <div className="flex flex-col w-full gap-4 pb-4 [&>header]:mb-0">
-            <PageHeader title="Allowlist" icon={<ListChecksIcon />}>
+            <PageHeader title="Whitelist" icon={<ListChecksIcon />}>
                 {canManage && (
                     <Button size="sm" onClick={addApproval}>
                         <PlusIcon className="size-4 mr-1" /> Add Approval
@@ -31,8 +31,8 @@ export default function AllowlistPage() {
                     <TriangleAlertIcon className="size-4" />
                     <AlertTitle>Server Is Not in Approved License Mode</AlertTitle>
                     <AlertDescription>
-                        Changes on this page do not affect who can join while the allowlist is disabled or in another mode.
-                        Change it in <TxAnchor href="/settings#allowlist">Settings &gt; Allowlist</TxAnchor>.
+                        Changes on this page do not affect who can join while the whitelist is disabled or in another mode.
+                        Change it in <TxAnchor href="/settings#allowlist">Settings &gt; Whitelist</TxAnchor>.
                     </AlertDescription>
                 </Alert>
             )}

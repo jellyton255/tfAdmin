@@ -88,7 +88,7 @@ export default function AllowlistRequestsCard({ canManage }: { canManage: boolea
         if (!swr.data) return;
         const newestVisible = swr.data.newest;
         openConfirmDialog({
-            title: 'Deny All Allowlist Requests?',
+            title: 'Deny All Whitelist Requests?',
             message: 'Players can still try to join again, and will receive a new request ID.',
             actionLabel: 'Deny All',
             confirmBtnVariant: 'destructive',

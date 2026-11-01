@@ -169,7 +169,7 @@ export default function ServerStatus() {
             serverHealthDescTitle = 'Unknown server status.';
         }
 
-        //Allowlist - FIXME:NEXT:UPDATE: rename backend var
+        //Whitelist - FIXME:NEXT:UPDATE: rename backend var
         if (globalStatus.server.whitelist === 'disabled') {
             allowlistText = 'DISABLED';
             allowlistDesc = 'Anyone can join.';
@@ -222,7 +222,7 @@ export default function ServerStatus() {
                 >{serverUptimeText}</StatusBadge>
             </div>
             <div className="flex justify-between items-center text-muted-foreground text-sm gap-1.5">
-                Allowlist:
+                Whitelist:
                 <StatusBadge
                     tooltip={allowlistDesc}
                     type={allowlistColor}

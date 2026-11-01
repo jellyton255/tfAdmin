@@ -334,7 +334,7 @@ async function checkDiscordMember(
             errorMessage = textKeys.deny_message;
         }
     } catch (error) {
-        errorTitle = `Error validating Discord Server Member Allowlist status:`;
+        errorTitle = `Error validating Discord Server Member Whitelist status:`;
         errorMessage = `<code>${(error as Error).message}</code>`;
     }
 
@@ -395,7 +395,7 @@ async function checkDiscordRoles(
             errorMessage = textKeys.deny_notmember_message;
         }
     } catch (error) {
-        errorTitle = `Error validating Discord Role Allowlist status:`;
+        errorTitle = `Error validating Discord Role Whitelist status:`;
         errorMessage = `<code>${(error as Error).message}</code>`;
     }
 

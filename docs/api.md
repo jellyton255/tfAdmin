@@ -26,7 +26,7 @@ Each key has:
   events); a key with no scopes is read-only. Each scope unlocks one group of writes and is named after what
   it lets the key do (see the table below). A key can never hold a scope backed by an admin permission its
   creator does not hold;
-- an optional **expiry** and an optional **IP allowlist** (plain IPs or CIDRs).
+- an optional **expiry** and an optional **IP whitelist** (plain IPs or CIDRs).
 
 Changing a key's scopes or revoking it takes effect immediately. Revoked keys stay listed for audit.
 

@@ -101,7 +101,7 @@ export default function DesktopNavbar() {
                         Player Drops
                     </HeaderMenuItem>
                     <HeaderMenuItem href="/allowlist">
-                        Allowlist
+                        Whitelist
                     </HeaderMenuItem>
                     <HeaderMenuItem href="/admins" disabled={!hasPerm('manage.admins')}>
                         Admins

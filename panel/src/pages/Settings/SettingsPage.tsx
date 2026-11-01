@@ -233,7 +233,7 @@ export default function SettingsPage() {
                                 className="hover:text-primary"
                             >
                                 {/* FIXME:NEXT:UPDATE remove */}
-                                {tab.ctx.tabName === 'Whitelist' ? 'Allowlist' : tab.ctx.tabName}
+                                {tab.ctx.tabName}
 
                                 {/* <TriangleAlertIcon className="inline-block size-4 mt-0.5 ml-1 text-destructive self-center" /> */}
                                 {/* <DynamicNewBadge size='xs' featName="ignore" /> */}

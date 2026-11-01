@@ -54,7 +54,7 @@ const revokeOptions: Option<MasterActionsRevokeWhitelistsReq['filter']>[] = [
     { value: '30d', label: 'Not Joined in the Last 30 Days' },
     { value: '15d', label: 'Not Joined in the Last 15 Days' },
     { value: '7d', label: 'Not Joined in the Last 7 Days' },
-    { value: 'all', label: 'Revoke All Allowlists', danger: true },
+    { value: 'all', label: 'Revoke All Whitelists', danger: true },
 ];
 
 const tabIds = ['general', 'cleandb', 'revokewl'];
@@ -123,7 +123,7 @@ function GeneralTab({ disabled }: { disabled: boolean }) {
                         <h3 className="font-semibold">Back Up Database</h3>
                         <p className="text-sm text-muted-foreground">
                             Download a copy of <InlineCode>playersDB.json</InlineCode> with all players,
-                            actions, and allowlist requests.
+                            actions, and whitelist requests.
                         </p>
                     </div>
                     {disabled ? (
@@ -246,7 +246,7 @@ function CleanDatabaseTab({ disabled }: { disabled: boolean }) {
 }
 
 
-//MARK: Revoke Allowlists
+//MARK: Revoke Whitelists
 function RevokeAllowlistsTab({ disabled }: { disabled: boolean }) {
     const openConfirmDialog = useOpenConfirmDialog();
     const [filter, setFilter] = useState(revokeOptions[0]);
@@ -257,27 +257,27 @@ function RevokeAllowlistsTab({ disabled }: { disabled: boolean }) {
 
     const handleSubmit = () => {
         openConfirmDialog({
-            title: 'Revoke Allowlists',
+            title: 'Revoke Whitelists',
             message: filter.value === 'all'
-                ? 'Revoke the allowlist of every allowlisted player.'
-                : `Revoke the allowlist of every player that has not joined in the last ${parseInt(filter.value)} days.`,
+                ? 'Revoke the whitelist of every whitelisted player.'
+                : `Revoke the whitelist of every player that has not joined in the last ${parseInt(filter.value)} days.`,
             actionLabel: 'Revoke',
             confirmBtnVariant: 'destructive',
             onConfirm: async () => {
                 const resp = await revokeApi({
                     data: { filter: filter.value },
                     timeout: ApiTimeout.REALLY_LONG,
-                    toastLoadingMessage: 'Revoking Allowlists...',
+                    toastLoadingMessage: 'Revoking Whitelists...',
                 });
                 if (!resp) return;
                 if ('error' in resp) {
-                    txToast.error({ title: 'Failed to Revoke Allowlists', msg: resp.error });
+                    txToast.error({ title: 'Failed to Revoke Whitelists', msg: resp.error });
                     return;
                 }
                 txToast.success({
-                    title: 'Allowlists Revoked',
+                    title: 'Whitelists Revoked',
                     md: true,
-                    msg: `Allowlists revoked: **${resp.cntRemoved}**  \nFinished in ${resp.msElapsed}ms.`,
+                    msg: `Whitelists revoked: **${resp.cntRemoved}**  \nFinished in ${resp.msElapsed}ms.`,
                 });
             },
         });
@@ -286,17 +286,17 @@ function RevokeAllowlistsTab({ disabled }: { disabled: boolean }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-lg">Revoke Allowlists</CardTitle>
+                <CardTitle className="text-lg">Revoke Whitelists</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 <SettingItem label="Filter" htmlFor="revokewl-filter">
                     <OptionSelect id="revokewl-filter" options={revokeOptions} value={filter} onChange={setFilter} disabled={disabled} />
                     <SettingItemDesc>
-                        Only license allowlists are revoked. Discord member and Discord role allowlists are not affected.
+                        Only license whitelists are revoked. Discord member and Discord role whitelists are not affected.
                     </SettingItemDesc>
                 </SettingItem>
                 <Button size="sm" variant="destructive" disabled={disabled} onClick={handleSubmit}>
-                    <UserXIcon className="size-4 mr-1.5" /> Revoke Allowlists
+                    <UserXIcon className="size-4 mr-1.5" /> Revoke Whitelists
                 </Button>
             </CardContent>
         </Card>
@@ -328,7 +328,7 @@ export default function MasterActionsPage() {
                     <TabsList>
                         <TabsTrigger value="general">General</TabsTrigger>
                         <TabsTrigger value="cleandb">Clean Database</TabsTrigger>
-                        <TabsTrigger value="revokewl">Revoke Allowlists</TabsTrigger>
+                        <TabsTrigger value="revokewl">Revoke Whitelists</TabsTrigger>
                     </TabsList>
                     <TabsContent value="general">
                         <GeneralTab disabled={disabled} />

@@ -67,7 +67,7 @@ export default class AdminStore {
             'menu.clear_area': 'Reset world area',
             'menu.viewids': 'View Player IDs in-game', //be able to see the ID of the players
             'players.direct_message': 'Direct Message',
-            'players.whitelist': 'Allowlist',
+            'players.whitelist': 'Whitelist',
             'players.warn': 'Warn',
             'players.kick': 'Kick',
             'players.ban': 'Ban',

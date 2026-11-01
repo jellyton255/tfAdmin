@@ -451,12 +451,12 @@ const validateCommands = async (parsedCommands: (ExecRecursionError | Command)[]
             continue;
         }
 
-        //Comment-out the allowlist convars
+        //Comment-out the whitelist convars
         if (cmd.isConvarSetterFor('sv_allowlistInstructions') || cmd.isConvarSetterFor('sv_appearAllowlisted')) {
             toCommentOut.add(
                 cmd.file,
                 cmd.line,
-                'The allowlist convars are overwritten by the txAdmin settings page.',
+                'The whitelist convars are overwritten by the txAdmin settings page.',
             );
             continue;
         }

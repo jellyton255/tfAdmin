@@ -44,7 +44,7 @@ export function GlobalMenuSheet() {
                                 <DoorOpenIcon className="mr-2 h-4 w-4" />Player Drops
                             </MenuNavLink>
                             <MenuNavLink href="/allowlist">
-                                <ClipboardCheckIcon className="mr-2 h-4 w-4" />Allowlist
+                                <ClipboardCheckIcon className="mr-2 h-4 w-4" />Whitelist
                             </MenuNavLink>
                             <MenuNavLink href="/admins" disabled={!hasPerm('manage.admins')}>
                                 <UserSquare2Icon className="mr-2 h-4 w-4" />Admins

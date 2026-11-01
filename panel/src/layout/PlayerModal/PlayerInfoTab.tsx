@@ -413,7 +413,7 @@ export default function PlayerInfoTab({ playerRef, player, tagSuggestions, serve
                 </div>}
 
                 <div className="py-0.5 grid grid-cols-3 gap-4 px-0">
-                    <dt className="text-sm font-medium leading-6 text-muted-foreground">ID Allowlisted</dt>
+                    <dt className="text-sm font-medium leading-6 text-muted-foreground">ID Whitelisted</dt>
                     <dd className="text-sm leading-6 mt-0">{whitelistedText}</dd>
                     <dd className="text-right">
                         <Button

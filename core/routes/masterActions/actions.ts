@@ -140,6 +140,6 @@ async function handleRevokeWhitelists(ctx: AuthedCtx) {
         const msElapsed = Date.now() - tsStart;
         return sendTypedResp({ msElapsed, cntRemoved });
     } catch (error) {
-        return sendTypedResp({ error: `Failed to revoke allowlists with error: ${(error as Error).message}` });
+        return sendTypedResp({ error: `Failed to revoke whitelists with error: ${(error as Error).message}` });
     }
 }

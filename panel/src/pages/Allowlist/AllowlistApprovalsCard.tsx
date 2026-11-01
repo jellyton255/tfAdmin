@@ -44,9 +44,9 @@ export function useAddApproval() {
     const openPromptDialog = useOpenPromptDialog();
     const runAction = useApprovalAction();
     return () => openPromptDialog({
-        title: 'Add Allowlist Approval',
+        title: 'Add Whitelist Approval',
         message: <p>
-            Enter the player identifier to allowlist. Accepted types: <InlineCode>{acceptedIdTypes.join(', ')}</InlineCode>
+            Enter the player identifier to whitelist. Accepted types: <InlineCode>{acceptedIdTypes.join(', ')}</InlineCode>
         </p>,
         placeholder: 'discord:272800190639898628',
         submitLabel: 'Approve',

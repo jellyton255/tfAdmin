@@ -11,7 +11,7 @@ export const ADMIN_LOG_CATEGORIES = [
     { key: 'revoke', label: 'Revokes' },
     { key: 'note', label: 'Notes' },
     { key: 'player', label: 'Players' },
-    { key: 'whitelist', label: 'Allowlist' },
+    { key: 'whitelist', label: 'Whitelist' },
     { key: 'command', label: 'Commands' },
     { key: 'resource', label: 'Resources' },
     { key: 'server', label: 'Server' },

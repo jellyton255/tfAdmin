@@ -59,7 +59,7 @@ export const allRoutes: RouteType[] = [
     },
     {
         path: '/allowlist',
-        title: 'Allowlist',
+        title: 'Whitelist',
         Page: <AllowlistPage />
     },
     {
