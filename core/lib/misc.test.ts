@@ -79,6 +79,33 @@ test('redactApiKeys', () => {
 })
 
 
+suite('getNextZonedTimeTs', () => {
+    const ny = 'America/New_York';
+    const utc = (iso: string) => new Date(iso).getTime();
+
+    it('should keep the wall-clock time across the fall-back change', () => {
+        //18:00 is 22:00 UTC under EDT and 23:00 UTC under EST
+        expect(misc.getNextZonedTimeTs(18, 0, ny, utc('2026-10-31T23:00:00Z'))).toBe(utc('2026-11-01T23:00:00Z'));
+        expect(misc.getNextZonedTimeTs(18, 0, ny, utc('2026-10-31T20:00:00Z'))).toBe(utc('2026-10-31T22:00:00Z'));
+        expect(misc.getNextZonedTimeTs(9, 0, ny, utc('2026-11-01T05:00:00Z'))).toBe(utc('2026-11-01T14:00:00Z'));
+    });
+
+    it('should keep the wall-clock time across the spring-forward change', () => {
+        expect(misc.getNextZonedTimeTs(9, 0, ny, utc('2026-03-08T05:00:00Z'))).toBe(utc('2026-03-08T13:00:00Z'));
+        expect(misc.getNextZonedTimeTs(9, 0, ny, utc('2026-03-07T15:00:00Z'))).toBe(utc('2026-03-08T13:00:00Z'));
+    });
+
+    it('should return the current minute when it matches', () => {
+        expect(misc.getNextZonedTimeTs(13, 0, 'UTC', utc('2026-11-01T13:00:00Z'))).toBe(utc('2026-11-01T13:00:00Z'));
+    });
+
+    it('should roll over to the next day', () => {
+        expect(misc.getNextZonedTimeTs(0, 0, ny, utc('2026-11-02T04:59:00Z'))).toBe(utc('2026-11-02T05:00:00Z'));
+        expect(misc.getNextZonedTimeTs(0, 0, ny, utc('2026-11-02T05:01:00Z'))).toBe(utc('2026-11-03T05:00:00Z'));
+    });
+});
+
+
 suite('redactStartupSecrets', () => {
     const redactedString = '[REDACTED]';
     it('should return an empty array when given an empty array', () => {

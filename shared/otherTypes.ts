@@ -41,7 +41,7 @@ export type InjectedTxConsts = {
     txaOutdated: UpdateDataType,
     tfaBuild: TfadminBuild | null;
 
-    serverTimezone: string;
+    scheduleTimezone: string;
     isWindows: boolean;
     isWebInterface: boolean;
     showAdvanced: boolean;

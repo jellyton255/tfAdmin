@@ -1,5 +1,5 @@
 const modulename = 'FxScheduler';
-import { parseSchedule } from '@lib/misc';
+import { getNextZonedTimeTs, getZonedParts, parseSchedule } from '@lib/misc';
 import consoleFactory from '@lib/console';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import { txEnv } from '@core/globalData';
@@ -24,23 +24,16 @@ const scheduleWarnings = [30, 15, 10, 5, 4, 3, 2, 1];
 
 
 /**
- * Processes an array of HH:MM, gets the next timestamp (sorted by closest).
+ * Processes an array of HH:MM in the schedule time zone, gets the next timestamp (sorted by closest).
  * When time matches, it will be dist: 0, distMins: 0, and nextTs likely in the 
  * past due to seconds and milliseconds being 0.
  */
 const getNextScheduled = (parsedSchedule: ParsedTime[]): RestartInfo => {
     const thisMinuteTs = new Date().setSeconds(0, 0);
-    const processed = parsedSchedule.map((t) => {
-        const nextDate = new Date();
-        let minuteFloorTs = nextDate.setHours(t.hours, t.minutes, 0, 0);
-        if (minuteFloorTs < thisMinuteTs) {
-            minuteFloorTs = nextDate.setHours(t.hours + 24, t.minutes, 0, 0);
-        }
-        return {
-            string: t.string,
-            minuteFloorTs,
-        };
-    });
+    const processed = parsedSchedule.map((t) => ({
+        string: t.string,
+        minuteFloorTs: getNextZonedTimeTs(t.hours, t.minutes, txConfig.restarter.timeZone, thisMinuteTs),
+    }));
     return processed.sort((a, b) => a.minuteFloorTs - b.minuteFloorTs)[0];
 };
 
@@ -50,7 +43,7 @@ const getNextScheduled = (parsedSchedule: ParsedTime[]): RestartInfo => {
  * or a temporary schedule set by the user at runtime.
  */
 export default class FxScheduler {
-    static readonly configKeysWatched = ['restarter.schedule'];
+    static readonly configKeysWatched = ['restarter.schedule', 'restarter.timeZone'];
     private nextTempSchedule: RestartInfo | false = false;
     private calculatedNextRestartMinuteFloorTs: number | false = false;
     private nextSkip: number | false = false;
@@ -187,21 +180,17 @@ export default class FxScheduler {
             if (isNaN(minutes) || minutes < 1 || minutes >= 1440) {
                 throw new Error('invalid minutes');
             }
-            const nextDate = new Date(thisMinuteTs + (minutes * 60 * 1000));
-            scheduledMinuteFloorTs = nextDate.getTime();
-            scheduledString = nextDate.getHours().toString().padStart(2, '0') + ':' + nextDate.getMinutes().toString().padStart(2, '0');
+            scheduledMinuteFloorTs = thisMinuteTs + (minutes * 60 * 1000);
+            const zoned = getZonedParts(scheduledMinuteFloorTs, txConfig.restarter.timeZone);
+            scheduledString = zoned.hours.toString().padStart(2, '0') + ':' + zoned.minutes.toString().padStart(2, '0');
         } else {
             const [hours, minutes] = timeString.split(':', 2).map((x) => parseInt(x));
             if (typeof hours === 'undefined' || isNaN(hours) || hours < 0 || hours > 23) throw new Error('invalid hours');
             if (typeof minutes === 'undefined' || isNaN(minutes) || minutes < 0 || minutes > 59) throw new Error('invalid minutes');
 
-            const nextDate = new Date();
-            scheduledMinuteFloorTs = nextDate.setHours(hours, minutes, 0, 0);
+            scheduledMinuteFloorTs = getNextZonedTimeTs(hours, minutes, txConfig.restarter.timeZone, thisMinuteTs);
             if (scheduledMinuteFloorTs === thisMinuteTs) {
                 throw new Error('Due to the 1 minute precision of the restart scheduler, you cannot schedule a restart in the same minute.');
-            }
-            if (scheduledMinuteFloorTs < thisMinuteTs) {
-                scheduledMinuteFloorTs = nextDate.setHours(hours + 24, minutes, 0, 0);
             }
             scheduledString = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
         }

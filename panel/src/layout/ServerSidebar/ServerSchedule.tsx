@@ -14,9 +14,9 @@ import { useAdminPerms } from '@/hooks/auth';
 const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const timezoneDiffMessage = (
     <p className='text-destructive'>
-        Server's timezone: <b>{window.txConsts.serverTimezone}</b> <br />
+        Schedule time zone: <b>{window.txConsts.scheduleTimezone}</b> <br />
         Your timezone: <b>{browserTimezone}</b> <br />
-        Either use relative times, or make sure the scheduled is based on the server timezone.
+        Either use relative times, or make sure the time is in the schedule time zone.
     </p>
 )
 const promptCommonProps = {
@@ -36,7 +36,7 @@ const promptCommonProps = {
                 </li>
             </ul>
         </p>
-        {browserTimezone !== window.txConsts.serverTimezone && timezoneDiffMessage}
+        {browserTimezone !== window.txConsts.scheduleTimezone && timezoneDiffMessage}
     </>),
     placeholder: '+15',
     required: true,

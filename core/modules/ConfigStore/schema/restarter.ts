@@ -17,6 +17,21 @@ const schedule = typeDefinedConfig({
     },
 });
 
+const timeZone = typeDefinedConfig({
+    name: 'Restart Schedule Time Zone',
+    default: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    validator: z.string().refine((tz) => {
+        //Intl throws a RangeError for unknown time zones
+        try {
+            new Intl.DateTimeFormat('en-US', { timeZone: tz });
+            return true;
+        } catch {
+            return false;
+        }
+    }, 'Invalid IANA time zone'),
+    fixer: SYM_FIXER_DEFAULT,
+});
+
 const bootGracePeriod = typeDefinedConfig({
     name: 'Boot Grace Period',
     default: 45,
@@ -34,6 +49,7 @@ const resourceStartingTolerance = typeDefinedConfig({
 
 export default {
     schedule,
+    timeZone,
     bootGracePeriod,
     resourceStartingTolerance,
 } as const;

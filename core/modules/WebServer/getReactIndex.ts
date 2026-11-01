@@ -24,8 +24,6 @@ const console = consoleFactory(modulename);
 // Therefore, it was necessary to tag it with `data-prod-only` so it can be removed in dev mode.
 
 //Consts
-const serverTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
 //The monitor is only replaced while the process is down
 const runningBuild = readBuildStamp(txEnv.txaPath) ?? null;
 
@@ -127,7 +125,7 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         txaVersion: txEnv.txaVersion,
         txaOutdated: txCore.updateChecker.txaUpdateData,
         tfaBuild: runningBuild,
-        serverTimezone,
+        scheduleTimezone: txConfig.restarter.timeZone,
         isWindows: txEnv.isWindows,
         isWebInterface: ctx.txVars.isWebInterface,
         showAdvanced: (txDevEnv.ENABLED || console.isVerbose),

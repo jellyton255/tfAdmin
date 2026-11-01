@@ -163,27 +163,24 @@ const getServerDataPlaceholder = (hostSuggested?: string) => {
     }
 }
 
-// Check if the browser timezone is different from the server timezone
-function TimeZoneWarning() {
-    try {
-        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (window.txConsts.serverTimezone !== browserTimezone) {
-            return (
-                <SettingItemDesc className="text-destructive-inline">
-                    <strong>Warning:</strong> Your server timezone is set to <InlineCode>{window.txConsts.serverTimezone}</InlineCode>, but your browser timezone is <InlineCode>{browserTimezone}</InlineCode>. Make sure to configure the time according to the server timezone.
-                </SettingItemDesc>
-            );
-        }
-    } catch (error) {
-        console.error(error);
-    }
-    return null;
+const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const timeZoneOptions = ['UTC', ...Intl.supportedValuesOf('timeZone')];
+
+// Check if the browser time zone is different from the schedule time zone
+function TimeZoneWarning({ timeZone }: { timeZone: string | undefined }) {
+    if (!timeZone || timeZone === browserTimeZone) return null;
+    return (
+        <SettingItemDesc className="text-destructive-inline">
+            <strong>Warning:</strong> The schedule uses <InlineCode>{timeZone}</InlineCode>, but your browser time zone is <InlineCode>{browserTimeZone}</InlineCode>.
+        </SettingItemDesc>
+    );
 }
 
 
 export const pageConfigs = {
     dataPath: getPageConfig('server', 'dataPath'),
     restarterSchedule: getPageConfig('restarter', 'schedule'),
+    restarterTimeZone: getPageConfig('restarter', 'timeZone'),
     quietMode: getPageConfig('server', 'quiet'),
 
     cfgPath: getPageConfig('server', 'cfgPath', true),
@@ -383,11 +380,26 @@ export default function ConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardPro
                     setRestartTimes={cfg.restarterSchedule.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
-                <TimeZoneWarning />
                 <SettingItemDesc>
-                    At which times of day to restart the server. <br />
-                    <strong>Note:</strong> Make sure your schedule matches your server time and not your local time.
+                    At which times of day to restart the server.
                 </SettingItemDesc>
+            </SettingItem>
+            <SettingItem label="Restart Time Zone" htmlFor={cfg.restarterTimeZone.eid}>
+                <Select
+                    value={states.restarterTimeZone}
+                    onValueChange={cfg.restarterTimeZone.state.set}
+                    disabled={pageCtx.isReadOnly}
+                >
+                    <SelectTrigger id={cfg.restarterTimeZone.eid}>
+                        <SelectValue placeholder="Select time zone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {timeZoneOptions.map((tz) => (
+                            <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <TimeZoneWarning timeZone={states.restarterTimeZone} />
             </SettingItem>
             <SettingItem label="Quiet Mode">
                 <SwitchText

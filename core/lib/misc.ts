@@ -43,6 +43,49 @@ export const parseSchedule = (scheduleTimes: string[]) => {
 
 
 /**
+ * Returns the wall-clock date and time of a timestamp in an IANA time zone.
+ */
+export const getZonedParts = (ts: number, timeZone: string) => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hourCycle: 'h23',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+    }).formatToParts(ts);
+    const get = (type: Intl.DateTimeFormatPartTypes) => parseInt(parts.find((p) => p.type === type)!.value);
+    return {
+        year: get('year'),
+        month: get('month'),
+        day: get('day'),
+        hours: get('hour'),
+        minutes: get('minute'),
+    };
+};
+
+
+/**
+ * Returns the minute-aligned timestamp of the next HH:MM wall-clock time in an IANA time zone,
+ * at or after `afterTs`. Follows daylight saving time changes of the zone.
+ */
+export const getNextZonedTimeTs = (hours: number, minutes: number, timeZone: string, afterTs: number) => {
+    const offsetAt = (ts: number) => {
+        const p = getZonedParts(ts, timeZone);
+        return Date.UTC(p.year, p.month - 1, p.day, p.hours, p.minutes) - ts;
+    };
+    const today = getZonedParts(afterTs, timeZone);
+    const atDay = (dayOffset: number) => {
+        const wallTs = Date.UTC(today.year, today.month - 1, today.day + dayOffset, hours, minutes);
+        return wallTs - offsetAt(wallTs - offsetAt(wallTs));
+    };
+    const todayTs = atDay(0);
+    return todayTs >= afterTs ? todayTs : atDay(1);
+};
+
+
+/**
  * Redacts known keys and tokens from a string
  * @deprecated Use redactApiKeysArr instead
  */
