@@ -84,15 +84,16 @@ export const parseBanDuration = (input: string) => {
 
 /**
  * Builds the kick message and translated duration for a ban event.
+ * The banned player reads it, so the author goes through the punishment public-name rule.
  */
 export const buildBanKickMessage = (
-    authorPublicName: string,
+    author: string,
     reason: string,
     expiration: number | false,
     duration: number | undefined,
     ruleUrl: string | null = null,
 ) => {
-    const tOptions: any = { author: authorPublicName, reason };
+    const tOptions: any = { author: txCore.adminStore.getAdminPublicName(author, 'punishment'), reason };
     let durationTranslated: string | null = null;
     let kickMessage: string;
     if (expiration !== false && duration) {
@@ -128,8 +129,7 @@ export const banPlayer = (admin: AuthedAdmin, player: PlayerClass, reasonInput: 
 
     let eventSent = false;
     if (!txCore.fxRunner.isIdle) {
-        const authorPublicName = txCore.adminStore.getAdminPublicName(admin.name, 'punishment');
-        const { kickMessage, durationTranslated } = buildBanKickMessage(authorPublicName, reason, expiration, duration, presetRuleUrl(presetId));
+        const { kickMessage, durationTranslated } = buildBanKickMessage(admin.name, reason, expiration, duration, presetRuleUrl(presetId));
         eventSent = !!txCore.fxRunner.sendEvent('playerBanned', {
             author: admin.name,
             reason,

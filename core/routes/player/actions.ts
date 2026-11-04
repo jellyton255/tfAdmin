@@ -9,7 +9,7 @@ import { SYM_CURRENT_MUTEX } from '@lib/symbols';
 import { z } from 'zod';
 import { shortenId } from '@shared/utils';
 import { summarizeIdsArray } from '@lib/player/idUtils';
-import { addSanctionNote, recordKick, resolvePresetId, setPlayerTags, unwatchPlayer, watchPlayer } from '@modules/ApiServer/services/playerActions';
+import { addSanctionNote, buildBanKickMessage, recordKick, resolvePresetId, setPlayerTags, unwatchPlayer, watchPlayer } from '@modules/ApiServer/services/playerActions';
 import { movePlayerNoteToAction } from '@modules/ApiServer/services/actionNotes';
 import { presetRuleUrl } from '@lib/presetRule';
 const console = consoleFactory(modulename);
@@ -349,24 +349,9 @@ async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericAp
     }
 
     //Prepare and send command
-    let kickMessage, durationTranslated;
-    const tOptions: any = {
-        author: txCore.adminStore.getAdminPublicName(ctx.admin.name, 'punishment'),
-        reason: reason,
-    };
-    if (expiration !== false && duration) {
-        durationTranslated = txCore.translator.tDuration(
-            duration * 1000,
-            { units: ['d', 'h'] },
-        );
-        tOptions.expiration = durationTranslated;
-        kickMessage = txCore.translator.t('ban_messages.kick_temporary', tOptions);
-    } else {
-        durationTranslated = null;
-        kickMessage = txCore.translator.t('ban_messages.kick_permanent', tOptions);
-    }
-    const ruleUrl = presetRuleUrl(preset.presetId);
-    if (ruleUrl) kickMessage += ` ${txCore.translator.t('ban_messages.rule', { url: ruleUrl })}`;
+    const { kickMessage, durationTranslated } = buildBanKickMessage(
+        ctx.admin.name, reason, expiration, duration, presetRuleUrl(preset.presetId),
+    );
 
     // Dispatch `txAdmin:events:playerBanned`
     const eventSent = txCore.fxRunner.sendEvent('playerBanned', {

@@ -7,7 +7,7 @@ import humanizeDuration, { Unit } from 'humanize-duration';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { z } from 'zod';
-import { addSanctionNote } from '@modules/ApiServer/services/playerActions';
+import { addSanctionNote, buildBanKickMessage } from '@modules/ApiServer/services/playerActions';
 import { addActionNote, deleteActionNote, editActionNote } from '@modules/ApiServer/services/actionNotes';
 import { changeBanLength, setBanAppeal } from '@modules/ApiServer/services/banChanges';
 import { BAN_APPEAL_STATUSES } from '@modules/Database/databaseTypes';
@@ -146,22 +146,7 @@ async function handleBandIds(ctx: AuthedCtx): Promise<GenericApiOkResp> {
 
     // Dispatch `txAdmin:events:playerBanned`
     try {
-        let kickMessage, durationTranslated;
-        const tOptions: any = {
-            author: ctx.admin.name,
-            reason: reason,
-        };
-        if (expiration !== false && duration) {
-            durationTranslated = txCore.translator.tDuration(
-                duration * 1000,
-                { units: ['d', 'h'] },
-            );
-            tOptions.expiration = durationTranslated;
-            kickMessage = txCore.translator.t('ban_messages.kick_temporary', tOptions);
-        } else {
-            durationTranslated = null;
-            kickMessage = txCore.translator.t('ban_messages.kick_permanent', tOptions);
-        }
+        const { kickMessage, durationTranslated } = buildBanKickMessage(ctx.admin.name, reason, expiration, duration);
         txCore.fxRunner.sendEvent('playerBanned', {
             author: ctx.admin.name,
             reason,

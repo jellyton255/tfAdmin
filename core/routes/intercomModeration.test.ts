@@ -30,7 +30,10 @@ beforeEach(() => {
     addNote = vi.fn((actionId: string, text: string, author: string) => ({ id: 'N1', text, author, ts: 100 }));
     published = [];
     vi.stubGlobal('txCore', {
-        adminStore: { getAdminByName: (name: string) => (name === 'Julian' ? { name } : null) },
+        adminStore: {
+            getAdminByName: (name: string) => (name === 'Julian' ? { name } : null),
+            getAdminPublicName: () => 'Everfall',
+        },
         database: {
             actions: {
                 registerBan,
