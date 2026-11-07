@@ -103,6 +103,9 @@ export default function DesktopNavbar() {
                     <HeaderMenuItem href="/allowlist">
                         Whitelist
                     </HeaderMenuItem>
+                    <HeaderMenuItem href="/inventories">
+                        Inventories
+                    </HeaderMenuItem>
                     <HeaderMenuItem href="/admins" disabled={!hasPerm('manage.admins')}>
                         Admins
                     </HeaderMenuItem>

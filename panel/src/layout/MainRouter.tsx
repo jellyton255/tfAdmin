@@ -24,6 +24,7 @@ import DiagnosticsPage from "@/pages/Diagnostics/DiagnosticsPage";
 import AdvancedPage from "@/pages/AdvancedPage";
 import ApiKeysPage from "@/pages/ApiKeys/ApiKeysPage"; // everfall:api
 import AllowlistPage from "@/pages/Allowlist/AllowlistPage";
+import InventoriesPage from "@/pages/Inventories/InventoriesPage";
 import AdminsPage from "@/pages/Admins/AdminsPage";
 import MasterActionsPage from "@/pages/MasterActions/MasterActionsPage";
 import ResourcesPage from "@/pages/Resources/ResourcesPage";
@@ -61,6 +62,11 @@ export const allRoutes: RouteType[] = [
         path: '/allowlist',
         title: 'Whitelist',
         Page: <AllowlistPage />
+    },
+    {
+        path: '/inventories',
+        title: 'Inventories',
+        Page: <InventoriesPage />
     },
     {
         path: '/admins',

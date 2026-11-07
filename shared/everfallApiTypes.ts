@@ -80,3 +80,44 @@ export type EverfallCharacterActionResult = {
 export type EverfallPlayerScreenshot = {
     url: string;
 };
+
+/**
+ * Inventories (`inventory.*`), shaped by ef_administration's inventory-contract.json.
+ * Lua sends sparse slot lists as objects keyed by slot, so `items` can be either.
+ */
+export type EverfallInventoryType = 'player' | 'vehicle_trunk' | 'vehicle_glovebox' | 'stash' | 'container';
+export type EverfallInventoryReference = {
+    inventoryType: EverfallInventoryType;
+    storageKey: string;
+    owner?: string;
+};
+export type EverfallInventorySummary = EverfallInventoryReference & {
+    label: string;
+    ownerIdentifier?: string;
+    serverId?: number;
+    itemCount: number;
+    weight?: number;
+    maxWeight?: number;
+    loaded?: boolean;
+};
+export type EverfallInventorySearch = {
+    rows: EverfallInventorySummary[] | Record<string, EverfallInventorySummary>;
+    page: number;
+    hasMore: boolean;
+};
+export type EverfallInventoryItem = {
+    name: string;
+    label?: string;
+    slot: number;
+    count: number;
+    weight?: number;
+};
+export type EverfallInventoryDetail = EverfallInventoryReference & {
+    label: string;
+    items: EverfallInventoryItem[] | Record<string, EverfallInventoryItem>;
+    inventoryRevision: string;
+    weight: number;
+    maxWeight?: number;
+    slots?: number;
+    loaded?: boolean;
+};
