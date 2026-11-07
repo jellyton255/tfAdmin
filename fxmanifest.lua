@@ -28,6 +28,7 @@ server_scripts {
     'resource/sv_playerlist.lua',
     'resource/sv_initialData.lua',
     'resource/sv_characters.lua',
+    'resource/sv_everfall.lua',
     'resource/sv_services.lua',
     'resource/sv_exports.lua'
 }

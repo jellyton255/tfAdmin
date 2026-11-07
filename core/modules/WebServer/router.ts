@@ -114,6 +114,7 @@ export default () => {
     router.get('/player/stats', apiAuthMw, routes.player_stats);
     router.get('/player/characters', apiAuthMw, routes.player_characters);
     router.get('/player/characterDetail', apiAuthMw, routes.player_characterDetail);
+    router.post('/everfall/request', apiAuthMw, routes.everfall_request); //everfall: ef_administration actions
     router.get('/player/linked', apiAuthMw, routes.player_linked);
     router.get('/player/search', apiAuthMw, routes.player_search);
     router.post('/player/checkJoin', intercomAuthMw, routes.player_checkJoin);

@@ -76,6 +76,9 @@ end
 -- HTTP request handler
 local notFoundResponse = json.encode({ error = 'route not found' })
 local function handleHttp(req, res)
+    if req.path == '/everfall' then
+        return TxHandleEverfallHttp(req, res) -- everfall: resource/sv_everfall.lua
+    end
     if req.path == '/characters/detail' then
         return TxHandleCharacterDetailHttp(req, res) -- everfall: resource/sv_characters.lua
     end

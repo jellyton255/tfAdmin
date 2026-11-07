@@ -66,6 +66,7 @@ export { default as player_search } from './player/search';
 export { default as player_modal } from './player/modal';
 export { default as player_characters } from './player/characters';
 export { default as player_characterDetail } from './player/characterDetail';
+export { default as everfall_request } from './everfall/request';
 export { default as player_linked } from './player/linked';
 export { default as player_actions } from './player/actions';
 export { default as player_checkJoin } from './player/checkJoin';
