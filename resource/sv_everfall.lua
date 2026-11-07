@@ -32,12 +32,19 @@ function TxHandleEverfallHttp(req, res)
             return sendJson(res, 503, { error = 'ef_administration is not started' })
         end
 
-        exports.ef_administration:RunTfAdminRequest({
-            actor = data.actor,
-            operation = data.operation,
-            payload = data.payload,
-        }, function(result)
-            sendJson(res, 200, result)
+        -- A server whose ef_administration predates the tfAdmin bridge has no such export; the call
+        -- raises, and the panel would otherwise wait out its timeout.
+        local called = pcall(function()
+            exports.ef_administration:RunTfAdminRequest({
+                actor = data.actor,
+                operation = data.operation,
+                payload = data.payload,
+            }, function(result)
+                sendJson(res, 200, result)
+            end)
         end)
+        if not called then
+            sendJson(res, 200, { ok = false, error = 'This server\'s ef_administration is too old for tfAdmin actions. Update and restart it.' })
+        end
     end)
 end
