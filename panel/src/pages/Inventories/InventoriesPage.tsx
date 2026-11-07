@@ -113,7 +113,7 @@ function InventoryDetailCard({ reference, canManage }: InventoryDetailCardProps)
 
     function handleRemove(item: EverfallInventoryItem) {
         openPromptDialog({
-            title: `Remove ${item.label ?? item.name} From Slot ${item.slot}`,
+            title: `Remove ${item.label ?? item.name} from Slot ${item.slot}`,
             message: `Type how many to remove, up to ${numberFormatter.format(item.count)}.`,
             placeholder: String(item.count),
             submitLabel: 'Remove',
@@ -155,7 +155,7 @@ function InventoryDetailCard({ reference, canManage }: InventoryDetailCardProps)
     }
 
     return (
-        <div className="border rounded-lg bg-card">
+        <div className="min-w-0 border rounded-lg bg-card overflow-x-auto">
             <div className="flex items-center justify-between gap-2 px-4 py-3 border-b">
                 <div className="min-w-0">
                     <h2 className="font-semibold truncate">{detail.label}</h2>
