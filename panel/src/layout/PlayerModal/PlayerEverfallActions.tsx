@@ -127,7 +127,7 @@ export default function PlayerEverfallActions({ player }: PlayerEverfallActionsP
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant='outline' size='sm' className="pl-2">
-                    <ZapIcon className="h-5 mr-1" /> Actions <ChevronDownIcon className="h-4 ml-1 opacity-60" />
+                    <ZapIcon className="h-5 mr-1" /> Player Actions <ChevronDownIcon className="h-4 ml-1 opacity-60" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">

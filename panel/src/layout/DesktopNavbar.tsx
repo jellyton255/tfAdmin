@@ -103,12 +103,6 @@ export default function DesktopNavbar() {
                     <HeaderMenuItem href="/allowlist">
                         Whitelist
                     </HeaderMenuItem>
-                    <HeaderMenuItem href="/inventories">
-                        Inventories
-                    </HeaderMenuItem>
-                    <HeaderMenuItem href="/groups">
-                        Groups
-                    </HeaderMenuItem>
                     <HeaderMenuItem href="/admins" disabled={!hasPerm('manage.admins')}>
                         Admins
                     </HeaderMenuItem>
@@ -132,6 +126,12 @@ export default function DesktopNavbar() {
                             Game
                         </NavigationMenuTrigger>
                         <NavigationMenuContent className="flex flex-col gap-2 p-4 list-none">
+                            <HeaderMenuLink className="w-36 justify-start" href="/inventories">
+                                Inventories
+                            </HeaderMenuLink>
+                            <HeaderMenuLink className="w-36 justify-start" href="/groups">
+                                Groups
+                            </HeaderMenuLink>
                             <HeaderMenuLink className="w-36 justify-start" href="/banking">
                                 Banking
                             </HeaderMenuLink>
