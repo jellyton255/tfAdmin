@@ -16,6 +16,13 @@ import {
     CharacterWalletView,
     type CharacterView,
 } from "./CharacterSections";
+import {
+    CharacterActionDialog,
+    CharacterActionsMenu,
+    progressionSource,
+    type OpenCharacterAction,
+} from "./CharacterActions";
+import { Button } from "@/components/ui/button";
 
 
 const moneyFormatter = new Intl.NumberFormat('en-US', {
@@ -112,12 +119,19 @@ function CharacterDetail({ citizenId }: { citizenId: string }) {
 
 function CharacterRecord({ character }: { character: PlayerCharacter }) {
     const [view, setView] = useState<CharacterView>('detail');
+    const [action, setAction] = useState<OpenCharacterAction | null>(null);
     const { can } = useEverfallPermissions();
     const { citizenId } = character;
+    const canEditProgression = view === 'progression' && can('EditCharacterProgression');
 
     return (
         <>
-            <CharacterViewTabs view={view} onViewChange={setView} can={can} />
+            <CharacterViewTabs
+                view={view}
+                onViewChange={setView}
+                can={can}
+                actions={<CharacterActionsMenu character={character} can={can} onSelect={setAction} />}
+            />
             {view === 'detail' ? (
                 <CharacterDetail citizenId={citizenId} />
             ) : view === 'wallet' ? (
@@ -125,8 +139,21 @@ function CharacterRecord({ character }: { character: PlayerCharacter }) {
             ) : view === 'audit' ? (
                 <CharacterAuditView citizenId={citizenId} />
             ) : (
-                <CharacterSectionView key={view} citizenId={citizenId} section={view} />
+                <CharacterSectionView
+                    key={view}
+                    citizenId={citizenId}
+                    section={view}
+                    rowAction={canEditProgression ? (source, row) => {
+                        const adapterId = progressionSource(source.id);
+                        return adapterId && (
+                            <Button size="inline" variant="ghost-muted" onClick={() => setAction({ kind: 'editProgression', adapterId, row })}>
+                                Edit
+                            </Button>
+                        );
+                    } : undefined}
+                />
             )}
+            <CharacterActionDialog character={character} open={action} onClose={() => setAction(null)} />
         </>
     );
 }
