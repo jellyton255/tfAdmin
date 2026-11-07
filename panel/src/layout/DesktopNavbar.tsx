@@ -109,6 +109,9 @@ export default function DesktopNavbar() {
                     <HeaderMenuItem href="/banking">
                         Banking
                     </HeaderMenuItem>
+                    <HeaderMenuItem href="/staff-queues">
+                        Staff Queues
+                    </HeaderMenuItem>
                     <HeaderMenuItem href="/world">
                         World
                     </HeaderMenuItem>
