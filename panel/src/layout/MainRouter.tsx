@@ -33,6 +33,7 @@ import ReleaseNotesPage from "@/pages/ReleaseNotes/ReleaseNotesPage";
 import AuditLogPage from "@/pages/AuditLog/AuditLogPage";
 import StaffActivityPage from "@/pages/StaffActivity/StaffActivityPage";
 import WorldPage from "@/pages/World/WorldPage"; //everfall
+import BankingPage from "@/pages/Banking/BankingPage"; //everfall
 
 
 export type RouteType = {
@@ -71,6 +72,11 @@ export const allRoutes: RouteType[] = [
     },
     {
         //everfall: ef_administration checks the admin's Everfall rank for each action
+        path: '/banking',
+        title: 'Banking',
+        Page: <BankingPage />
+    },
+    {
         path: '/world',
         title: 'World',
         Page: <WorldPage />
