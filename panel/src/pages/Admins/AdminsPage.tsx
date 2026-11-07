@@ -1,10 +1,11 @@
 import { useState } from "react";
 import useSWR from "swr";
-import { ChevronRightIcon, Loader2Icon, LockIcon, PlusIcon, UserCogIcon, UsersIcon } from "lucide-react";
+import { ChevronRightIcon, Loader2Icon, LockIcon, PlusIcon, ShieldIcon, UserCogIcon, UsersIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { txToast } from "@/components/TxToaster";
 import { useBackendApi } from "@/hooks/fetch";
 import { useOpenAccountModal, useOpenConfirmDialog } from "@/hooks/dialogs";
@@ -13,12 +14,16 @@ import type {
     AdminManagerAdmin,
     AdminManagerDeleteReq,
     AdminManagerDeleteResp,
+    AdminManagerGroup,
+    AdminManagerGroupDeleteReq,
+    AdminManagerGroupDeleteResp,
     AdminManagerListResp,
     AdminManagerRemovePasskeysReq,
     AdminManagerRemovePasskeysResp,
 } from "@shared/adminManagerApiTypes";
 import AdminFormDialog, { type AdminFormValues } from "./AdminFormDialog";
 import AdminPasswordDialog from "./AdminPasswordDialog";
+import GroupFormDialog from "./GroupFormDialog";
 
 const LIST_SWR_KEY = '/adminManager/list';
 
@@ -60,7 +65,7 @@ function getAutofillState(): FormState | null {
             name: params.get('name') ?? '',
             citizenfxID: params.get('citizenfx') ?? '',
             discordID: discord.includes(':') ? discord.split(':')[1] : discord,
-            permissions: [],
+            groups: [],
         },
     };
 }
@@ -72,16 +77,60 @@ function clearUrlSearch() {
     window.history.replaceState({}, '', newUrl);
 }
 
-function getPermsSummary(admin: AdminManagerAdmin) {
+function getGroupsSummary(admin: AdminManagerAdmin, groupNames: Map<string, string>) {
     if (admin.isMaster) return 'Master Account';
-    if (admin.permissions.includes('all_permissions')) return 'All Permissions';
-    if (admin.permissions.length === 1) return '1 Permission';
-    return `${admin.permissions.length} Permissions`;
+    const names = admin.groups.flatMap((id) => groupNames.get(id) ?? []);
+    return names.length ? names.join(', ') : 'No Groups';
+}
+
+function getGroupPermsSummary(group: AdminManagerGroup) {
+    if (group.permissions.includes('all_permissions')) return 'All Permissions';
+    if (group.permissions.length === 1) return '1 Permission';
+    return `${group.permissions.length} Permissions`;
 }
 
 
-function AdminRow({ admin, staffRank, onEdit, onOpenAccount }: {
+function GroupRow({ group, onEdit }: {
+    group: AdminManagerGroup;
+    onEdit: (group: AdminManagerGroup) => void;
+}) {
+    const membersLabel = group.members.length
+        ? group.members.join(', ')
+        : 'No members';
+    return (
+        <button
+            type="button"
+            onClick={() => onEdit(group)}
+            className="group w-full grid grid-cols-[1fr_auto] md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,2fr)_1.5rem] items-center gap-x-4 gap-y-1
+                px-4 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:bg-muted/50"
+        >
+            <div className="min-w-0">
+                <div className="font-semibold truncate">{group.name}</div>
+                {group.description && (
+                    <div className="text-xs text-muted-foreground truncate">{group.description}</div>
+                )}
+            </div>
+            <div className="row-start-2 md:row-start-auto text-sm text-muted-foreground truncate">
+                {getGroupPermsSummary(group)}
+            </div>
+            <div className="row-start-3 md:row-start-auto text-sm text-muted-foreground truncate" title={membersLabel}>
+                {membersLabel}
+            </div>
+            <div className="row-span-3 md:row-span-1 col-start-2 md:col-start-auto row-start-1 justify-self-end text-muted-foreground">
+                {group.canEdit ? (
+                    <ChevronRightIcon className="size-4 group-hover:text-foreground" />
+                ) : (
+                    <LockIcon className="size-4 opacity-60" />
+                )}
+            </div>
+        </button>
+    );
+}
+
+
+function AdminRow({ admin, groupsSummary, staffRank, onEdit, onOpenAccount }: {
     admin: AdminManagerAdmin;
+    groupsSummary: string;
     staffRank: string | null;
     onEdit: (admin: AdminManagerAdmin) => void;
     onOpenAccount: () => void;
@@ -109,7 +158,7 @@ function AdminRow({ admin, staffRank, onEdit, onOpenAccount }: {
                 {admin.isSelf && <Badge variant="secondary" className="shrink-0">You</Badge>}
             </div>
             <div className="row-start-2 md:row-start-auto text-sm text-muted-foreground truncate">
-                {getPermsSummary(admin)}
+                {groupsSummary}
             </div>
             <div className="row-start-3 md:row-start-auto text-sm text-muted-foreground truncate">
                 {loginMethods || 'Password Only'}
@@ -136,6 +185,8 @@ export default function AdminsPage() {
     const openAccountModal = useOpenAccountModal();
     const [formState, setFormState] = useState<FormState | null>(getAutofillState);
     const [newPassword, setNewPassword] = useState<{ name: string; password: string } | null>(null);
+    const [tab, setTab] = useState<'admins' | 'groups'>('admins');
+    const [groupForm, setGroupForm] = useState<{ group?: AdminManagerGroup } | null>(null);
 
     const listApi = useBackendApi<AdminManagerListResp>({
         method: 'GET',
@@ -144,6 +195,11 @@ export default function AdminsPage() {
     const deleteApi = useBackendApi<AdminManagerDeleteResp, AdminManagerDeleteReq>({
         method: 'POST',
         path: '/adminManager/delete',
+    });
+
+    const deleteGroupApi = useBackendApi<AdminManagerGroupDeleteResp, AdminManagerGroupDeleteReq>({
+        method: 'POST',
+        path: '/adminManager/deleteGroup',
     });
 
     const removePasskeysApi = useBackendApi<AdminManagerRemovePasskeysResp, AdminManagerRemovePasskeysReq>({
@@ -190,7 +246,7 @@ export default function AdminsPage() {
                 name: admin.name,
                 citizenfxID: admin.citizenfxId ?? '',
                 discordID: admin.discordId ?? '',
-                permissions: admin.permissions,
+                groups: admin.groups,
             },
         });
     };
@@ -235,16 +291,57 @@ export default function AdminsPage() {
     const handleAdd = () => {
         setFormState({
             mode: 'add',
-            initialValues: { name: '', citizenfxID: '', discordID: '', permissions: [] },
+            initialValues: { name: '', citizenfxID: '', discordID: '', groups: [] },
         });
     };
+
+    const handleGroupSaved = (name: string) => {
+        setGroupForm(null);
+        swr.mutate();
+        txToast.success(`Saved ${name}.`);
+    };
+
+    const handleDeleteGroup = (group: AdminManagerGroup) => {
+        setGroupForm(null);
+        const membersNote = group.members.length
+            ? ` ${group.members.length === 1 ? '1 admin' : `${group.members.length} admins`} will lose the permissions it gives them.`
+            : '';
+        openConfirmDialog({
+            title: `Delete ${group.name}?`,
+            message: `This removes the group from everyone in it.${membersNote}`,
+            actionLabel: 'Delete',
+            confirmBtnVariant: 'destructive',
+            onConfirm: async () => {
+                await deleteGroupApi({
+                    data: { id: group.id },
+                    toastLoadingMessage: 'Deleting group...',
+                    genericHandler: { successMsg: `Deleted ${group.name}.` },
+                });
+                swr.mutate();
+            },
+        });
+    };
+
+    const groupNames = new Map(swr.data?.groups.map((g) => [g.id, g.name]) ?? []);
 
     return (
         <div className="flex flex-col w-full gap-4 pb-4 [&>header]:mb-0">
             <PageHeader title="Admins" icon={<UsersIcon />}>
-                <Button size="sm" disabled={!swr.data} onClick={handleAdd}>
-                    <PlusIcon className="size-4 mr-1" /> Add Admin
-                </Button>
+                <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+                    <TabsList>
+                        <TabsTrigger value="admins">Admins</TabsTrigger>
+                        <TabsTrigger value="groups">Groups</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                {tab === 'admins' ? (
+                    <Button size="sm" disabled={!swr.data} onClick={handleAdd}>
+                        <PlusIcon className="size-4 mr-1" /> Add Admin
+                    </Button>
+                ) : (
+                    <Button size="sm" disabled={!swr.data} onClick={() => setGroupForm({})}>
+                        <PlusIcon className="size-4 mr-1" /> New Group
+                    </Button>
+                )}
             </PageHeader>
 
             {swr.error ? (
@@ -256,11 +353,31 @@ export default function AdminsPage() {
                 <div className="flex items-center justify-center py-16 text-muted-foreground">
                     <Loader2Icon className="animate-spin size-6 mr-2" /> Loading...
                 </div>
+            ) : tab === 'groups' ? (
+                <div className="mx-2 md:mx-0 border rounded-lg bg-card overflow-hidden">
+                    <div className="hidden md:grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,2fr)_1.5rem] gap-x-4 px-4 py-2.5 border-b text-sm font-medium text-muted-foreground">
+                        <span>Group</span>
+                        <span>Permissions</span>
+                        <span>Members</span>
+                    </div>
+                    {swr.data.groups.length ? (
+                        <div className="divide-y">
+                            {swr.data.groups.map((group) => (
+                                <GroupRow key={group.id} group={group} onEdit={(g) => setGroupForm({ group: g })} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center gap-2 py-12 px-4 text-center text-muted-foreground">
+                            <ShieldIcon className="size-6" />
+                            <p className="text-sm">No groups yet. Make one with the permissions a role needs, then add admins to it.</p>
+                        </div>
+                    )}
+                </div>
             ) : (
                 <div className="mx-2 md:mx-0 border rounded-lg bg-card overflow-hidden">
                     <div className="hidden md:grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.5rem] gap-x-4 px-4 py-2.5 border-b text-sm font-medium text-muted-foreground">
                         <span>Admin</span>
-                        <span>Permissions</span>
+                        <span>Groups</span>
                         <span>Login</span>
                         <span>{staffRanks ? 'Staff Rank' : null}</span>
                     </div>
@@ -269,6 +386,7 @@ export default function AdminsPage() {
                             <AdminRow
                                 key={admin.name}
                                 admin={admin}
+                                groupsSummary={getGroupsSummary(admin, groupNames)}
                                 staffRank={staffRanks ? getStaffRankLabel(admin, staffRanks) : null}
                                 onEdit={handleEdit}
                                 onOpenAccount={() => openAccountModal()}
@@ -285,9 +403,20 @@ export default function AdminsPage() {
                     admin={formState.admin}
                     onDelete={handleDelete}
                     onRemovePasskeys={handleRemovePasskeys}
+                    groupsList={swr.data.groups}
                     permissionsList={swr.data.permissions}
                     onClose={closeForm}
                     onSaved={handleSaved}
+                />
+            )}
+            {groupForm && swr.data && (
+                <GroupFormDialog
+                    group={groupForm.group}
+                    admins={swr.data.admins}
+                    permissionsList={swr.data.permissions}
+                    onDelete={handleDeleteGroup}
+                    onClose={() => setGroupForm(null)}
+                    onSaved={handleGroupSaved}
                 />
             )}
             <AdminPasswordDialog data={newPassword} onClose={() => setNewPassword(null)} />

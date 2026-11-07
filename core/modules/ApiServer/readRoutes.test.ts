@@ -152,9 +152,10 @@ beforeAll(async () => {
         adminStore: {
             getPermissionsList: () => ({ 'all_permissions': 'All', 'manage.admins': 'Manage Admins', 'players.kick': 'Kick' }),
             getAdminsIdentifiers: () => ['discord:11111111111111111'],
+            getGroupsList: () => [{ id: 'g1', name: 'Moderator', permissions: ['players.ban'], members: ['casey'] }],
             getAdminsList: () => [
                 { name: 'julian', master: true, permissions: [], providers: { discord: { identifier: 'discord:11111111111111111', data: {} }, citizenfx: { identifier: 'fivem:1001', data: { secret: 'x' } } } },
-                { name: 'casey', master: false, permissions: ['players.ban'], providers: {} },
+                { name: 'casey', master: false, permissions: ['players.ban'], groups: ['g1'], providers: {} },
             ],
         },
         cacheStore: { get: () => undefined },
@@ -393,7 +394,8 @@ describe('admins and resources', () => {
     it('lists admins without secrets, only for manage.admins', async () => {
         const r = await get('/api/v1/admins');
         expect(r.status).toBe(200);
-        expect(r.json.data.admins[0]).toEqual({ name: 'julian', master: true, permissions: [], identifiers: ['discord:11111111111111111', 'fivem:1001'] });
+        expect(r.json.data.admins[0]).toEqual({ name: 'julian', master: true, permissions: [], groups: [], identifiers: ['discord:11111111111111111', 'fivem:1001'] });
+        expect(r.json.data.admins[1]).toMatchObject({ name: 'casey', permissions: ['players.ban'], groups: ['Moderator'] });
         expect(JSON.stringify(r.json)).not.toContain('secret');
         expect((await get('/api/v1/admins', limitedToken)).status).toBe(403);
     });

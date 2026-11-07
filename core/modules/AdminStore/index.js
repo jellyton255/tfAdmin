@@ -9,6 +9,17 @@ import { createHash } from 'node:crypto';
 import consoleFactory from '@lib/console';
 import fatalError from '@lib/fatalError';
 import { chalkInversePad } from '@lib/misc';
+import {
+    ADMIN_GROUPS_SCHEMA_VERSION,
+    GROUP_DESC_MAX_LENGTH,
+    GROUP_NAME_MAX_LENGTH,
+    genGroupId,
+    getEffectivePermissions,
+    mergeMigratedGroups,
+    migratePermissionsToGroups,
+    normalizePermissions,
+    parseGroupsFile,
+} from './groups';
 const console = consoleFactory(modulename);
 
 //NOTE: The way I'm doing versioning right now is horrible but for now it's the best I can do
@@ -39,6 +50,10 @@ const migrateProviderIdentifiers = (providerName, providerData) => {
 export default class AdminStore {
     constructor() {
         this.adminsFile = txHostConfig.dataSubPath('admins.json');
+        //tfAdmin: admins get their permissions from groups, stored next to admins.json
+        //admins.json keeps each admin's resolved permissions, so older builds still work after a rollback
+        this.groupsFile = txHostConfig.dataSubPath('adminGroups.json');
+        this.groups = [];
         this.adminsFileHash = null;
         this.admins = null;
         this.refreshRoutine = null;
@@ -192,12 +207,17 @@ export default class AdminStore {
             password_temporary,
             providers,
             permissions: [],
+            groups: [],
         };
         this.admins = [newAdmin];
+        this.groups = [];
         this.addMasterPin = undefined;
 
         //Saving admin file
         try {
+            if (!fs.existsSync(this.groupsFile)) {
+                fs.writeFileSync(this.groupsFile, this.serializeGroups(), 'utf8');
+            }
             const jsonData = JSON.stringify(this.admins);
             this.adminsFileHash = createHash('sha1').update(jsonData).digest('hex');
             fs.writeFileSync(this.adminsFile, jsonData, { encoding: 'utf8', flag: 'wx' });
@@ -217,11 +237,13 @@ export default class AdminStore {
     getAdminsList() {
         if (this.admins == false) return [];
         return this.admins.map((user) => {
+            const resolved = this.resolveAdmin(user);
             return {
-                name: user.name,
-                master: user.master,
-                providers: user.providers,
-                permissions: user.permissions,
+                name: resolved.name,
+                master: resolved.master,
+                providers: resolved.providers,
+                permissions: resolved.permissions,
+                groups: resolved.groups,
             };
         });
     }
@@ -232,7 +254,33 @@ export default class AdminStore {
      */
     getRawAdminsList() {
         if (this.admins === false) return [];
-        return cloneDeep(this.admins);
+        return this.admins.map((admin) => this.resolveAdmin(admin));
+    }
+
+
+    /**
+     * Returns a copy of the admin with `permissions` resolved from their groups.
+     * Every lookup goes through here, so permission checks everywhere follow the groups.
+     */
+    resolveAdmin(admin) {
+        const clone = cloneDeep(admin);
+        clone.groups = this.getValidGroupIds(admin.groups);
+        clone.permissions = getEffectivePermissions(clone, this.getGroupsMap());
+        return clone;
+    }
+
+
+    /**
+     * Returns the group ids that still exist, in the order of the groups list
+     */
+    getValidGroupIds(groupIds) {
+        if (!Array.isArray(groupIds) || !Array.isArray(this.groups)) return [];
+        return this.groups.filter((g) => groupIds.includes(g.id)).map((g) => g.id);
+    }
+
+
+    getGroupsMap() {
+        return new Map((this.groups ?? []).map((g) => [g.id, g]));
     }
 
 
@@ -249,7 +297,7 @@ export default class AdminStore {
                 return (id === user.providers[provider].id.toLowerCase());
             });
         });
-        return (admin) ? cloneDeep(admin) : false;
+        return (admin) ? this.resolveAdmin(admin) : false;
     }
 
 
@@ -278,7 +326,7 @@ export default class AdminStore {
         const admin = this.admins.find((user) => {
             return (username === user.name.toLowerCase());
         });
-        return (admin) ? cloneDeep(admin) : false;
+        return (admin) ? this.resolveAdmin(admin) : false;
     }
 
 
@@ -296,7 +344,7 @@ export default class AdminStore {
             identifiers.find((identifier) =>
                 Object.keys(user.providers).find((provider) =>
                     (identifier === user.providers[provider].identifier.toLowerCase()))));
-        return (admin) ? cloneDeep(admin) : false;
+        return (admin) ? this.resolveAdmin(admin) : false;
     }
 
 
@@ -312,6 +360,7 @@ export default class AdminStore {
      * Writes to storage the admins file
      */
     async writeAdminsFile() {
+        this.syncPermissionsCache();
         const jsonData = JSON.stringify(this.admins, null, 2);
         this.adminsFileHash = createHash('sha1').update(jsonData).digest('hex');
         await fsp.writeFile(this.adminsFile, jsonData, 'utf8');
@@ -352,9 +401,9 @@ export default class AdminStore {
      * @param {object|false} citizenfxData or false
      * @param {object|false} discordData or false
      * @param {string} password
-     * @param {array} permissions
+     * @param {string[]} groupIds
      */
-    async addAdmin(name, citizenfxData, discordData, password, permissions) {
+    async addAdmin(name, citizenfxData, discordData, password, groupIds) {
         if (this.admins == false) throw new Error('Admins not set');
 
         //Check if username is already taken
@@ -368,7 +417,8 @@ export default class AdminStore {
             password_hash: GetPasswordHash(password),
             password_temporary: true,
             providers: {},
-            permissions,
+            permissions: [],
+            groups: this.getValidGroupIds(groupIds),
         };
 
         //Check if provider uid already taken and inserting into admin object
@@ -408,9 +458,9 @@ export default class AdminStore {
      * @param {string|null} password
      * @param {object|false} [citizenfxData] or false
      * @param {object|false} [discordData] or false
-     * @param {string[]} [permissions]
+     * @param {string[]} [groupIds]
      */
-    async editAdmin(name, password, citizenfxData, discordData, permissions) {
+    async editAdmin(name, password, citizenfxData, discordData, groupIds) {
         if (this.admins == false) throw new Error('Admins not set');
 
         //Find admin index
@@ -447,7 +497,7 @@ export default class AdminStore {
                 };
             }
         }
-        if (typeof permissions !== 'undefined') this.admins[adminIndex].permissions = permissions;
+        if (typeof groupIds !== 'undefined') this.admins[adminIndex].groups = this.getValidGroupIds(groupIds);
 
         //Prevent race condition, will allow the session to be updated before refreshing socket.io
         //sessions which will cause reauth and closing of the temp password modal on first access
@@ -496,6 +546,204 @@ export default class AdminStore {
             throw new Error(`Failed to save admins.json with error: ${error.message}`);
         }
     }
+
+    /**
+     * Writes the resolved permissions of every admin into admins.json, for older builds and external readers
+     */
+    syncPermissionsCache() {
+        if (!Array.isArray(this.admins)) return;
+        const groupsMap = this.getGroupsMap();
+        for (const admin of this.admins) {
+            if (!Array.isArray(admin.groups)) admin.groups = [];
+            admin.permissions = admin.master ? [] : getEffectivePermissions(admin, groupsMap);
+        }
+    }
+
+
+    serializeGroups() {
+        return JSON.stringify({ $schema: ADMIN_GROUPS_SCHEMA_VERSION, groups: this.groups }, null, 2);
+    }
+
+
+    async writeGroupsFile() {
+        await fsp.writeFile(this.groupsFile, this.serializeGroups(), 'utf8');
+    }
+
+
+    /**
+     * Returns the groups with their member names
+     */
+    getGroupsList() {
+        const admins = Array.isArray(this.admins) ? this.admins : [];
+        return this.groups.map((group) => ({
+            ...cloneDeep(group),
+            members: admins
+                .filter((admin) => Array.isArray(admin.groups) && admin.groups.includes(group.id))
+                .map((admin) => admin.name),
+        }));
+    }
+
+
+    getGroupById(id) {
+        const group = this.groups.find((g) => g.id === id);
+        return group ? cloneDeep(group) : false;
+    }
+
+
+    /**
+     * Validates and cleans a group's name, description and permissions, or throws
+     */
+    sanitizeGroupInput(input, ignoreId) {
+        const name = typeof input.name === 'string' ? input.name.trim() : '';
+        if (!name.length) throw new Error('The group needs a name.');
+        if (name.length > GROUP_NAME_MAX_LENGTH) throw new Error(`Group names can be up to ${GROUP_NAME_MAX_LENGTH} characters.`);
+        const lowerName = name.toLowerCase();
+        if (this.groups.some((g) => g.id !== ignoreId && g.name.toLowerCase() === lowerName)) {
+            throw new Error(`There is already a group named ${name}.`);
+        }
+        const description = typeof input.description === 'string'
+            ? input.description.trim().slice(0, GROUP_DESC_MAX_LENGTH)
+            : '';
+        const permissions = normalizePermissions(
+            Array.isArray(input.permissions) ? input.permissions : [],
+            Object.keys(this.registeredPermissions),
+        );
+        return { name, description, permissions };
+    }
+
+
+    /**
+     * Saves the groups and the admins' resolved permissions, then updates online admins
+     */
+    async saveGroupChanges() {
+        try {
+            await this.writeGroupsFile();
+            await this.writeAdminsFile();
+        } catch (error) {
+            throw new Error(`Failed to save admin groups with error: ${error.message}`);
+        }
+        setTimeout(() => {
+            this.refreshOnlineAdmins().catch((e) => { });
+        }, 250);
+    }
+
+
+    /**
+     * Creates a group and returns it
+     * @param {{name: string, description?: string, permissions: string[]}} input
+     */
+    async addGroup(input) {
+        if (!Array.isArray(this.admins)) throw new Error('Admins not set');
+        const group = { id: genGroupId(), ...this.sanitizeGroupInput(input) };
+        this.groups.push(group);
+        await this.saveGroupChanges();
+        return cloneDeep(group);
+    }
+
+
+    /**
+     * Changes a group's name, description or permissions
+     * @param {string} id
+     * @param {{name: string, description?: string, permissions: string[]}} input
+     */
+    async editGroup(id, input) {
+        if (!Array.isArray(this.admins)) throw new Error('Admins not set');
+        const index = this.groups.findIndex((g) => g.id === id);
+        if (index === -1) throw new Error('Group not found');
+        this.groups[index] = { id, ...this.sanitizeGroupInput(input, id) };
+        await this.saveGroupChanges();
+        return cloneDeep(this.groups[index]);
+    }
+
+
+    /**
+     * Deletes a group and removes it from every admin
+     * @param {string} id
+     */
+    async deleteGroup(id) {
+        if (!Array.isArray(this.admins)) throw new Error('Admins not set');
+        const group = this.groups.find((g) => g.id === id);
+        if (!group) throw new Error('Group not found');
+        this.groups = this.groups.filter((g) => g.id !== id);
+        for (const admin of this.admins) {
+            if (Array.isArray(admin.groups)) admin.groups = admin.groups.filter((g) => g !== id);
+        }
+        await this.saveGroupChanges();
+        return cloneDeep(group);
+    }
+
+
+    /**
+     * Sets which admins are in a group, keeping their other groups
+     * @param {string} id
+     * @param {string[]} memberNames
+     */
+    async setGroupMembers(id, memberNames) {
+        if (!Array.isArray(this.admins)) throw new Error('Admins not set');
+        if (!this.groups.some((g) => g.id === id)) throw new Error('Group not found');
+        const wanted = new Set(memberNames.map((n) => n.toLowerCase()));
+        for (const admin of this.admins) {
+            if (admin.master) continue;
+            const groups = Array.isArray(admin.groups) ? admin.groups.filter((g) => g !== id) : [];
+            if (wanted.has(admin.name.toLowerCase())) groups.push(id);
+            admin.groups = this.getValidGroupIds(groups);
+        }
+        await this.saveGroupChanges();
+    }
+
+
+    /**
+     * Loads adminGroups.json, or creates it from the admins' existing permissions.
+     * Returns true if the admins were changed by the migration.
+     */
+    async loadGroupsFile(admins) {
+        let raw;
+        try {
+            raw = await fsp.readFile(this.groupsFile, 'utf8');
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                fatalError.AdminStore(1, [
+                    ['Unable to read adminGroups.json', error.message],
+                    ['File Path', this.groupsFile],
+                ]);
+            }
+        }
+
+        if (raw === undefined) {
+            //First boot with groups: every distinct permission set becomes a group
+            this.groups = migratePermissionsToGroups(admins, Object.keys(this.registeredPermissions));
+            await this.writeGroupsFile();
+            console.ok(`Moved admin permissions into ${this.groups.length} group(s), saved in adminGroups.json.`);
+            return true;
+        }
+
+        let parsed;
+        try {
+            parsed = parseGroupsFile(JSON.parse(raw));
+        } catch (error) {
+            parsed = 'json parse error';
+        }
+        if (typeof parsed === 'string') {
+            fatalError.AdminStore(2, [
+                ['Unable to load adminGroups.json', parsed],
+                'This likely means the file got somehow corrupted.',
+                ['File Path', this.groupsFile],
+            ]);
+        }
+        this.groups = parsed;
+
+        //Admins without groups (e.g. admins.json restored from a backup) keep their permissions through groups
+        const ungrouped = admins.filter((admin) => !Array.isArray(admin.groups));
+        if (!ungrouped.length) return false;
+        const newGroups = migratePermissionsToGroups(ungrouped, Object.keys(this.registeredPermissions));
+        const added = mergeMigratedGroups(this.groups, newGroups, ungrouped);
+        if (added) {
+            await this.writeGroupsFile();
+            console.ok(`Created ${added} group(s) for admins that had no groups.`);
+        }
+        return true;
+    }
+
 
     /**
      * Loads the admins.json file into the admins list
@@ -567,6 +815,7 @@ export default class AdminStore {
             });
             if (providersTest) return true;
             if (!Array.isArray(x.permissions)) return true;
+            if (x.groups !== undefined && (!Array.isArray(x.groups) || x.groups.some((g) => typeof g !== 'string'))) return true;
             return false;
         });
         if (structureIntegrityTest) {
@@ -600,6 +849,13 @@ export default class AdminStore {
                 }
             }
         });
+
+        try {
+            if (await this.loadGroupsFile(jsonData)) hasMigration = true;
+        } catch (error) {
+            console.error(`Failed to load admin groups: ${error.message}`);
+            throw error;
+        }
 
         this.admins = jsonData;
         if (hasMigration) {

@@ -1,6 +1,6 @@
 const modulename = 'WebServer:AdminManagerList';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
-import type { AdminManagerAdmin, AdminManagerListResp, AdminManagerPermission } from '@shared/adminManagerApiTypes';
+import type { AdminManagerAdmin, AdminManagerGroup, AdminManagerListResp, AdminManagerPermission } from '@shared/adminManagerApiTypes';
 import consoleFactory from '@lib/console';
 const console = consoleFactory(modulename);
 
@@ -25,6 +25,7 @@ export default async function AdminManagerList(ctx: AuthedCtx) {
             name: admin.name,
             isMaster: admin.master,
             isSelf,
+            groups: admin.groups,
             permissions: admin.permissions,
             citizenfxId: admin.providers.citizenfx?.id ?? null,
             citizenfxIdentifier: admin.providers.citizenfx?.identifier ?? null,
@@ -43,5 +44,15 @@ export default async function AdminManagerList(ctx: AuthedCtx) {
             group: (id.startsWith('players.') || id.startsWith('menu.')) ? 'game' : 'panel',
         }));
 
-    return sendTypedResp({ admins, permissions });
+    const canGrantAll = ctx.admin.isMaster || ctx.admin.permissions.includes('all_permissions');
+    const groups: AdminManagerGroup[] = txCore.adminStore.getGroupsList().map((group) => ({
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        permissions: group.permissions,
+        members: group.members,
+        canEdit: canGrantAll || group.permissions.every((p: string) => ctx.admin.permissions.includes(p)),
+    }));
+
+    return sendTypedResp({ admins, groups, permissions });
 };

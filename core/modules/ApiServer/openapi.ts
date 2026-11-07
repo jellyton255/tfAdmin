@@ -236,7 +236,12 @@ const schemas: Record<string, Schema> = {
         id: str(), license: str(), playerDisplayName: str(), playerPureName: str(),
         discordTag: nullable(str()), discordAvatar: nullable(str()), lastAttemptAt: epochMs(),
     }),
-    Admin: obj({ name: str(), master: bool(), permissions: arr(str()), identifiers: arr(str()) }),
+    Admin: obj({
+        name: str(), master: bool(),
+        permissions: arr(str({ description: 'Resolved from the admin\'s groups' })),
+        groups: arr(str({ description: 'Name of an admin group the admin is in' })),
+        identifiers: arr(str()),
+    }),
     AuditLogEntry: obj({
         ts: epochMs(), author: str({ description: 'Admin name, API key (`api:<name>`), game script label or a system source such as MONITOR' }),
         category: enumOf(ADMIN_LOG_CATEGORIES.map((c) => c.key)), msg: str(),

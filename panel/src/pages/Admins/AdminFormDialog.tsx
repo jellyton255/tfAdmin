@@ -8,13 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import TxAnchor from "@/components/TxAnchor";
 import { useBackendApi } from "@/hooks/fetch";
-import { useAdminPerms } from "@/hooks/auth";
 import { cn } from "@/lib/utils";
 import consts from "@shared/consts";
 import type {
     AdminManagerAdmin,
     AdminManagerAddResp,
     AdminManagerEditResp,
+    AdminManagerGroup,
     AdminManagerPermission,
     AdminManagerSaveReq,
 } from "@shared/adminManagerApiTypes";
@@ -27,24 +27,28 @@ type Props = {
     admin?: AdminManagerAdmin;
     onDelete: (admin: AdminManagerAdmin) => void;
     onRemovePasskeys: (admin: AdminManagerAdmin) => void;
+    groupsList: AdminManagerGroup[];
     permissionsList: AdminManagerPermission[];
     onClose: () => void;
     onSaved: (name: string, password: string | null) => void;
 };
 
-const permGroups = [
-    { group: 'panel', title: 'Panel' },
-    { group: 'game', title: 'Players & In-Game Menu' },
-] as const;
+function summarizePerms(perms: string[], permissionsList: AdminManagerPermission[]) {
+    if (perms.includes('all_permissions')) return 'All Permissions';
+    if (!perms.length) return 'No permissions';
+    const labels = perms.map((id) => permissionsList.find((p) => p.id === id)?.label ?? id);
+    return labels.length > 3
+        ? `${labels.slice(0, 3).join(', ')} +${labels.length - 3} more`
+        : labels.join(', ');
+}
 
 
 //Mounted only while open, so the form state starts fresh every time
-export default function AdminFormDialog({ mode, initialValues, admin, onDelete, onRemovePasskeys, permissionsList, onClose, onSaved }: Props) {
-    const { hasPerm } = useAdminPerms();
+export default function AdminFormDialog({ mode, initialValues, admin, onDelete, onRemovePasskeys, groupsList, permissionsList, onClose, onSaved }: Props) {
     const [name, setName] = useState(initialValues.name);
     const [citizenfxID, setCitizenfxID] = useState(initialValues.citizenfxID);
     const [discordID, setDiscordID] = useState(initialValues.discordID);
-    const [selected, setSelected] = useState(() => new Set(initialValues.permissions));
+    const [selected, setSelected] = useState(() => new Set(initialValues.groups));
     const [error, setError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -57,17 +61,14 @@ export default function AdminFormDialog({ mode, initialValues, admin, onDelete, 
         path: '/adminManager/edit',
     });
 
-    const allSelected = selected.has('all_permissions');
-    const togglePerm = (permId: string, checked: boolean) => {
+    const toggleGroup = (groupId: string, checked: boolean) => {
         setSelected((prev) => {
-            if (permId === 'all_permissions') {
-                return checked ? new Set(['all_permissions']) : new Set<string>();
-            }
             const next = new Set(prev);
-            if (checked) next.add(permId); else next.delete(permId);
+            if (checked) next.add(groupId); else next.delete(groupId);
             return next;
         });
     };
+    const resultingPerms = [...new Set(groupsList.filter((g) => selected.has(g.id)).flatMap((g) => g.permissions))];
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -76,7 +77,7 @@ export default function AdminFormDialog({ mode, initialValues, admin, onDelete, 
             name: name.trim(),
             citizenfxID: citizenfxID.trim(),
             discordID: discordID.trim(),
-            permissions: [...selected],
+            groups: groupsList.filter((g) => selected.has(g.id)).map((g) => g.id),
         };
         if (mode === 'add' && !consts.regexValidFivemUsername.test(data.name)) {
             return setError('Usernames must be 3 to 20 letters, numbers, or `_.-`, and start and end with a letter or number.');
@@ -159,40 +160,51 @@ export default function AdminFormDialog({ mode, initialValues, admin, onDelete, 
                         For the Discord ID, see <TxAnchor href="https://support.discord.com/hc/en-us/articles/206346498">Where Can I Find My User ID</TxAnchor>.
                     </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {permGroups.map(({ group, title }) => (
-                            <div key={group} className="space-y-1.5">
-                                <Label>{title}</Label>
-                                <div className="border rounded-md divide-y">
-                                    {permissionsList.filter((perm) => perm.group === group).map((perm) => {
-                                        const isAll = perm.id === 'all_permissions';
-                                        const canGrant = hasPerm(perm.id);
-                                        return (
-                                            <label
-                                                key={perm.id}
-                                                title={canGrant ? perm.id : 'You cannot give permissions you do not have.'}
-                                                className={cn(
-                                                    'flex items-center gap-2 px-3 py-2 text-sm',
-                                                    canGrant ? 'cursor-pointer hover:bg-muted/40' : 'opacity-60 cursor-not-allowed',
-                                                )}
-                                            >
-                                                <Checkbox
-                                                    checked={allSelected || selected.has(perm.id)}
-                                                    disabled={!canGrant || (!isAll && allSelected)}
-                                                    onCheckedChange={(c) => togglePerm(perm.id, c === true)}
-                                                />
+                    <div className="space-y-1.5">
+                        <Label>Groups</Label>
+                        {groupsList.length ? (
+                            <div className="border rounded-md divide-y">
+                                {groupsList.map((group) => {
+                                    //Groups with permissions you lack can't be given, but can be taken away
+                                    const isLocked = !group.canEdit && !initialValues.groups.includes(group.id);
+                                    return (
+                                        <label
+                                            key={group.id}
+                                            title={isLocked ? 'You cannot give groups with permissions you do not have.' : undefined}
+                                            className={cn(
+                                                'flex items-start gap-2 px-3 py-2 text-sm',
+                                                isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/40',
+                                            )}
+                                        >
+                                            <Checkbox
+                                                className="mt-0.5"
+                                                checked={selected.has(group.id)}
+                                                disabled={isLocked}
+                                                onCheckedChange={(c) => toggleGroup(group.id, c === true)}
+                                            />
+                                            <span className="min-w-0">
                                                 <span className={cn(
-                                                    isAll && 'font-semibold',
-                                                    perm.dangerous && 'text-destructive',
+                                                    'font-medium',
+                                                    group.permissions.includes('all_permissions') && 'text-destructive',
                                                 )}>
-                                                    {perm.label}
+                                                    {group.name}
                                                 </span>
-                                            </label>
-                                        );
-                                    })}
-                                </div>
+                                                <span className="block text-xs text-muted-foreground truncate">
+                                                    {group.description || summarizePerms(group.permissions, permissionsList)}
+                                                </span>
+                                            </span>
+                                        </label>
+                                    );
+                                })}
                             </div>
-                        ))}
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                There are no groups yet. Create one in the Groups tab, then add admins to it.
+                            </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                            Permissions from these groups: {summarizePerms(resultingPerms, permissionsList)}.
+                        </p>
                     </div>
 
                     {admin && admin.passkeyCount > 0 && (

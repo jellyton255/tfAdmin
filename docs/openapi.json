@@ -6294,7 +6294,15 @@
           "permissions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "description": "Resolved from the admin's groups"
+            }
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Name of an admin group the admin is in"
             }
           },
           "identifiers": {
@@ -6308,6 +6316,7 @@
           "name",
           "master",
           "permissions",
+          "groups",
           "identifiers"
         ],
         "additionalProperties": false

@@ -335,7 +335,8 @@ export type ApiWhitelistRequestsResp = ApiResp<{ requests: ApiWhitelistRequest[]
 export type ApiAdminRecord = {
     name: string;
     master: boolean;
-    permissions: string[];
+    permissions: string[]; //resolved from the admin's groups
+    groups: string[]; //admin group names
     identifiers: string[]; //citizenfx / discord identifiers
 };
 export type ApiAdminsResp = ApiResp<{ admins: ApiAdminRecord[] }>;
