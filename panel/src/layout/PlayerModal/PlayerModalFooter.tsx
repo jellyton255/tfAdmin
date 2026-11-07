@@ -12,6 +12,7 @@ import { useLocation, useRoute } from "wouter";
 import { useContentRefresh } from "@/hooks/pages";
 import { useCloseAllSheets } from "@/hooks/sheets";
 import { STAFF_NOTE_LABEL } from "@/components/StaffNoteText";
+import PlayerEverfallActions from "./PlayerEverfallActions";
 
 
 type PlayerModalFooterProps = {
@@ -175,6 +176,9 @@ export default function PlayerModalFooter({ playerRef, player }: PlayerModalFoot
             >
                 <AlertTriangleIcon className="h-5 mr-1" /> Warn
             </Button>
+            {player?.isConnected && player.netid !== undefined && player.license && (
+                <PlayerEverfallActions player={{ ...player, netid: player.netid, license: player.license }} />
+            )}
         </DialogFooter>
     )
 }

@@ -75,3 +75,8 @@ export type EverfallCharacterAudit = {
 export type EverfallCharacterActionResult = {
     message: string;
 };
+
+/** Answer of `player.screenshot`: the hosted image of the player's screen. */
+export type EverfallPlayerScreenshot = {
+    url: string;
+};
