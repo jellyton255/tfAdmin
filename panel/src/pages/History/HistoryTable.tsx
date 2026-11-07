@@ -219,10 +219,9 @@ type HistoryTableProps = {
     filterbyType: string | undefined,
     filterbyAdmin: string | undefined,
     filterbyNotes: boolean,
-    filterbySource: string | undefined,
 }
 
-export default function HistoryTable({ search, filterbyType, filterbyAdmin, filterbyNotes, filterbySource }: HistoryTableProps) {
+export default function HistoryTable({ search, filterbyType, filterbyAdmin, filterbyNotes }: HistoryTableProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [history, setHistory] = useState<HistoryTableActionType[]>([]);
     const [hasReachedEnd, setHasReachedEnd] = useState(false);
@@ -267,9 +266,6 @@ export default function HistoryTable({ search, filterbyType, filterbyAdmin, filt
             }
             if (filterbyNotes) {
                 queryParams.filterbyNotes = true;
-            }
-            if (filterbySource && filterbySource !== SEARCH_ANY_STRING) {
-                queryParams.filterbySource = filterbySource;
             }
             if (!resetOffset && history.length) {
                 queryParams.offsetParam = history[history.length - 1][sorting.key];
@@ -340,7 +336,7 @@ export default function HistoryTable({ search, filterbyType, filterbyAdmin, filt
     useEffect(() => {
         rowVirtualizer.scrollToIndex(0);
         fetchNextPage(true);
-    }, [search, filterbyType, filterbyAdmin, filterbyNotes, filterbySource, sorting]);
+    }, [search, filterbyType, filterbyAdmin, filterbyNotes, sorting]);
 
 
     return (

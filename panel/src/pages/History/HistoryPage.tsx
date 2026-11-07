@@ -24,7 +24,6 @@ const updateUrlSearchParams = (
     filterbyType: string | undefined,
     filterbyAdmin: string | undefined,
     filterbyNotes: boolean,
-    filterbySource: string | undefined,
 ) => {
     const newUrl = new URL(window.location.toString());
     if (search && search.type && search.value) {
@@ -49,11 +48,6 @@ const updateUrlSearchParams = (
     } else {
         newUrl.searchParams.delete("filterbyNotes");
     }
-    if (filterbySource && filterbySource !== '!any') {
-        newUrl.searchParams.set("filterbySource", filterbySource);
-    } else {
-        newUrl.searchParams.delete("filterbySource");
-    }
     window.history.replaceState({}, "", newUrl);
 }
 const getInitialState = () => {
@@ -73,7 +67,6 @@ const getInitialState = () => {
         filterbyType: params.get('filterbyType') ?? SEARCH_ANY_STRING,
         filterbyAdmin: params.get('filterbyAdmin') ?? SEARCH_ANY_STRING,
         filterbyNotes: params.get('filterbyNotes') === 'true',
-        filterbySource: params.get('filterbySource') ?? SEARCH_ANY_STRING,
     } satisfies HistorySearchBoxReturnStateType;
 }
 
@@ -102,10 +95,9 @@ export default function HistoryPage() {
         filterbyType: string | undefined,
         filterbyAdmin: string | undefined,
         filterbyNotes: boolean,
-        filterbySource: string | undefined,
     ) => {
-        setSearchBoxReturn({ search, filterbyType, filterbyAdmin, filterbyNotes, filterbySource });
-        updateUrlSearchParams(search, filterbyType, filterbyAdmin, filterbyNotes, filterbySource);
+        setSearchBoxReturn({ search, filterbyType, filterbyAdmin, filterbyNotes });
+        updateUrlSearchParams(search, filterbyType, filterbyAdmin, filterbyNotes);
     }, []);
     const initialState = useMemo(getInitialState, []);
 
@@ -162,7 +154,6 @@ export default function HistoryPage() {
                 filterbyType={searchBoxReturn.filterbyType}
                 filterbyAdmin={searchBoxReturn.filterbyAdmin}
                 filterbyNotes={!!searchBoxReturn.filterbyNotes}
-                filterbySource={searchBoxReturn.filterbySource}
             />
         ) : null}
     </div>);

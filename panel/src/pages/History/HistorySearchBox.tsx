@@ -24,7 +24,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select"
-import { HistoryTableSearchType } from "@shared/historyApiTypes";
+import { HISTORY_ANTICHEAT_AUTHOR, HISTORY_STAFF_FILTER, HistoryTableSearchType } from "@shared/historyApiTypes";
 
 
 /**
@@ -69,7 +69,6 @@ export type HistorySearchBoxReturnStateType = {
     filterbyType?: string;
     filterbyAdmin?: string;
     filterbyNotes?: boolean;
-    filterbySource?: string;
 }
 
 type HistorySearchBoxProps = {
@@ -78,7 +77,6 @@ type HistorySearchBoxProps = {
         filterbyType: string | undefined,
         filterbyAdmin: string | undefined,
         filterbyNotes: boolean,
-        filterbySource: string | undefined,
     ) => void;
     initialState: HistorySearchBoxReturnStateType;
     adminStats: {
@@ -96,27 +94,24 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
     const [typeFilter, setTypeFilter] = useState(initialState.filterbyType);
     const [adminNameFilter, setAdminNameFilter] = useState(initialState.filterbyAdmin);
     const [notesFilter, setNotesFilter] = useState(!!initialState.filterbyNotes);
-    const [sourceFilter, setSourceFilter] = useState(initialState.filterbySource);
 
     const updateSearch = () => {
         if (!inputRef.current) return;
         const searchValue = inputRef.current.value.trim();
         const effectiveTypeFilter = typeFilter !== SEARCH_ANY_STRING ? typeFilter : undefined;
         const effectiveAdminNameFilter = adminNameFilter !== SEARCH_ANY_STRING ? adminNameFilter : undefined;
-        const effectiveSourceFilter = sourceFilter !== SEARCH_ANY_STRING ? sourceFilter : undefined;
         doSearch(
             { value: searchValue, type: currSearchType },
             effectiveTypeFilter,
             effectiveAdminNameFilter,
             notesFilter,
-            effectiveSourceFilter,
         );
     }
 
     //Call onSearch when params change
     useEffect(() => {
         updateSearch();
-    }, [currSearchType, typeFilter, adminNameFilter, notesFilter, sourceFilter]);
+    }, [currSearchType, typeFilter, adminNameFilter, notesFilter]);
 
     //Input handlers
     const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -153,8 +148,9 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
     if (!selectedSearchType) throw new Error(`Invalid search type: ${currSearchType}`);
     if (!authData) throw new Error(`authData is not available`);
     const filteredAdmins = useMemo(() => {
-        return adminStats.filter((admin) => admin.name !== authData.name)
+        return adminStats.filter((admin) => admin.name !== authData.name && admin.name !== HISTORY_ANTICHEAT_AUTHOR)
     }, [adminStats, authData.name]);
+    const antiCheatCount = adminStats.find((admin) => admin.name === HISTORY_ANTICHEAT_AUTHOR)?.actions ?? 0;
     const selfActionCount = useMemo(() => {
         return adminStats.find((admin) => admin.name === authData.name)?.actions || 0;
     }, [adminStats, authData.name]);
@@ -249,6 +245,14 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
                             <SelectItem value={SEARCH_ANY_STRING} className="cursor-pointer">
                                 By any admin
                             </SelectItem>
+                            {/* everfall: staff actions apart from the ones game scripts issued */}
+                            <SelectItem value={HISTORY_STAFF_FILTER} className="cursor-pointer">
+                                By staff
+                            </SelectItem>
+                            <SelectItem value={HISTORY_ANTICHEAT_AUTHOR} className="cursor-pointer">
+                                By anti-cheat <span className="opacity-50">({antiCheatCount})</span>
+                            </SelectItem>
+                            <SelectSeparator />
                             <SelectItem value={authData.name} className="cursor-pointer">
                                 {authData.name} <span className="opacity-50">({selfActionCount})</span>
                             </SelectItem>
@@ -263,24 +267,6 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
                                     {admin.name} <span className="opacity-50">({admin.actions})</span>
                                 </SelectItem>
                             ))}
-                        </SelectContent>
-                    </Select>
-
-                    {/* everfall: game script actions (exports.monitor:BanPlayer) apart from staff ones */}
-                    <Select defaultValue={sourceFilter} onValueChange={setSourceFilter}>
-                        <SelectTrigger className="w-36 grow md:grow-0" >
-                            <SelectValue placeholder="Filter by source" />
-                        </SelectTrigger>
-                        <SelectContent className="px-0">
-                            <SelectItem value={SEARCH_ANY_STRING} className="cursor-pointer">
-                                Any source
-                            </SelectItem>
-                            <SelectItem value={'staff'} className="cursor-pointer">
-                                Staff
-                            </SelectItem>
-                            <SelectItem value={'anticheat'} className="cursor-pointer">
-                                Anti-Cheat
-                            </SelectItem>
                         </SelectContent>
                     </Select>
 
