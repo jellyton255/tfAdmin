@@ -97,7 +97,6 @@ function SourceTable({ source, rowAction }: {
 }) {
     // Lua sends an empty table for a source with no rows, which may arrive as {}.
     const rows = Array.isArray(source.rows) ? source.rows : [];
-    const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
     return (
         <section className="min-w-0">
             <h4 className="text-xs font-medium text-muted-foreground mb-1">
@@ -108,33 +107,22 @@ function SourceTable({ source, rowAction }: {
             ) : !rows.length ? (
                 <p className="text-xs text-muted-foreground">None</p>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr className="text-left text-muted-foreground">
-                                {columns.map((column) => (
-                                    <th key={column} className="pr-3 pb-0.5 font-normal whitespace-nowrap">{keyLabel(column)}</th>
-                                ))}
-                                {rowAction && <th />}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((row, index) => (
-                                <tr key={index} className="border-t border-border/40 align-baseline">
-                                    {columns.map((column) => {
-                                        const text = formatValue(column, row[column]);
-                                        return (
-                                            <td key={column} title={text} className="pr-3 py-0.5 max-w-64 truncate tabular-nums">
-                                                {text}
-                                            </td>
-                                        );
-                                    })}
-                                    {rowAction && <td className="py-0.5 text-right">{rowAction(row)}</td>}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                // Sources have many columns, so each row wraps its fields instead of scrolling a table.
+                <ul className="text-xs">
+                    {rows.map((row, index) => (
+                        <li key={index} className="flex flex-wrap items-baseline gap-x-3 border-t border-border/40 py-0.5 first:border-t-0">
+                            {Object.entries(row).map(([key, value]) => {
+                                const text = formatValue(key, value);
+                                return (
+                                    <span key={key} title={text} className="inline-block max-w-64 truncate tabular-nums">
+                                        <span className="text-muted-foreground">{keyLabel(key)}</span> {text}
+                                    </span>
+                                );
+                            })}
+                            {rowAction && <span className="ml-auto">{rowAction(row)}</span>}
+                        </li>
+                    ))}
+                </ul>
             )}
         </section>
     );
