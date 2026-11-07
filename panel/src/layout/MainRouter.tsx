@@ -25,6 +25,7 @@ import AdvancedPage from "@/pages/AdvancedPage";
 import ApiKeysPage from "@/pages/ApiKeys/ApiKeysPage"; // everfall:api
 import AllowlistPage from "@/pages/Allowlist/AllowlistPage";
 import InventoriesPage from "@/pages/Inventories/InventoriesPage";
+import GroupsPage from "@/pages/Groups/GroupsPage";
 import AdminsPage from "@/pages/Admins/AdminsPage";
 import MasterActionsPage from "@/pages/MasterActions/MasterActionsPage";
 import ResourcesPage from "@/pages/Resources/ResourcesPage";
@@ -70,6 +71,11 @@ export const allRoutes: RouteType[] = [
         path: '/inventories',
         title: 'Inventories',
         Page: <InventoriesPage />
+    },
+    {
+        path: '/groups',
+        title: 'Groups',
+        Page: <GroupsPage />
     },
     {
         //everfall: ef_administration checks the admin's Everfall rank for each action

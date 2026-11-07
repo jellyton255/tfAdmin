@@ -121,3 +121,21 @@ export type EverfallInventoryDetail = EverfallInventoryReference & {
     slots?: number;
     loaded?: boolean;
 };
+
+/** Jobs and gangs (`groups.*`). */
+export type EverfallGroupType = 'job' | 'gang';
+export type EverfallGroup = {
+    id: string;
+    label: string;
+    grades: { grade: number; name: string }[];
+    members: number;
+};
+export type EverfallGroupList = {
+    jobs: EverfallGroup[];
+    gangs: EverfallGroup[];
+};
+export type EverfallGroupMembers = {
+    rows: { citizenId: string; fullName: string; grade: number; online: boolean }[];
+    page: number;
+    hasMore: boolean;
+};
