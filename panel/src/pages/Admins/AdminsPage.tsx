@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { txToast } from "@/components/TxToaster";
 import { useBackendApi } from "@/hooks/fetch";
 import { useOpenAccountModal, useOpenConfirmDialog } from "@/hooks/dialogs";
+import { useEverfallPermissions, useEverfallQuery } from "@/hooks/everfall";
 import type {
     AdminManagerAdmin,
     AdminManagerDeleteReq,
@@ -20,6 +21,24 @@ import AdminFormDialog, { type AdminFormValues } from "./AdminFormDialog";
 import AdminPasswordDialog from "./AdminPasswordDialog";
 
 const LIST_SWR_KEY = '/adminManager/list';
+
+//everfall: the game's staff rank groups (ef_administration config/sh_config.lua), named as the website names them
+const STAFF_RANK_LABELS: Record<string, string> = {
+    'everfall.staff': 'Staff',
+    'everfall.admin': 'Management',
+    'everfall.snrmanagement': 'Senior Management',
+    'everfall.god': 'Owner',
+};
+
+/** Answer of `staff.rankOf`: the rank group each Discord account holds, or false for none. */
+type StaffRanks = { ranks: Record<string, string | false> };
+
+function getStaffRankLabel(admin: AdminManagerAdmin, ranks: StaffRanks['ranks']) {
+    if (!admin.discordId) return 'No Discord';
+    const rank = ranks[admin.discordId];
+    if (!rank) return 'None';
+    return STAFF_RANK_LABELS[rank] ?? rank;
+}
 
 type FormState = {
     mode: 'add' | 'edit';
@@ -61,8 +80,9 @@ function getPermsSummary(admin: AdminManagerAdmin) {
 }
 
 
-function AdminRow({ admin, onEdit, onOpenAccount }: {
+function AdminRow({ admin, staffRank, onEdit, onOpenAccount }: {
     admin: AdminManagerAdmin;
+    staffRank: string | null;
     onEdit: (admin: AdminManagerAdmin) => void;
     onOpenAccount: () => void;
 }) {
@@ -79,7 +99,7 @@ function AdminRow({ admin, onEdit, onOpenAccount }: {
             disabled={!isClickable}
             title={isClickable ? undefined : 'Only the master account can edit a master admin.'}
             onClick={() => admin.isSelf ? onOpenAccount() : onEdit(admin)}
-            className="group w-full grid grid-cols-[1fr_auto] md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_1.5rem] items-center gap-x-4 gap-y-1
+            className="group w-full grid grid-cols-[1fr_auto] md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.5rem] items-center gap-x-4 gap-y-1
                 px-4 py-3 text-left transition-colors hover:bg-muted/50 disabled:hover:bg-transparent
                 focus-visible:outline-none focus-visible:bg-muted/50"
         >
@@ -94,7 +114,10 @@ function AdminRow({ admin, onEdit, onOpenAccount }: {
             <div className="row-start-3 md:row-start-auto text-sm text-muted-foreground truncate">
                 {loginMethods || 'Password Only'}
             </div>
-            <div className="row-span-3 md:row-span-1 col-start-2 md:col-start-auto row-start-1 justify-self-end text-muted-foreground">
+            <div className="row-start-4 md:row-start-auto text-sm text-muted-foreground truncate">
+                {staffRank}
+            </div>
+            <div className="row-span-4 md:row-span-1 col-start-2 md:col-start-auto row-start-1 justify-self-end text-muted-foreground">
                 {admin.isSelf ? (
                     <UserCogIcon className="size-4 group-hover:text-foreground" />
                 ) : admin.canEdit ? (
@@ -134,6 +157,15 @@ export default function AdminsPage() {
         if ('error' in resp) throw new Error(resp.error);
         return resp;
     });
+
+    //everfall: the Staff Rank column shows only when this admin's own rank may read ranks
+    const { can } = useEverfallPermissions();
+    const adminDiscordIds = swr.data?.admins.flatMap((admin) => admin.discordId ? [admin.discordId] : []) ?? [];
+    const ranksQuery = useEverfallQuery<StaffRanks>(
+        can('ViewCharacters') && adminDiscordIds.length ? 'staff.rankOf' : null,
+        { discordIds: adminDiscordIds },
+    );
+    const staffRanks = ranksQuery.data?.ranks;
 
     const closeForm = () => {
         clearUrlSearch();
@@ -226,16 +258,18 @@ export default function AdminsPage() {
                 </div>
             ) : (
                 <div className="mx-2 md:mx-0 border rounded-lg bg-card overflow-hidden">
-                    <div className="hidden md:grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_1.5rem] gap-x-4 px-4 py-2.5 border-b text-sm font-medium text-muted-foreground">
+                    <div className="hidden md:grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.5rem] gap-x-4 px-4 py-2.5 border-b text-sm font-medium text-muted-foreground">
                         <span>Admin</span>
                         <span>Permissions</span>
                         <span>Login</span>
+                        <span>{staffRanks ? 'Staff Rank' : null}</span>
                     </div>
                     <div className="divide-y">
                         {swr.data.admins.map((admin) => (
                             <AdminRow
                                 key={admin.name}
                                 admin={admin}
+                                staffRank={staffRanks ? getStaffRankLabel(admin, staffRanks) : null}
                                 onEdit={handleEdit}
                                 onOpenAccount={() => openAccountModal()}
                             />
