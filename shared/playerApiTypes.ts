@@ -97,6 +97,32 @@ export type PlayerCharactersResp = {
 
 
 /**
+ * Everfall: one character's saved inventory and owned vehicles, read from the game database
+ */
+export type PlayerCharacterItem = {
+    slot: number | null;
+    name: string;
+    label: string | null;
+    count: number;
+}
+export type PlayerCharacterVehicle = {
+    plate: string;
+    model: string | null;
+    garage: string | null;
+    /** QBox: 0 out, 1 in a garage, 2 impounded */
+    state: number | null;
+    mileage: number | null;
+}
+export type PlayerCharacterDetailResp = {
+    status: 'ok';
+    inventory: PlayerCharacterItem[];
+    vehicles: PlayerCharacterVehicle[];
+} | {
+    status: 'unavailable';
+    reason: string;
+} | GenericApiErrorResp;
+
+/**
  * Everfall: other players that share an identifier or HWID with the player
  */
 export type PlayerLinkedAccount = {

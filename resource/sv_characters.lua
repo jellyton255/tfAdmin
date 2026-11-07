@@ -109,3 +109,82 @@ function TxHandleCharactersHttp(req, res)
         queryCharacters(res, where, params)
     end)
 end
+
+-- =============================================
+-- Everfall: one character's vehicles and inventory for the player modal's Characters tab.
+-- Core POSTs { txAdminToken, citizenId } to /monitor/characters/detail. Read-only.
+-- =============================================
+
+local DETAIL_ROW_LIMIT = 200
+local VEHICLES_QUERY = [[
+    SELECT plate, vehicle AS model, garage, state, mileage
+    FROM player_vehicles
+    WHERE citizenid = ?
+    ORDER BY plate
+    LIMIT ]] .. DETAIL_ROW_LIMIT
+local INVENTORY_QUERY = 'SELECT inventory FROM players WHERE citizenid = ? AND deleted IS NULL LIMIT 1'
+
+local function itemLabel(name)
+    if GetResourceState('ox_inventory') ~= 'started' then return nil end
+    local item = exports.ox_inventory:Items(name)
+    return item and item.label or nil
+end
+
+-- players.inventory holds ox_inventory's saved slots; online players save on logout and autosave
+local function readInventory(raw)
+    local slots = raw and json.decode(raw)
+    if type(slots) ~= 'table' then return {} end
+    local items = {}
+    for _, slot in pairs(slots) do
+        if type(slot) == 'table' and type(slot.name) == 'string' then
+            items[#items + 1] = {
+                slot = tonumber(slot.slot),
+                name = slot.name,
+                label = itemLabel(slot.name),
+                count = tonumber(slot.count) or 1,
+            }
+        end
+    end
+    table.sort(items, function(a, b) return (a.slot or 0) < (b.slot or 0) end)
+    return items
+end
+
+function TxHandleCharacterDetailHttp(req, res)
+    if req.method ~= 'POST' then
+        return sendJson(res, 405, { error = 'method not allowed' })
+    end
+
+    req.setDataHandler(function(body)
+        if type(body) ~= 'string' or #body > MAX_BODY_LENGTH then
+            return sendJson(res, 400, { error = 'invalid request' })
+        end
+        local data = json.decode(body)
+        if type(data) ~= 'table' or data.txAdminToken ~= TX_LUACOMTOKEN
+            or type(data.citizenId) ~= 'string' or not data.citizenId:match(CITIZEN_ID_PATTERN) then
+            return sendJson(res, 401, { error = 'invalid request' })
+        end
+        if GetResourceState('oxmysql') ~= 'started' then
+            return sendJson(res, 503, { error = 'oxmysql is not started' })
+        end
+
+        exports.oxmysql:query(INVENTORY_QUERY, { data.citizenId }, function(players, playerErr)
+            if playerErr then
+                txPrint('^1Character detail lookup failed: ' .. tostring(playerErr))
+                return sendJson(res, 500, { error = 'character query failed' })
+            end
+            if not players[1] then
+                return sendJson(res, 404, { error = 'character not found' })
+            end
+            exports.oxmysql:query(VEHICLES_QUERY, { data.citizenId }, function(vehicles, vehicleErr)
+                if vehicleErr then
+                    txPrint('^1Character vehicle lookup failed: ' .. tostring(vehicleErr))
+                    return sendJson(res, 500, { error = 'vehicle query failed' })
+                end
+                sendJson(res, 200, {
+                    inventory = readInventory(players[1].inventory),
+                    vehicles = vehicles,
+                })
+            end, GetCurrentResourceName(), true)
+        end, GetCurrentResourceName(), true)
+    end)
+end

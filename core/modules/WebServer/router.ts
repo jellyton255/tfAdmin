@@ -113,6 +113,7 @@ export default () => {
     router.get('/player', apiAuthMw, routes.player_modal);
     router.get('/player/stats', apiAuthMw, routes.player_stats);
     router.get('/player/characters', apiAuthMw, routes.player_characters);
+    router.get('/player/characterDetail', apiAuthMw, routes.player_characterDetail);
     router.get('/player/linked', apiAuthMw, routes.player_linked);
     router.get('/player/search', apiAuthMw, routes.player_search);
     router.post('/player/checkJoin', intercomAuthMw, routes.player_checkJoin);
