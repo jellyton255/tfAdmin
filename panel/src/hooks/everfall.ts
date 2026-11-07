@@ -1,5 +1,6 @@
 import useSWR from "swr";
 import { useAuthedFetcher } from "@/hooks/fetch";
+import { txToast } from "@/components/TxToaster";
 import type { EverfallResp, EverfallStaffPermissions } from "@shared/everfallApiTypes";
 
 /**
@@ -44,5 +45,28 @@ export function useEverfallPermissions() {
     return {
         ...query,
         can: (permission: string) => permissions.includes(permission),
+    };
+}
+
+/**
+ * Everfall: runs one change with a loading toast that turns into its success or the game's error.
+ * Resolves the operation's data, or undefined when it failed.
+ */
+export function useEverfallAction() {
+    const everfallRequest = useEverfallRequest();
+    return async function everfallAction<Data = Record<string, unknown>>(
+        operation: string,
+        payload: Record<string, unknown>,
+        messages: { loading: string; success: string },
+    ): Promise<Data | undefined> {
+        const toastId = txToast.loading(messages.loading);
+        try {
+            const data = await everfallRequest<Data>(operation, payload);
+            txToast.success(messages.success, { id: toastId });
+            return data;
+        } catch (error) {
+            txToast.error(error instanceof Error ? error.message : String(error), { id: toastId });
+            return undefined;
+        }
     };
 }

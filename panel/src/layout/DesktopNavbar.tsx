@@ -106,6 +106,9 @@ export default function DesktopNavbar() {
                     <HeaderMenuItem href="/inventories">
                         Inventories
                     </HeaderMenuItem>
+                    <HeaderMenuItem href="/world">
+                        World
+                    </HeaderMenuItem>
                     <HeaderMenuItem href="/admins" disabled={!hasPerm('manage.admins')}>
                         Admins
                     </HeaderMenuItem>
