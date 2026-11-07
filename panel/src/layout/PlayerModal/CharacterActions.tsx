@@ -450,8 +450,13 @@ function UpdateGroupForm({ character, action }: FormProps) {
 }
 
 function EditIdentityForm({ character, action }: FormProps) {
-    const [first = '', ...rest] = character.fullName.split(' ');
-    const { values, set } = useFormValues({ firstName: first, lastName: rest.join(' '), dateOfBirth: '', gender: '', reason: '' });
+    const { values, set } = useFormValues({
+        firstName: character.firstName ?? '',
+        lastName: character.lastName ?? '',
+        dateOfBirth: character.dateOfBirth ?? '',
+        gender: character.gender === null ? '' : String(character.gender),
+        reason: '',
+    });
     const schema = z.object({
         firstName: namePartSchema,
         lastName: namePartSchema,

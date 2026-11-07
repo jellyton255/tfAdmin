@@ -76,6 +76,12 @@ export type PlayerCharacter = {
     citizenId: string;
     slot: number | null;
     fullName: string;
+    firstName: string | null;
+    lastName: string | null;
+    /** YYYY-MM-DD */
+    dateOfBirth: string | null;
+    /** QBox: 0 male, 1 female */
+    gender: number | null;
     jobLabel: string | null;
     jobGrade: string | null;
     gangName: string | null;
