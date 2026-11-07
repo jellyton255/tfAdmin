@@ -186,8 +186,6 @@ function PaperRequestsQueue() {
                     <TableHeader>
                         <TableRow className="hover:bg-transparent">
                             <TableHead>Request</TableHead>
-                            <TableHead>Requester</TableHead>
-                            <TableHead className="whitespace-nowrap">Submitted</TableHead>
                             <TableHead className="text-right">Copies</TableHead>
                             <TableHead className="text-right">Estimate</TableHead>
                             <TableHead>Status</TableHead>
@@ -204,12 +202,13 @@ function PaperRequestsQueue() {
                                                 <img src={request.thumbnailUrl} alt="" className="size-10 rounded border object-cover bg-muted" />
                                             </a>
                                         ) : null}
-                                        <span className="font-medium truncate">{request.title}</span>
+                                        <div className="min-w-0">
+                                            <div className="font-medium truncate">{request.title}</div>
+                                            <div className="text-xs text-muted-foreground truncate">
+                                                {request.requesterName} · {dateFormat.format(new Date(request.submittedAt * 1000))}
+                                            </div>
+                                        </div>
                                     </div>
-                                </TableCell>
-                                <TableCell>{request.requesterName}</TableCell>
-                                <TableCell className="whitespace-nowrap text-muted-foreground">
-                                    {dateFormat.format(new Date(request.submittedAt * 1000))}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">{request.copies}</TableCell>
                                 <TableCell className="text-right tabular-nums">{moneyFormat.format(request.estimatedTotal)}</TableCell>
