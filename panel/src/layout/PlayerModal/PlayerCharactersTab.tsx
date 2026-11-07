@@ -8,6 +8,14 @@ import InlineCode from "@/components/InlineCode";
 import GenericSpinner from "@/components/GenericSpinner";
 import { ModalTabInner, ModalTabMessage } from "@/components/modal-tabs";
 import type { PlayerCharacter, PlayerCharacterDetailResp, PlayerCharactersResp } from "@shared/playerApiTypes";
+import { useEverfallPermissions } from "@/hooks/everfall";
+import {
+    CharacterAuditView,
+    CharacterSectionView,
+    CharacterViewTabs,
+    CharacterWalletView,
+    type CharacterView,
+} from "./CharacterSections";
 
 
 const moneyFormatter = new Intl.NumberFormat('en-US', {
@@ -102,6 +110,27 @@ function CharacterDetail({ citizenId }: { citizenId: string }) {
     );
 }
 
+function CharacterRecord({ character }: { character: PlayerCharacter }) {
+    const [view, setView] = useState<CharacterView>('detail');
+    const { can } = useEverfallPermissions();
+    const { citizenId } = character;
+
+    return (
+        <>
+            <CharacterViewTabs view={view} onViewChange={setView} can={can} />
+            {view === 'detail' ? (
+                <CharacterDetail citizenId={citizenId} />
+            ) : view === 'wallet' ? (
+                <CharacterWalletView citizenId={citizenId} />
+            ) : view === 'audit' ? (
+                <CharacterAuditView citizenId={citizenId} />
+            ) : (
+                <CharacterSectionView key={view} citizenId={citizenId} section={view} />
+            )}
+        </>
+    );
+}
+
 function CharacterItem({ character }: { character: PlayerCharacter }) {
     const [expanded, setExpanded] = useState(false);
     const job = roleLine(character.jobLabel, character.jobGrade);
@@ -142,7 +171,7 @@ function CharacterItem({ character }: { character: PlayerCharacter }) {
             </small>
             {expanded && (
                 <div className="mt-2 mb-1 border-t border-border/60 pt-2">
-                    <CharacterDetail citizenId={character.citizenId} />
+                    <CharacterRecord character={character} />
                 </div>
             )}
         </div>

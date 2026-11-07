@@ -23,3 +23,55 @@ export type EverfallStaffPermissions = {
     rank: string | null;
     permissions: string[];
 };
+
+/** The character record sections `character.section` reads (ef_administration CharacterData). */
+export type EverfallCharacterSectionName = 'finances' | 'groups' | 'vehicles' | 'properties' | 'phone' | 'mdt' | 'progression';
+
+/** One source of a section, such as Bank Accounts under finances. Rows are that source's own columns. */
+export type EverfallCharacterSectionSource = {
+    id: string;
+    label: string;
+    resource: string;
+    available: boolean;
+    count: number;
+    rows: Record<string, unknown>[];
+    error?: string;
+};
+
+/** Answer of `character.section`: one page of every source in the section. */
+export type EverfallCharacterSection = {
+    section: EverfallCharacterSectionName;
+    page: number;
+    pageSize: number;
+    adapters: EverfallCharacterSectionSource[];
+};
+
+/** Answer of `character.wallet`: the cards in every wallet an online character carries. */
+export type EverfallCharacterWallet = {
+    cards: {
+        slot: number;
+        item: string;
+        kind: string;
+        label: string;
+        status: string;
+        issuedAt?: number;
+        expiresAt?: number;
+    }[];
+};
+
+/** Answer of `character.audit`: the latest staff changes made to the character. */
+export type EverfallCharacterAudit = {
+    rows: {
+        id: number;
+        action: string;
+        actorName: string | null;
+        reason: string | null;
+        outcome: string;
+        createdAt: number | string;
+    }[];
+};
+
+/** Answer of `character.action`. */
+export type EverfallCharacterActionResult = {
+    message: string;
+};
