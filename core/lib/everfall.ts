@@ -4,7 +4,8 @@ import got from '@lib/got';
 import consoleFactory from '@lib/console';
 const console = consoleFactory(modulename);
 
-const REQUEST_TIMEOUT_MS = 15_000;
+// A screenshot alone can take 15 seconds in game before its upload finishes.
+const REQUEST_TIMEOUT_MS = 30_000;
 const respSchema = z.union([
     z.object({ ok: z.literal(true), data: z.record(z.string(), z.unknown()) }),
     z.object({ ok: z.literal(false), error: z.string() }),
