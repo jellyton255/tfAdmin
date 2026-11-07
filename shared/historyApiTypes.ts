@@ -15,6 +15,15 @@ export type HistoryStatsResp = {
 } | GenericApiErrorResp;
 
 
+/**
+ * everfall: who issued an action. Game scripts moderate through the monitor exports with a label
+ * for an author instead of an admin name (resource/sv_exports.lua): bans default to 'Anti-Cheat',
+ * warns and kicks to 'System'. Every other author is a staff member, including former admins.
+ */
+export const HISTORY_ANTICHEAT_AUTHOR = 'Anti-Cheat';
+export const HISTORY_SCRIPT_AUTHORS = [HISTORY_ANTICHEAT_AUTHOR, 'System'];
+export type HistorySourceFilter = 'staff' | 'anticheat';
+
 export type HistoryTableSearchType = {
     value: string;
     type: string;
@@ -29,6 +38,7 @@ export type HistoryTableReqType = {
     search: HistoryTableSearchType;
     filterbyType: string | undefined;
     filterbyAdmin: string | undefined;
+    filterbySource: HistorySourceFilter | undefined; //everfall
     sorting: HistoryTableSortingType;
     //NOTE: the query needs to be offset.param inclusive, but offset.actionId exclusive
     // therefore, optimistically always limit to x + 1

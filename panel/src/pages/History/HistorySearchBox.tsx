@@ -69,6 +69,7 @@ export type HistorySearchBoxReturnStateType = {
     filterbyType?: string;
     filterbyAdmin?: string;
     filterbyNotes?: boolean;
+    filterbySource?: string;
 }
 
 type HistorySearchBoxProps = {
@@ -77,6 +78,7 @@ type HistorySearchBoxProps = {
         filterbyType: string | undefined,
         filterbyAdmin: string | undefined,
         filterbyNotes: boolean,
+        filterbySource: string | undefined,
     ) => void;
     initialState: HistorySearchBoxReturnStateType;
     adminStats: {
@@ -94,24 +96,27 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
     const [typeFilter, setTypeFilter] = useState(initialState.filterbyType);
     const [adminNameFilter, setAdminNameFilter] = useState(initialState.filterbyAdmin);
     const [notesFilter, setNotesFilter] = useState(!!initialState.filterbyNotes);
+    const [sourceFilter, setSourceFilter] = useState(initialState.filterbySource);
 
     const updateSearch = () => {
         if (!inputRef.current) return;
         const searchValue = inputRef.current.value.trim();
         const effectiveTypeFilter = typeFilter !== SEARCH_ANY_STRING ? typeFilter : undefined;
         const effectiveAdminNameFilter = adminNameFilter !== SEARCH_ANY_STRING ? adminNameFilter : undefined;
+        const effectiveSourceFilter = sourceFilter !== SEARCH_ANY_STRING ? sourceFilter : undefined;
         doSearch(
             { value: searchValue, type: currSearchType },
             effectiveTypeFilter,
             effectiveAdminNameFilter,
             notesFilter,
+            effectiveSourceFilter,
         );
     }
 
     //Call onSearch when params change
     useEffect(() => {
         updateSearch();
-    }, [currSearchType, typeFilter, adminNameFilter, notesFilter]);
+    }, [currSearchType, typeFilter, adminNameFilter, notesFilter, sourceFilter]);
 
     //Input handlers
     const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -258,6 +263,24 @@ export function HistorySearchBox({ doSearch, initialState, adminStats }: History
                                     {admin.name} <span className="opacity-50">({admin.actions})</span>
                                 </SelectItem>
                             ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* everfall: game script actions (exports.monitor:BanPlayer) apart from staff ones */}
+                    <Select defaultValue={sourceFilter} onValueChange={setSourceFilter}>
+                        <SelectTrigger className="w-36 grow md:grow-0" >
+                            <SelectValue placeholder="Filter by source" />
+                        </SelectTrigger>
+                        <SelectContent className="px-0">
+                            <SelectItem value={SEARCH_ANY_STRING} className="cursor-pointer">
+                                Any source
+                            </SelectItem>
+                            <SelectItem value={'staff'} className="cursor-pointer">
+                                Staff
+                            </SelectItem>
+                            <SelectItem value={'anticheat'} className="cursor-pointer">
+                                Anti-Cheat
+                            </SelectItem>
                         </SelectContent>
                     </Select>
 

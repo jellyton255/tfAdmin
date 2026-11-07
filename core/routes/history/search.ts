@@ -6,7 +6,12 @@ import { chain as createChain } from 'lodash-es';
 import Fuse from 'fuse.js';
 import { now } from '@lib/misc';
 import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
-import { HistoryTableActionType, HistoryTableSearchResp } from '@shared/historyApiTypes';
+import {
+    HISTORY_ANTICHEAT_AUTHOR,
+    HISTORY_SCRIPT_AUTHORS,
+    HistoryTableActionType,
+    HistoryTableSearchResp,
+} from '@shared/historyApiTypes';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
 import { visibleNotes } from '@lib/notes';
 const console = consoleFactory(modulename);
@@ -30,6 +35,7 @@ export default async function HistorySearch(ctx: AuthedCtx) {
         filterbyType,
         filterbyAdmin,
         filterbyNotes,
+        filterbySource,
         sortingKey,
         sortingDesc,
         offsetParam,
@@ -67,7 +73,8 @@ export default async function HistorySearch(ctx: AuthedCtx) {
     const effectiveTypeFilter = typeof filterbyType === 'string' && filterbyType.length ? filterbyType : undefined;
     const effectiveAdminFilter = typeof filterbyAdmin === 'string' && filterbyAdmin.length ? filterbyAdmin : undefined;
     const effectiveNotesFilter = filterbyNotes === 'true';
-    if (effectiveTypeFilter || effectiveAdminFilter || effectiveNotesFilter) {
+    const effectiveSourceFilter = filterbySource === 'staff' || filterbySource === 'anticheat' ? filterbySource : undefined;
+    if (effectiveTypeFilter || effectiveAdminFilter || effectiveNotesFilter || effectiveSourceFilter) {
         chain = chain.filter((a) => {
             if (effectiveTypeFilter && a.type !== effectiveTypeFilter) {
                 return false;
@@ -76,6 +83,12 @@ export default async function HistorySearch(ctx: AuthedCtx) {
                 return false;
             }
             if (effectiveNotesFilter && !visibleNotes(a.notes).length) {
+                return false;
+            }
+            if (effectiveSourceFilter === 'anticheat' && a.author !== HISTORY_ANTICHEAT_AUTHOR) {
+                return false;
+            }
+            if (effectiveSourceFilter === 'staff' && HISTORY_SCRIPT_AUTHORS.includes(a.author)) {
                 return false;
             }
             return true;
