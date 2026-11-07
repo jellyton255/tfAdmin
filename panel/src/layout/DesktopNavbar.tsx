@@ -109,21 +109,40 @@ export default function DesktopNavbar() {
                     <HeaderMenuItem href="/groups">
                         Groups
                     </HeaderMenuItem>
-                    <HeaderMenuItem href="/banking">
-                        Banking
-                    </HeaderMenuItem>
-                    <HeaderMenuItem href="/staff-queues">
-                        Staff Queues
-                    </HeaderMenuItem>
-                    <HeaderMenuItem href="/world">
-                        World
-                    </HeaderMenuItem>
                     <HeaderMenuItem href="/admins" disabled={!hasPerm('manage.admins')}>
                         Admins
                     </HeaderMenuItem>
                     <HeaderMenuItem href="/settings" disabled={!hasPerm('settings.view')}>
                         Settings
                     </HeaderMenuItem>
+                </NavigationMenuList>
+            </NavigationMenu>
+
+            {/* everfall: ef_administration pages, grouped so the header fits */}
+            <NavigationMenu>
+                <NavigationMenuList>
+                    <NavigationMenuItem>
+                        <NavigationMenuTrigger
+                            onClick={(e) => {
+                                if (e.currentTarget.dataset['state'] === 'open') {
+                                    e.preventDefault();
+                                }
+                            }}
+                        >
+                            Game
+                        </NavigationMenuTrigger>
+                        <NavigationMenuContent className="flex flex-col gap-2 p-4 list-none">
+                            <HeaderMenuLink className="w-36 justify-start" href="/banking">
+                                Banking
+                            </HeaderMenuLink>
+                            <HeaderMenuLink className="w-36 justify-start" href="/staff-queues">
+                                Staff Queues
+                            </HeaderMenuLink>
+                            <HeaderMenuLink className="w-36 justify-start" href="/world">
+                                World
+                            </HeaderMenuLink>
+                        </NavigationMenuContent>
+                    </NavigationMenuItem>
                 </NavigationMenuList>
             </NavigationMenu>
 
