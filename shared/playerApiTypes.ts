@@ -82,7 +82,10 @@ export type PlayerCharacter = {
     dateOfBirth: string | null;
     /** QBox: 0 male, 1 female */
     gender: number | null;
+    jobName: string | null;
     jobLabel: string | null;
+    /** ef_scoreboard's JobConfig color: a Mantine color name ('teal.7') or a hex code */
+    jobColor: string | null;
     jobGrade: string | null;
     gangName: string | null;
     gangLabel: string | null;
@@ -91,6 +94,7 @@ export type PlayerCharacter = {
     bank: number | null;
     tsLastUpdated: number | null;
     tsLastLoggedOut: number | null;
+    vehicleCount: number | null;
     online: boolean;
 }
 export type PlayerCharactersResp = {

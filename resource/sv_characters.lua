@@ -22,6 +22,7 @@ local CHARACTERS_QUERY = [[
         p.lastName AS lastName,
         DATE_FORMAT(p.dateOfBirth, '%%Y-%%m-%%d') AS dateOfBirth,
         p.gender + 0 AS gender,
+        JSON_VALUE(p.job, '$.name') AS jobName,
         JSON_VALUE(p.job, '$.label') AS jobLabel,
         JSON_VALUE(p.job, '$.grade.name') AS jobGrade,
         JSON_VALUE(p.gang, '$.name') AS gangName,
@@ -31,6 +32,7 @@ local CHARACTERS_QUERY = [[
         JSON_VALUE(p.money, '$.bank') + 0 AS bank,
         UNIX_TIMESTAMP(p.last_updated) AS tsLastUpdated,
         UNIX_TIMESTAMP(p.last_logged_out) AS tsLastLoggedOut,
+        (SELECT COUNT(*) FROM player_vehicles v WHERE v.citizenid = p.citizenid) AS vehicleCount,
         u.license AS license,
         u.license2 AS license2
     FROM players p
@@ -39,6 +41,25 @@ local CHARACTERS_QUERY = [[
         AND p.deleted IS NULL
     ORDER BY p.last_updated DESC
 ]]
+
+-- ef_scoreboard's JobConfig colors, the same ones ef_administration shows: a Mantine color
+-- name such as 'teal.7' or a hex code. Read once; the config file is a plain returned table.
+local jobColors
+
+local function loadJobColors()
+    local source = LoadResourceFile('ef_scoreboard', 'config.lua')
+    local chunk = source and load(source, '@ef_scoreboard/config.lua', 't', {})
+    local config = chunk and chunk()
+    jobColors = { default = config and config.DefaultColor or nil }
+    for name, job in pairs(config and config.JobConfig or {}) do
+        if type(job.Color) == 'string' then jobColors[name] = job.Color end
+    end
+end
+
+local function jobColor(name)
+    if not jobColors then loadJobColors() end
+    return jobColors[name] or jobColors.default
+end
 
 local function sendJson(res, status, data)
     res.writeHead(status, { ['Content-Type'] = 'application/json' })
@@ -87,6 +108,7 @@ local function queryCharacters(res, where, params)
         end
 
         for _, row in ipairs(rows) do
+            row.jobColor = row.jobName and jobColor(row.jobName) or nil
             row.online = GetResourceState('qbx_core') == 'started'
                 and exports.qbx_core:GetPlayerByCitizenId(row.citizenId) ~= nil
         end
