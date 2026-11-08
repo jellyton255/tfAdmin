@@ -9,6 +9,7 @@ import StatsDao from './dao/stats';
 import CleanupDao from './dao/cleanup';
 import { TxConfigState } from '@shared/enums';
 import { runNoteMovePass } from './noteMove';
+import { runStaffAuthorsPass } from './staffAuthors';
 const console = consoleFactory(modulename);
 
 
@@ -40,6 +41,13 @@ export default class Database {
             return runNoteMovePass(this.#db.obj, this.#db.dbPath);
         }).catch((error) => {
             console.error(`Failed to move player notes onto actions: ${(error as Error).message}`);
+        });
+        //everfall: one-time return of API-recorded staff actions to the staff member who took them
+        this.#db.setupDone.then(() => {
+            if (!this.#db.obj) return;
+            return runStaffAuthorsPass(this.#db.obj, this.#db.dbPath);
+        }).catch((error) => {
+            console.error(`Failed to give API-recorded staff actions back to their staff members: ${(error as Error).message}`);
         });
 
         //Database optimization cron function
