@@ -243,7 +243,7 @@ const schemas: Record<string, Schema> = {
         identifiers: arr(str()),
     }),
     AuditLogEntry: obj({
-        ts: epochMs(), author: str({ description: 'Admin name, API key (`api:<name>`), game script label or a system source such as MONITOR' }),
+        ts: epochMs(), author: str({ description: 'Admin name, imported ban author, game script label or a system source such as MONITOR' }),
         category: enumOf(ADMIN_LOG_CATEGORIES.map((c) => c.key)), msg: str(),
     }),
     StaffActivityCounts: obj({
@@ -760,7 +760,7 @@ export const buildOpenApiDocument = () => ({
                 name: 'X-TxAdmin-Actor-Id',
                 in: 'header',
                 required: false,
-                description: 'Staff member the key acts for: `discord:<id>` or `fivem:<id>`, prefix case-insensitive (needs the `api.actor` scope). It must match the linked account of a txAdmin admin, otherwise 403 (`details.reason: actor_not_admin`). The request is then limited to the key scopes whose backing txAdmin permission that admin holds (403 `actor_lacks_permission` otherwise) and recorded as `<txAdmin admin name> (via api:<key name>)`.',
+                description: 'Staff member the key acts for: `discord:<id>` or `fivem:<id>`, prefix case-insensitive. Required on staff actions (ban, warn, kick, message, notes, watch, tags, revocations, ban changes, action notes, announcements), otherwise 403 (`details.reason: actor_required`). It must match the linked account of a txAdmin admin, otherwise 403 (`details.reason: actor_not_admin`). The request is then limited to the key scopes whose backing txAdmin permission that admin holds (403 `actor_lacks_permission` otherwise) and recorded as that admin.',
                 schema: { type: 'string', pattern: '^\\s*([Dd][Ii][Ss][Cc][Oo][Rr][Dd]:\\d{17,20}|[Ff][Ii][Vv][Ee][Mm]:\\d{1,20})\\s*$' },
             },
         },

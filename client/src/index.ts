@@ -159,7 +159,7 @@ export class TxAdminClient {
 
     /**
      * Returns a client that acts for a staff member, given their linked account id (`discord:<id>` or
-     * `fivem:<id>`). Needs a key with the `api.actor` scope, and the id must belong to a txAdmin admin:
+     * `fivem:<id>`). Staff actions require it, and the id must belong to a txAdmin admin:
      * writes are then limited to that admin's permissions and recorded under their txAdmin name.
      */
     asActor(actorId: string): TxAdminClient {

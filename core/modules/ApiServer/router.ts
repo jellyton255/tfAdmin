@@ -4,6 +4,8 @@ import { apiKeyAuthMw } from './apiKeyAuthMw';
 import * as v1 from '@routes/api/v1';
 import type { InitializedCtx } from '@modules/WebServer/ctxTypes';
 
+const STAFF = { staffAction: true };
+
 
 /**
  * Router factory for the public API, mounted by WebServer/router.ts under /api/v1.
@@ -60,28 +62,28 @@ export default () => {
     router.post('/webhooks/:id/test', apiKeyAuthMw('manage.admins'), v1.webhooks_test as any);
     router.get('/webhooks/:id/deliveries', apiKeyAuthMw('manage.admins'), v1.webhooks_deliveries as any);
 
-    //Player moderation
-    router.post('/players/:license/ban', apiKeyAuthMw('players.ban'), v1.players_ban as any);
-    router.post('/players/:license/warn', apiKeyAuthMw('players.warn'), v1.players_warn as any);
-    router.post('/players/:license/kick', apiKeyAuthMw('players.kick'), v1.players_kick as any);
-    router.post('/players/:license/message', apiKeyAuthMw('players.direct_message'), v1.players_message as any);
+    //Player moderation: staff actions, always recorded as the staff member (X-TxAdmin-Actor-Id)
+    router.post('/players/:license/ban', apiKeyAuthMw('players.ban', STAFF), v1.players_ban as any);
+    router.post('/players/:license/warn', apiKeyAuthMw('players.warn', STAFF), v1.players_warn as any);
+    router.post('/players/:license/kick', apiKeyAuthMw('players.kick', STAFF), v1.players_kick as any);
+    router.post('/players/:license/message', apiKeyAuthMw('players.direct_message', STAFF), v1.players_message as any);
     router.put('/players/:license/whitelist', apiKeyAuthMw('players.whitelist'), v1.players_whitelist as any);
-    router.put('/players/:license/note', apiKeyAuthMw('players.note'), v1.players_note as any);
-    router.post('/players/:license/notes', apiKeyAuthMw('players.note'), v1.players_addNote as any);
-    router.delete('/players/:license/notes/:noteId', apiKeyAuthMw('players.note'), v1.players_deleteNote as any);
-    router.put('/players/:license/watch', apiKeyAuthMw('players.note'), v1.players_watch as any);
-    router.delete('/players/:license/watch', apiKeyAuthMw('players.note'), v1.players_unwatch as any);
-    router.put('/players/:license/tags', apiKeyAuthMw('players.note'), v1.players_tags as any);
+    router.put('/players/:license/note', apiKeyAuthMw('players.note', STAFF), v1.players_note as any);
+    router.post('/players/:license/notes', apiKeyAuthMw('players.note', STAFF), v1.players_addNote as any);
+    router.delete('/players/:license/notes/:noteId', apiKeyAuthMw('players.note', STAFF), v1.players_deleteNote as any);
+    router.put('/players/:license/watch', apiKeyAuthMw('players.note', STAFF), v1.players_watch as any);
+    router.delete('/players/:license/watch', apiKeyAuthMw('players.note', STAFF), v1.players_unwatch as any);
+    router.put('/players/:license/tags', apiKeyAuthMw('players.note', STAFF), v1.players_tags as any);
 
     //Actions (bans/warns/kicks) writes
-    router.post('/actions/ban-identifiers', apiKeyAuthMw('players.ban'), v1.actions_banIds as any);
+    router.post('/actions/ban-identifiers', apiKeyAuthMw('players.ban', STAFF), v1.actions_banIds as any);
     router.post('/actions/import-ban', apiKeyAuthMw('players.ban_import'), v1.actions_importBan as any);
-    router.post('/actions/:id/revoke', apiKeyAuthMw(), v1.actions_revoke as any); //per-type permission inside
-    router.post('/actions/:id/length', apiKeyAuthMw('players.ban'), v1.actions_changeLength as any);
-    router.put('/actions/:id/appeal', apiKeyAuthMw('players.ban'), v1.actions_setAppeal as any);
-    router.post('/actions/:id/notes', apiKeyAuthMw(), v1.actions_addNote as any); //players.note or the type's scope inside
-    router.patch('/actions/:id/notes/:noteId', apiKeyAuthMw(), v1.actions_editNote as any);
-    router.delete('/actions/:id/notes/:noteId', apiKeyAuthMw(), v1.actions_deleteNote as any);
+    router.post('/actions/:id/revoke', apiKeyAuthMw(undefined, STAFF), v1.actions_revoke as any); //per-type permission inside
+    router.post('/actions/:id/length', apiKeyAuthMw('players.ban', STAFF), v1.actions_changeLength as any);
+    router.put('/actions/:id/appeal', apiKeyAuthMw('players.ban', STAFF), v1.actions_setAppeal as any);
+    router.post('/actions/:id/notes', apiKeyAuthMw(undefined, STAFF), v1.actions_addNote as any); //players.note or the type's scope inside
+    router.patch('/actions/:id/notes/:noteId', apiKeyAuthMw(undefined, STAFF), v1.actions_editNote as any);
+    router.delete('/actions/:id/notes/:noteId', apiKeyAuthMw(undefined, STAFF), v1.actions_deleteNote as any);
 
     //Whitelist writes
     router.post('/whitelist/approvals', apiKeyAuthMw('players.whitelist'), v1.whitelist_addApproval as any);
@@ -91,7 +93,7 @@ export default () => {
     router.post('/whitelist/requests/:id/deny', apiKeyAuthMw('players.whitelist'), v1.whitelist_denyRequest as any);
 
     //Server control and commands (heavy rate-limit bucket)
-    router.post('/server/announce', apiKeyAuthMw('announcement'), v1.server_announce as any);
+    router.post('/server/announce', apiKeyAuthMw('announcement', STAFF), v1.server_announce as any);
     router.post('/server/kick-all', apiKeyAuthMw('control.server'), v1.server_kickAll as any);
     router.post('/server/command', apiKeyAuthMw('console.write'), v1.server_command as any);
     router.post('/server/:action', apiKeyAuthMw('control.server'), v1.server_control as any);

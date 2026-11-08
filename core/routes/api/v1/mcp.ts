@@ -5,7 +5,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { SubscribeRequestSchema, UnsubscribeRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { txEnv } from '@core/globalData';
 import got from '@lib/got';
-import { ACTOR_ID_HEADER, ACTOR_SCOPE, buildApiKeyPrincipal, findActorAdmin, type ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
+import { ACTOR_ID_HEADER, buildApiKeyPrincipal, findActorAdmin, type ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
 import type { StoredApiKey } from '@modules/ApiServer/ApiKeyStore';
 import { API_EVENT_TYPES } from '@shared/apiV1Types';
 import { sendError } from '@modules/ApiServer/envelope';
@@ -575,6 +575,7 @@ const buildInstructions = (ctx: ApiKeyCtx) => [
     `tfAdmin is Everfall's fork of txAdmin, the panel that runs and moderates a FiveM game server.`,
     `This endpoint belongs to the tfAdmin of "${txConfig.general.serverName}" (${ctx.host}); every tool reads or changes that one server.`,
     `This key is "${ctx.apiKey.name}". Writes are logged as ${ctx.admin.name} and appear in the panel's action history.`,
+    `Staff actions (bans, warnings, kicks, messages, notes, watches, tags, revocations, announcements) are refused unless the connection names the staff member in X-TxAdmin-Actor-Id.`,
     `Tools are limited to this key's scopes. Start with tfadmin_status. Identify players by license (40 hex characters) from tfadmin_players_search.`,
     `Bans, kicks, warnings, resource and server control affect real players: only use them when a person explicitly asks for that action.`,
     `Never use this to stop or restart the whole Main (production) server process; server control here only manages the game server child, and Main restarts are the owner's decision.`,
@@ -611,7 +612,7 @@ function currentSessionPrincipal(session: McpSession, key: ReturnType<typeof txC
     if (!key) return null;
     if (key.revokedAt !== null || (key.expiresAt !== null && key.expiresAt <= Date.now())) return null;
     const actor = session.actorId ? findActorAdmin(session.actorId) ?? undefined : undefined;
-    if (session.actorId && (!actor || !buildApiKeyPrincipal({ ...session.apiKey, permissions: key.permissions }).hasPermission(ACTOR_SCOPE))) return null;
+    if (session.actorId && !actor) return null;
     return buildApiKeyPrincipal({ ...session.apiKey, permissions: key.permissions, revokedAt: key.revokedAt, expiresAt: key.expiresAt }, actor);
 }
 

@@ -30,9 +30,9 @@ try {
 }
 ```
 
-To act for the staff member who pressed the button, give the key the `api.actor` scope and use `asActor` with
-their Discord id. It only works for staff whose Discord is linked to a txAdmin admin (403 otherwise); the write
-is limited to that admin's permissions and recorded under their txAdmin name, e.g. `Julian (via api:Tickets)`:
+Staff actions (bans, warnings, kicks, messages, notes and the like) must name the staff member who pressed the
+button: use `asActor` with their Discord id. It only works for staff whose Discord is linked to a txAdmin admin
+(403 otherwise); the write is limited to that admin's permissions and recorded under their txAdmin name:
 
 ```ts
 await tx.asActor(`discord:${staff.discordId}`).players.warn(players[0].license, { reason: 'RDM' });

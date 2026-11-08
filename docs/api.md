@@ -47,33 +47,35 @@ Changing a key's scopes or revoking it takes effect immediately. Revoked keys st
 | `console.write` | Run console commands | Execute console commands |
 | `commands.resources` | Manage resources | Refresh and resource start/stop/restart/ensure |
 | `manage.admins` | Manage API keys and webhooks | Keys, webhooks and the admin roster |
-| `api.actor` | Act for staff members | Lets the key act for a txAdmin admin with `X-TxAdmin-Actor-Id` |
 | `all_permissions` | Full access | Everything, including future scopes |
 
 `GET /api/v1/keys` returns this catalogue as `scopes` so clients and the panel never hard-code it.
 
 ### Acting for a staff member
 
-A consumer that lets its own staff press the buttons (ticket system, in-game admin panel) says who pressed
-them. Give its key the `api.actor` scope and send the staff member's Discord (or FiveM) id on each write:
+Staff actions are always recorded under the staff member who took them, never under a key. A consumer whose
+staff press the buttons (ticket system, in-game admin panel, Discord bot) sends that staff member's Discord
+(or FiveM) id on each staff action:
 
 ```
 X-TxAdmin-Actor-Id: discord:272800190639898628
 ```
 
+- Staff actions need the header: ban, warn, kick, message, player notes, watch, tags, ban by identifiers,
+  revoke, ban length, appeal, action notes and announcements. Without it they get **403** with
+  `details.reason: "actor_required"`. Imported bans (they carry their own author), whitelist, server and
+  resource control, keys and webhooks may still run as the key (`api:<key name>`).
 - The id must belong to a txAdmin admin (the Discord or FiveM account linked on their admin page). Anyone
   else gets **403** with `details.reason: "actor_not_admin"`, so staff need a txAdmin admin account to act
   through the API.
 - The request can only use scopes that both the key and that admin hold. A key with `players.ban` acting for
   an admin without the Ban permission gets **403** with `details.reason: "actor_lacks_permission"`. Scopes
-  with no matching admin permission (`players.note`, `api.actor`) are not narrowed.
-- The action is recorded under the admin's txAdmin name, the same one their panel actions use:
-  `Julian (via api:Tickets)` in the ban or warn record, revocations, notes, the admin log, in-game
-  `txAdmin:events:*` and webhooks. Renaming the staff member elsewhere changes nothing; renaming the txAdmin
-  admin applies to new actions.
+  with no matching admin permission (`players.note`) are not narrowed.
+- The action is recorded under the admin's txAdmin name, the same one their panel actions use, in the ban or
+  warn record, revocations, notes, the admin log, in-game `txAdmin:events:*` and webhooks. Renaming the staff
+  member elsewhere changes nothing; renaming the txAdmin admin applies to new actions.
 - The id is `discord:<17-20 digits>` or `fivem:<digits>` (prefix case-insensitive, surrounding spaces
-  ignored); anything else is a 400. A key without
-  `api.actor` gets a 403 for the header. Without the header the key acts as itself (`api:Tickets`).
+  ignored); anything else is a 400.
 
 ## Envelope
 

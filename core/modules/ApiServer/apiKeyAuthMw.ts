@@ -18,9 +18,8 @@ export type ApiKeyCtx = InitializedCtx & {
     request: any;
 };
 
-//Header naming the staff member a consumer is acting for (needs the api.actor scope)
+//Header naming the staff member a consumer is acting for
 export const ACTOR_ID_HEADER = 'x-txadmin-actor-id';
-export const ACTOR_SCOPE = 'api.actor';
 const ACTOR_ID_PATTERN = /^(discord:\d{17,20}|fivem:\d{1,20})$/;
 
 /**
@@ -74,14 +73,13 @@ const REJECT_MESSAGES: Record<string, string> = {
 
 /**
  * Builds the principal used as ctx.admin for API key requests.
- * It is a regular AuthedAdmin named `api:<keyName>`, so every existing permission check
- * and admin log line works unchanged and the action log attributes writes to the key.
- * With an actor (X-TxAdmin-Actor-Id) the name becomes `<txAdmin admin name> (via api:<keyName>)` and the
- * permissions are narrowed to what both the key and that admin hold.
+ * Without an actor it is named `api:<keyName>`, which only key, webhook, whitelist and server
+ * routes accept. With an actor (X-TxAdmin-Actor-Id) it is that txAdmin admin, by name, with the
+ * permissions both the key and the admin hold, so staff actions are recorded as the admin.
  */
 export const buildApiKeyPrincipal = (key: StoredApiKey, actor?: ActorAdmin) => {
     return new AuthedAdmin({
-        name: actor ? `${actor.name} (via api:${key.name})` : `api:${key.name}`,
+        name: actor ? actor.name : `api:${key.name}`,
         master: false,
         permissions: actor ? actorEffectiveScopes(key.permissions, actor) : key.permissions,
     });
@@ -92,8 +90,9 @@ export const buildApiKeyPrincipal = (key: StoredApiKey, actor?: ActorAdmin) => {
  * Auth middleware factory for /api/v1 routes.
  * - Bearer token only, never cookies/sessions/CSRF
  * - optional `requiredPermission` (a scope id) checked before the handler runs
+ * - `staffAction` routes refuse requests that do not name the staff member behind them
  */
-export const apiKeyAuthMw = (requiredPermission?: string) => {
+export const apiKeyAuthMw = (requiredPermission?: string, options: { staffAction?: boolean } = {}) => {
     return async (ctx: InitializedCtx, next: Next) => {
         const header = ctx.headers['authorization'];
         if (typeof header !== 'string' || !header.toLowerCase().startsWith('bearer ')) {
@@ -126,14 +125,17 @@ export const apiKeyAuthMw = (requiredPermission?: string) => {
             return sendError(ctx, 429, 'RATE_LIMITED', 'Rate limit exceeded.', { retryAfterSec: rl.retryAfterSec });
         }
 
-        //Optional actor: only keys holding api.actor may act for a staff member, and only for one
-        //whose Discord/FiveM account is linked to a txAdmin admin
+        //Actor: the staff member behind the call, whose Discord/FiveM account must be linked to a
+        //txAdmin admin. Staff actions always need one, so they are never recorded as the key.
         let actor: ActorAdmin | undefined;
         const actorIdHeader = ctx.headers[ACTOR_ID_HEADER];
+        if (actorIdHeader === undefined && options.staffAction) {
+            return sendError(ctx, 403, 'FORBIDDEN', 'Staff actions must name the staff member in X-TxAdmin-Actor-Id.', {
+                reason: 'actor_required',
+                header: 'X-TxAdmin-Actor-Id',
+            });
+        }
         if (actorIdHeader !== undefined) {
-            if (!buildApiKeyPrincipal(result.key).hasPermission(ACTOR_SCOPE)) {
-                return sendError(ctx, 403, 'FORBIDDEN', 'This API key cannot set X-TxAdmin-Actor-Id.', { permission: ACTOR_SCOPE });
-            }
             const actorId = typeof actorIdHeader === 'string' ? parseActorId(actorIdHeader) : null;
             if (!actorId) {
                 return sendError(ctx, 400, 'VALIDATION_ERROR', 'Invalid X-TxAdmin-Actor-Id header.', {

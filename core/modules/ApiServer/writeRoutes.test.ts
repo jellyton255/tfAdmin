@@ -261,11 +261,14 @@ afterAll(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
+//Staff actions must name a txAdmin admin; requests act for the master admin Owner unless told otherwise
+const OWNER = { 'X-TxAdmin-Actor-Id': 'fivem:7' };
+const NO_ACTOR: Record<string, string> = {};
 const call = async (method: string, route: string, body?: unknown, bearer = rootToken, extraHeaders: Record<string, string> = {}) => {
     const resp = await fetch(baseUrl + route, {
         method,
         headers: {
-            ...extraHeaders,
+            ...(extraHeaders === NO_ACTOR ? {} : { ...OWNER, ...extraHeaders }),
             Authorization: `Bearer ${bearer}`,
             ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         },
@@ -283,11 +286,11 @@ describe('player moderation', () => {
         expect(r.json.data.action).toMatchObject({ type: 'ban', reason: 'cheating', banStatus: 'active', hwids: ['hw1'] });
         expect(r.json.data.action.expiresAt).toBeGreaterThan(Date.now() + 47 * 3600 * 1000);
         expect(r.json.data.eventSent).toBe(true);
-        expect(adminLog.some((l) => /^api:root\d+: Banned player "Alice": cheating$/.test(l))).toBe(true);
+        expect(adminLog.some((l) => /^Owner: Banned player "Alice": cheating$/.test(l))).toBe(true);
         const ev = lastEvent('playerBanned');
         expect(ev).toMatchObject({ targetNetId: 3, targetIds: [`license:${LIC_ON}`, 'fivem:1001'], targetHwids: ['hw1'], durationInput: '2 days', durationTranslated: '172800s' });
         expect(ev.kickMessage).toContain('ban_messages.kick_temporary');
-        expect(ev.kickMessage).toMatch(/public\(api:root\d+\)/);
+        expect(ev.kickMessage).toMatch(/public\(Owner\)/);
     });
 
     it('bans an offline player permanently without an event when the server is idle', async () => {
@@ -311,14 +314,14 @@ describe('player moderation', () => {
     it('warns, kicks and messages', async () => {
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'language' }, kickOnlyToken);
         expect(warn.status).toBe(201);
-        expect(warn.json.data.action).toMatchObject({ type: 'warn', acked: false, author: 'api:kicker' });
+        expect(warn.json.data.action).toMatchObject({ type: 'warn', acked: false, author: 'Owner' });
         expect(lastEvent('playerWarned')).toMatchObject({ targetNetId: null, targetName: 'Bob' });
 
         const kick = await call('POST', `/api/v1/players/${LIC_ON}/kick`, { reason: 'afk', note: 'third time' }, kickOnlyToken);
         expect(kick.status).toBe(200);
         expect(kick.json.data.ok).toBe(true);
         expect(kick.json.data.action).toMatchObject({ type: 'kick', reason: 'afk', banStatus: null, notes: [{ text: 'third time' }] });
-        expect(lastEvent('playerKicked')).toMatchObject({ target: 3, reason: 'afk', author: 'api:kicker', actionId: kick.json.data.action.id });
+        expect(lastEvent('playerKicked')).toMatchObject({ target: 3, reason: 'afk', author: 'Owner', actionId: kick.json.data.action.id });
         expect(JSON.stringify(lastEvent('playerKicked'))).not.toContain('third time');
         const revokeKick = await call('POST', `/api/v1/actions/${kick.json.data.action.id}/revoke`);
         expect(revokeKick.status).toBe(409);
@@ -358,7 +361,7 @@ describe('player moderation', () => {
 
         const note = await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: '  watch this one ' }, kickOnlyToken);
         expect(note.status).toBe(200);
-        expect(players[1].noteHistory).toMatchObject([{ text: 'watch this one', author: 'api:kicker' }]);
+        expect(players[1].noteHistory).toMatchObject([{ text: 'watch this one', author: 'Owner' }]);
     });
 
     it('appends and deletes notes without losing earlier ones', async () => {
@@ -366,7 +369,7 @@ describe('player moderation', () => {
         expect(first.status).toBe(200);
         const second = await call('POST', `/api/v1/players/${LIC_OFF}/notes`, { note: ' second ' }, kickOnlyToken);
         expect(second.status).toBe(201);
-        expect(second.json.data.note).toMatchObject({ text: 'second', author: 'api:kicker' });
+        expect(second.json.data.note).toMatchObject({ text: 'second', author: 'Owner' });
         expect(players[1].noteHistory?.map((n) => n.text)).toEqual(['first', 'second']);
 
         expect((await call('PUT', `/api/v1/players/${LIC_OFF}/note`, { note: '   ' }, kickOnlyToken)).status).toBe(400);
@@ -383,8 +386,8 @@ describe('player moderation', () => {
     it('watches, unwatches and tags players', async () => {
         const watched = await call('PUT', `/api/v1/players/${LIC_OFF}/watch`, { reason: ' possible alt ' }, kickOnlyToken);
         expect(watched.status).toBe(200);
-        expect(watched.json.data.watch).toMatchObject({ reason: 'possible alt', author: 'api:kicker' });
-        expect(players[1].watch).toMatchObject({ reason: 'possible alt', author: 'api:kicker' });
+        expect(watched.json.data.watch).toMatchObject({ reason: 'possible alt', author: 'Owner' });
+        expect(players[1].watch).toMatchObject({ reason: 'possible alt', author: 'Owner' });
         expect((await call('PUT', `/api/v1/players/${LIC_OFF}/watch`, { reason: '  ' }, kickOnlyToken)).status).toBe(400);
 
         const tagged = await call('PUT', `/api/v1/players/${LIC_OFF}/tags`, { tags: [' VIP ', 'vip', 'Donor'] }, kickOnlyToken);
@@ -427,7 +430,7 @@ describe('actions', () => {
 
         const ok = await call('POST', `/api/v1/actions/${banId.toLowerCase()}/revoke`);
         expect(ok.status).toBe(200);
-        expect(ok.json.data.action.revokedBy).toMatch(/^api:root\d+$/);
+        expect(ok.json.data.action.revokedBy).toBe('Owner');
         expect(lastEvent('actionRevoked')).toMatchObject({ actionId: banId, actionType: 'ban' });
 
         expect((await call('POST', `/api/v1/actions/${banId}/revoke`)).status).toBe(409);
@@ -522,9 +525,9 @@ describe('action notes', () => {
         const denied = await call('POST', `/api/v1/actions/${warnId}/notes`, { text: 'x' }, banOnly);
         expect(denied.status).toBe(403);
 
-        const actorToken = (await apiServer.keyStore.create({ name: `Tickets${++keySeq}`, permissions: ['api.actor', 'players.warn'] }, 'test')).token;
+        const actorToken = (await apiServer.keyStore.create({ name: `Tickets${++keySeq}`, permissions: ['players.warn'] }, 'test')).token;
         const mine = await call('POST', `/api/v1/actions/${warnId}/notes`, { text: 'mine' }, actorToken, JULIAN);
-        expect(mine.json.data.note.author).toMatch(/^JulianTx \(via api:Tickets\d+\)$/);
+        expect(mine.json.data.note.author).toBe('JulianTx');
         const noteId = mine.json.data.note.id;
 
         //another key acting for the same admin owns it too; a different principal does not
@@ -537,7 +540,7 @@ describe('action notes', () => {
         expect((await call('DELETE', `/api/v1/actions/${warnId}/notes/${noteId}`)).status).toBe(200);
         const after = await call('GET', `/api/v1/actions/${warnId}`);
         expect(after.json.data.action.notes).toEqual([]);
-        expect(actions.find((a) => a.id === warnId)!.notes![0].deleted).toMatchObject({ author: expect.stringMatching(/^api:root/) });
+        expect(actions.find((a) => a.id === warnId)!.notes![0].deleted).toMatchObject({ author: 'Owner' });
         expect((await call('DELETE', `/api/v1/actions/${warnId}/notes/${noteId}`)).status).toBe(404);
     });
 
@@ -574,7 +577,7 @@ describe('import-ban', () => {
     });
 
     it('creates once, then replays the same action with no second write', async () => {
-        const r = await call('POST', '/api/v1/actions/import-ban', body({ hwids: [HWID], playerName: 'Dave' }));
+        const r = await call('POST', '/api/v1/actions/import-ban', body({ hwids: [HWID], playerName: 'Dave' }), rootToken, NO_ACTOR);
         expect(r.status).toBe(201);
         expect(r.json.data).toMatchObject({ created: true, dropped: [], eventSent: false });
         expect(r.json.data.action).toMatchObject({
@@ -656,25 +659,21 @@ describe('acting for a staff member', () => {
     const JULIAN = { 'X-TxAdmin-Actor-Id': 'DISCORD:111111111111111111' };
     const HELPER = { 'X-TxAdmin-Actor-Id': 'discord:333333333333333333' };
 
-    it('records the linked txAdmin admin and the key on bans, warns and revokes', async () => {
-        const actorToken = (await apiServer.keyStore.create({ name: 'Tickets', permissions: ['api.actor', 'players.ban', 'players.warn'] }, 'test')).token;
+    it('records the linked txAdmin admin on bans, warns and revokes', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Tickets', permissions: ['players.ban', 'players.warn'] }, 'test')).token;
 
         //a display-name header is ignored; the txAdmin admin name is recorded
         const ban = await call('POST', `/api/v1/players/${LIC_ON}/ban`, { reason: 'cheating', duration: '1 day' }, actorToken, { ...JULIAN, 'X-TxAdmin-Actor': 'Jules' });
         expect(ban.status).toBe(201);
-        expect(ban.json.data.action.author).toBe('JulianTx (via api:Tickets)');
-        expect(adminLog.at(-1)).toMatch(/^JulianTx \(via api:Tickets\): Banned player "Alice": cheating$/);
-        expect(lastEvent('playerBanned')).toMatchObject({ author: 'JulianTx (via api:Tickets)' });
+        expect(ban.json.data.action.author).toBe('JulianTx');
+        expect(adminLog.at(-1)).toMatch(/^JulianTx: Banned player "Alice": cheating$/);
+        expect(lastEvent('playerBanned')).toMatchObject({ author: 'JulianTx' });
 
         const warn = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'rdm' }, actorToken, HELPER);
-        expect(warn.json.data.action.author).toBe('Helper (via api:Tickets)');
+        expect(warn.json.data.action.author).toBe('Helper');
 
         const revoke = await call('POST', `/api/v1/actions/${ban.json.data.action.id}/revoke`, undefined, actorToken, JULIAN);
-        expect(revoke.json.data.action.revokedBy).toBe('JulianTx (via api:Tickets)');
-
-        //without the header the key acts as itself
-        const plain = await call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'again' }, actorToken);
-        expect(plain.json.data.action.author).toBe('api:Tickets');
+        expect(revoke.json.data.action.revokedBy).toBe('JulianTx');
     });
 
     it('limits the request to what both the key and the admin hold', async () => {
@@ -696,9 +695,14 @@ describe('acting for a staff member', () => {
         expect((await call('POST', '/api/v1/server/announce', { message: 'hi' }, actorToken, { 'X-TxAdmin-Actor-Id': 'fivem:7' })).status).toBe(200);
     });
 
-    it('rejects unlinked staff, bad ids and keys without api.actor', async () => {
-        const actorToken = (await apiServer.keyStore.create({ name: 'Bot', permissions: ['api.actor', 'players.warn'] }, 'test')).token;
-        const warn = (headers: Record<string, string>, bearer = actorToken) => call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, bearer, headers);
+    it('rejects staff actions without an actor, unlinked staff and bad ids', async () => {
+        const actorToken = (await apiServer.keyStore.create({ name: 'Bot', permissions: ['players.warn', 'players.note'] }, 'test')).token;
+        const warn = (headers: Record<string, string>) => call('POST', `/api/v1/players/${LIC_OFF}/warn`, { reason: 'x' }, actorToken, headers);
+
+        const anonymous = await warn(NO_ACTOR);
+        expect(anonymous.status).toBe(403);
+        expect(anonymous.json.error.details).toMatchObject({ reason: 'actor_required' });
+        expect((await call('POST', `/api/v1/players/${LIC_OFF}/notes`, { text: 'x' }, actorToken, NO_ACTOR)).status).toBe(403);
 
         const unlinked = await warn({ 'X-TxAdmin-Actor-Id': 'discord:222222222222222222' });
         expect(unlinked.status).toBe(403);
@@ -707,10 +711,6 @@ describe('acting for a staff member', () => {
         for (const bad of ['', 'discord:123', 'license:abc', 'discord:1;x', 'Julian']) {
             expect((await warn({ 'X-TxAdmin-Actor-Id': bad })).status, bad).toBe(400);
         }
-
-        const denied = await warn(JULIAN, kickOnlyToken);
-        expect(denied.status).toBe(403);
-        expect(denied.json.error.details.permission).toBe('api.actor');
         expect(actions).toHaveLength(0);
     });
 });
@@ -760,7 +760,7 @@ describe('whitelist', () => {
 
 describe('server control and commands', () => {
     it('restarts, stops and starts', async () => {
-        const restart = await call('POST', '/api/v1/server/restart');
+        const restart = await call('POST', '/api/v1/server/restart', undefined, rootToken, NO_ACTOR);
         expect(restart.status).toBe(200);
         expect(restart.json.data).toMatchObject({ action: 'restart', result: 'restarting' });
         expect(txCore.fxRunner.restartServer).toHaveBeenCalledWith('admin request', expect.stringMatching(/^api:root\d+$/));

@@ -41,8 +41,8 @@ beforeAll(async () => {
     readToken = (await apiServer.keyStore.create({ name: 'reader', permissions: [] }, 'test')).token;
     warnToken = (await apiServer.keyStore.create({ name: 'warner', permissions: ['players.warn'] }, 'test')).token;
     whitelistToken = (await apiServer.keyStore.create({ name: 'Agents MCP', permissions: ['players.whitelist'] }, 'test')).token;
-    actorToken = (await apiServer.keyStore.create({ name: 'Actor MCP', permissions: ['api.actor', 'manage.admins'] }, 'test')).token;
-    wildcardToken = (await apiServer.keyStore.create({ name: 'Wildcard MCP', permissions: [API_SCOPE_ALL, 'api.actor'] }, 'test')).token;
+    actorToken = (await apiServer.keyStore.create({ name: 'Actor MCP', permissions: ['manage.admins'] }, 'test')).token;
+    wildcardToken = (await apiServer.keyStore.create({ name: 'Wildcard MCP', permissions: [API_SCOPE_ALL] }, 'test')).token;
 
     vi.stubGlobal('txConfig', { general: { serverName: 'Everfall Dev2' } });
     vi.stubGlobal('txManager', {
@@ -166,7 +166,7 @@ describe('POST /api/v1/mcp', () => {
         const forbidden = await client.callTool({ name: 'tfadmin_actions_revoke', arguments: { id: ban.id } });
         expect(forbidden.isError).toBe(true);
         expect(textOf(forbidden)).toContain('FORBIDDEN');
-        expect(textOf(forbidden)).toContain('players.ban');
+        expect(textOf(forbidden)).toContain('actor_required');
 
         const missing = await client.callTool({ name: 'tfadmin_players_get', arguments: { license: 'b'.repeat(40) } });
         expect(missing.isError).toBe(true);
@@ -274,13 +274,13 @@ describe('POST /api/v1/mcp', () => {
         expect(notifications).toBe(1);
         const wildcardKey = apiServer.keyStore.list().find((key) => key.name === 'Wildcard MCP');
         expect(wildcardKey).toBeTruthy();
-        await apiServer.keyStore.updatePermissions(wildcardKey?.id ?? '', ['manage.admins']);
+        await apiServer.keyStore.updatePermissions(wildcardKey?.id ?? '', ['players.ban']);
         apiServer.publishEvent('admin.login', { admin: 'scope-removed' });
         await new Promise((resolve) => setTimeout(resolve, 25));
         expect(notifications).toBe(1);
         await wildcard.close().catch(() => { });
 
-        await apiServer.keyStore.updatePermissions(wildcardKey?.id ?? '', [API_SCOPE_ALL, 'api.actor']);
+        await apiServer.keyStore.updatePermissions(wildcardKey?.id ?? '', [API_SCOPE_ALL]);
         const deletedActor = await connectAs(wildcardToken, 'discord:11111111111111111');
         let deletedNotifications = 0;
         deletedActor.setNotificationHandler(ResourceUpdatedNotificationSchema, () => { deletedNotifications++; });
@@ -299,10 +299,10 @@ describe('POST /api/v1/mcp', () => {
         await vi.waitFor(() => expect(resourceCommand).toHaveBeenCalled());
         const wildcardKey = apiServer.keyStore.list().find((key) => key.name === 'Wildcard MCP');
         expect(wildcardKey).toBeTruthy();
-        await apiServer.keyStore.updatePermissions(wildcardKey?.id ?? '', ['manage.admins']);
+        actorDeleted = true;
         resourceReport = { ts: new Date(), resources: [{ name: 'test', status: 'started', path: '/tmp/test' }] };
         await new Promise((resolve) => setTimeout(resolve, 100));
-        await apiServer.keyStore.updatePermissions(wildcardKey?.id ?? '', [API_SCOPE_ALL, 'api.actor']);
+        actorDeleted = false;
         await expect(client.listResources()).rejects.toThrow();
         resourceReport = null;
         await client.close().catch(() => { });
