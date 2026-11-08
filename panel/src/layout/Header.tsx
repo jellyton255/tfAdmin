@@ -71,13 +71,17 @@ function ButtonReloadUpdate({ className }: NavButtonProps) {
     if (!panelOutdated) return null;
     return (
         <button
-            className={cn(navButtonClasses, 'border-info/40 bg-info/10 text-info-inline hover:border-info hover:bg-info/20 hover:text-info-inline', className)}
+            className={cn(navButtonClasses, 'group relative text-foreground sm:gap-2.5 sm:pl-3 sm:pr-1.5 lg:pl-3 lg:pr-1.5', className)}
             title="tfAdmin was updated. Reload to load the new version."
             onClick={() => window.location.reload()}
         >
-            <RotateCwIcon className="h-6 w-6 sm:h-4 sm:w-4 shrink-0" />
-            <span className="hidden sm:inline">Update Available</span>
-            <span className="hidden sm:inline font-semibold">Reload</span>
+            <span className="absolute right-2 top-2 size-2 rounded-full bg-success ring-2 ring-card sm:static sm:ring-0" />
+            <RotateCwIcon className="h-6 w-6 sm:hidden" />
+            <span className="hidden sm:inline">Update Ready</span>
+            <span className="hidden sm:inline-flex h-7 items-center gap-1.5 rounded bg-primary px-2.5 text-xs font-medium text-primary-foreground transition-colors group-hover:bg-primary/90">
+                <RotateCwIcon className="size-3.5 transition-transform duration-300 group-hover:rotate-180" />
+                Reload
+            </span>
         </button>
     );
 }
