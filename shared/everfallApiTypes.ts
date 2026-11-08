@@ -139,3 +139,9 @@ export type EverfallGroupMembers = {
     page: number;
     hasMore: boolean;
 };
+
+/** Jobs deleted from the job list that characters still hold. Lua may send an empty list as {}. */
+export type EverfallRemovedJobs = {
+    jobs: { name: string; members: number }[] | Record<string, never>;
+};
+

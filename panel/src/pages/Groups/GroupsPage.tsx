@@ -10,7 +10,7 @@ import { txToast } from "@/components/TxToaster";
 import { useOpenConfirmDialog, useOpenPromptDialog } from "@/hooks/dialogs";
 import { useEverfallPermissions, useEverfallQuery, useEverfallRequest } from "@/hooks/everfall";
 import { cn } from "@/lib/utils";
-import type { EverfallGroup, EverfallGroupList, EverfallGroupMembers, EverfallGroupType } from "@shared/everfallApiTypes";
+import type { EverfallGroup, EverfallGroupList, EverfallGroupMembers, EverfallGroupType, EverfallRemovedJobs } from "@shared/everfallApiTypes";
 
 
 const numberFormatter = new Intl.NumberFormat('en-US');
@@ -178,6 +178,68 @@ function GroupMembersCard({ groupType, group, canManage, onChanged }: GroupMembe
 }
 
 
+//MARK: Removed Jobs
+/** Jobs deleted from the job list that characters still hold; cleanup moves them to Unemployed. */
+function RemovedJobsCard({ onChanged }: { onChanged: () => void }) {
+    const query = useEverfallQuery<EverfallRemovedJobs>('groups.removedJobs');
+    const everfallRequest = useEverfallRequest();
+    const openConfirmDialog = useOpenConfirmDialog();
+    const jobs = query.data ? Object.values(query.data.jobs) : [];
+    if (!jobs.length) return null;
+
+    function handleCleanup(job: { name: string; members: number }) {
+        openConfirmDialog({
+            title: 'Clean Up Removed Job',
+            message: `Remove ${job.name} from ${numberFormatter.format(job.members)} ${job.members === 1 ? 'character' : 'characters'}? Anyone with it as their main job goes back to Unemployed.`,
+            actionLabel: 'Clean Up',
+            confirmBtnVariant: 'destructive',
+            onConfirm: async () => {
+                const toastId = txToast.loading(`Cleaning up ${job.name}...`);
+                try {
+                    const result = await everfallRequest<{ cleaned: number; failed: number }>('groups.cleanupRemovedJob', { jobName: job.name });
+                    const text = `Cleared ${job.name} from ${numberFormatter.format(result.cleaned)} ${result.cleaned === 1 ? 'character' : 'characters'}.`;
+                    if (result.failed) {
+                        txToast.warning(`${text} ${numberFormatter.format(result.failed)} could not be changed.`, { id: toastId });
+                    } else {
+                        txToast.success(text, { id: toastId });
+                    }
+                } catch (error) {
+                    txToast.error(errorText(error), { id: toastId });
+                }
+                query.mutate();
+                onChanged();
+            },
+        });
+    }
+
+    return (
+        <div className="min-w-0 border border-warning/40 rounded-lg bg-card overflow-hidden">
+            <div className="px-4 py-2.5 border-b text-sm font-semibold">Removed Jobs</div>
+            <Table>
+                <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                        <TableHead>Job</TableHead>
+                        <TableHead className="text-right">Characters</TableHead>
+                        <TableHead />
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {jobs.map((job) => (
+                        <TableRow key={job.name}>
+                            <TableCell className="font-mono">{job.name}</TableCell>
+                            <TableCell className="text-right tabular-nums">{numberFormatter.format(job.members)}</TableCell>
+                            <TableCell className="text-right">
+                                <Button size="sm" variant="outline-destructive" onClick={() => handleCleanup(job)}>Clean Up</Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    );
+}
+
+
 //MARK: Page
 export default function GroupsPage() {
     const { can, data: permissions } = useEverfallPermissions();
@@ -215,6 +277,7 @@ export default function GroupsPage() {
                             <TabsTrigger value="gang">Gangs</TabsTrigger>
                         </TabsList>
                     </Tabs>
+                    {groupType === 'job' && can('ManageGroups') && <RemovedJobsCard onChanged={() => list.mutate()} />}
                     <div className="grid gap-4 lg:grid-cols-[minmax(12rem,16rem)_1fr] items-start">
                         <div className="min-w-0 border rounded-lg bg-card overflow-y-auto max-h-[70vh]">
                             <Table>
