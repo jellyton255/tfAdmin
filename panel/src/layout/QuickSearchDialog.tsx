@@ -115,9 +115,9 @@ export default function QuickSearchDialog() {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => open ? setIsOpen(true) : close()}>
-            <DialogContent className="top-[15%] translate-y-0 data-[state=open]:slide-in-from-top-[10%] data-[state=closed]:slide-out-to-top-[10%] max-w-xl gap-0 p-0 overflow-hidden">
+            <DialogContent className="top-[15%] translate-y-0 data-[state=open]:slide-in-from-top-[10%] data-[state=closed]:slide-out-to-top-[10%] max-w-xl gap-0 p-0 overflow-hidden border-foreground/15 bg-card shadow-[0_24px_64px_-12px_rgb(0_0_0/0.7)]">
                 <DialogTitle className="sr-only">Quick Search</DialogTitle>
-                <div className="flex items-center gap-3 px-4 border-b">
+                <div className="flex items-center gap-3 px-4 border-b border-foreground/10 bg-foreground/[0.03]">
                     {isSearching
                         ? <Loader2Icon className="size-5 shrink-0 animate-spin text-muted-foreground" />
                         : <SearchIcon className="size-5 shrink-0 text-muted-foreground" />}
