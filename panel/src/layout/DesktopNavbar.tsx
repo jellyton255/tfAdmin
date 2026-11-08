@@ -138,6 +138,9 @@ export default function DesktopNavbar() {
                             <HeaderMenuLink className="w-36 justify-start" href="/staff-queues">
                                 Staff Queues
                             </HeaderMenuLink>
+                            <HeaderMenuLink className="w-36 justify-start" href="/staff-log">
+                                Staff Log
+                            </HeaderMenuLink>
                             <HeaderMenuLink className="w-36 justify-start" href="/world">
                                 World
                             </HeaderMenuLink>

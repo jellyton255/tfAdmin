@@ -145,3 +145,23 @@ export type EverfallRemovedJobs = {
     jobs: { name: string; members: number }[] | Record<string, never>;
 };
 
+
+/** One row of the `staffLog.list` operation (ef_administration modules/staff-log). */
+export type EverfallStaffLogEntry = {
+    id: number;
+    /** unix seconds */
+    at: number;
+    origin: 'game' | 'tfadmin' | 'website';
+    actor: string;
+    /** the rank the actor held when they acted: everfall.staff or everfall.admin */
+    rank: string;
+    action: string;
+    message: string;
+    target?: string;
+};
+
+/** Answer of the `staffLog.list` operation; `before` is the cursor for the next older page. */
+export type EverfallStaffLog = {
+    entries: EverfallStaffLogEntry[];
+    before: number | false;
+};

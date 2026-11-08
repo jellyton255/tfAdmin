@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ServerSidebar } from "./ServerSidebar/ServerSidebar";
 import { useGlobalMenuSheet, usePlayerlistSheet, useServerSheet } from "@/hooks/sheets";
 import { MenuNavLink, NavLink } from "@/components/MainPageLink";
-import { BriefcaseIcon, ClipboardCheckIcon, CloudSunIcon, DoorOpenIcon, InboxIcon, LandmarkIcon, ListIcon, PackageIcon, PieChartIcon, ScrollIcon, ScrollTextIcon, SettingsIcon, ShieldCheckIcon, UserCheckIcon, UserSquare2Icon, UsersIcon, ZapIcon } from 'lucide-react';
+import { BriefcaseIcon, ClipboardCheckIcon, ClipboardListIcon, CloudSunIcon, DoorOpenIcon, InboxIcon, LandmarkIcon, ListIcon, PackageIcon, PieChartIcon, ScrollIcon, ScrollTextIcon, SettingsIcon, ShieldCheckIcon, UserCheckIcon, UserSquare2Icon, UsersIcon, ZapIcon } from 'lucide-react';
 import { PlayerlistSidebar } from "./PlayerlistSidebar/PlayerlistSidebar";
 import { useAdminPerms } from "@/hooks/auth";
 import { LogoFullSquareGreen } from "@/components/Logos";
@@ -57,6 +57,9 @@ export function GlobalMenuSheet() {
                             </MenuNavLink>
                             <MenuNavLink href="/staff-queues">
                                 <InboxIcon className="mr-2 h-4 w-4" />Staff Queues
+                            </MenuNavLink>
+                            <MenuNavLink href="/staff-log">
+                                <ClipboardListIcon className="mr-2 h-4 w-4" />Staff Log
                             </MenuNavLink>
                             <MenuNavLink href="/world">
                                 <CloudSunIcon className="mr-2 h-4 w-4" />World

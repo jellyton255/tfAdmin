@@ -36,6 +36,7 @@ import StaffActivityPage from "@/pages/StaffActivity/StaffActivityPage";
 import WorldPage from "@/pages/World/WorldPage"; //everfall
 import BankingPage from "@/pages/Banking/BankingPage"; //everfall
 import StaffQueuesPage from "@/pages/StaffQueues/StaffQueuesPage"; //everfall
+import StaffLogPage from "@/pages/StaffLog/StaffLogPage"; //everfall
 
 
 export type RouteType = {
@@ -87,6 +88,11 @@ export const allRoutes: RouteType[] = [
         path: '/staff-queues',
         title: 'Staff Queues',
         Page: <StaffQueuesPage />
+    },
+    {
+        path: '/staff-log',
+        title: 'Staff Log',
+        Page: <StaffLogPage />
     },
     {
         path: '/world',
