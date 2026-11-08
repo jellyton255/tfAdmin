@@ -1,14 +1,12 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import useSWR from "swr";
-import { ChevronRightIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useAuthedFetcher } from "@/hooks/fetch";
 import type { PlayerModalRefType } from "@/hooks/playerModal";
-import InlineCode from "@/components/InlineCode";
 import GenericSpinner from "@/components/GenericSpinner";
-import { ModalTabInner, ModalTabMessage } from "@/components/modal-tabs";
-import type { PlayerCharacter, PlayerCharacterDetailResp, PlayerCharactersResp } from "@shared/playerApiTypes";
+import { Button } from "@/components/ui/button";
+import type { PlayerCharacter, PlayerCharacterDetailResp } from "@shared/playerApiTypes";
 import { useEverfallPermissions } from "@/hooks/everfall";
+import { jobBadgeStyle } from "@/lib/jobColors";
 import {
     CharacterAuditView,
     CharacterSectionView,
@@ -22,44 +20,24 @@ import {
     progressionSource,
     type OpenCharacterAction,
 } from "./CharacterActions";
-import { Button } from "@/components/ui/button";
+import {
+    Avatar, characterLastSeen, EmptyRow, errorText, formatMoney, GangBadge, hasGang, Pill,
+    StatStrip, usePlayerCharacters,
+} from "./parts";
 
 
-const moneyFormatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-});
-const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    hour12: true,
-});
-
-function formatMoney(value: number | null) {
-    return value === null ? '—' : moneyFormatter.format(value);
-}
-
-function roleLine(label: string | null, grade: string | null) {
-    if (!label) return null;
-    return grade ? `${label} · ${grade}` : label;
-}
-
-const vehicleStates: Record<number, string> = { 0: 'Out', 1: 'Garaged', 2: 'Impounded' };
+const vehicleStates: Record<number, { label: string; tone: 'success' | 'info' | 'warning' }> = {
+    0: { label: 'Out', tone: 'info' },
+    1: { label: 'Garaged', tone: 'success' },
+    2: { label: 'Impounded', tone: 'warning' },
+};
 const numberFormatter = new Intl.NumberFormat('en-US');
 
-function DetailSection({ title, count, children }: { title: string; count: number; children: ReactNode }) {
-    return (
-        <section className="min-w-0">
-            <h4 className="text-xs font-medium text-muted-foreground mb-1">
-                {title} <span className="tabular-nums">({count})</span>
-            </h4>
-            {count ? children : <p className="text-xs text-muted-foreground">None</p>}
-        </section>
-    );
-}
+const thClass = 'px-4 py-2 text-left text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground';
+const tdClass = 'border-t px-4 py-2';
 
-function CharacterDetail({ citizenId }: { citizenId: string }) {
+/** The saved vehicles or inventory of a character, read from the game database. */
+function CharacterDetail({ citizenId, part }: { citizenId: string; part: 'vehicles' | 'inventory' }) {
     const authedFetcher = useAuthedFetcher();
     const swr = useSWR(
         `/player/characterDetail?${new URLSearchParams({ citizenId })}`,
@@ -67,192 +45,156 @@ function CharacterDetail({ citizenId }: { citizenId: string }) {
         { revalidateOnFocus: false },
     );
 
-    if (swr.error) {
-        return <p className="text-xs text-destructive-inline">Error: {swr.error instanceof Error ? swr.error.message : String(swr.error)}</p>;
-    }
-    if (!swr.data) {
-        return <GenericSpinner msg="Loading Details..." />;
-    }
-    if ('error' in swr.data) {
-        return <p className="text-xs text-destructive-inline">Error: {swr.data.error}</p>;
-    }
-    if (swr.data.status === 'unavailable') {
-        return <p className="text-xs text-muted-foreground">{swr.data.reason}</p>;
+    if (swr.error) return <EmptyRow>Error: {errorText(swr.error)}</EmptyRow>;
+    if (!swr.data) return <div className="py-6"><GenericSpinner msg="Loading..." /></div>;
+    if ('error' in swr.data) return <EmptyRow>Error: {swr.data.error}</EmptyRow>;
+    if (swr.data.status === 'unavailable') return <EmptyRow>{swr.data.reason}</EmptyRow>;
+
+    if (part === 'vehicles') {
+        const { vehicles } = swr.data;
+        if (!vehicles.length) return <EmptyRow>No vehicles.</EmptyRow>;
+        return (
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                    <thead><tr>
+                        <th className={thClass}>Plate</th>
+                        <th className={thClass}>Model</th>
+                        <th className={thClass}>Garage</th>
+                        <th className={`${thClass} text-right`}>Mileage</th>
+                        <th className={thClass}>State</th>
+                    </tr></thead>
+                    <tbody>
+                        {vehicles.map((vehicle) => {
+                            const state = vehicle.state !== null ? vehicleStates[vehicle.state] : undefined;
+                            return (
+                                <tr key={vehicle.plate} className="hover:bg-muted/30">
+                                    <td className={`${tdClass} whitespace-nowrap font-mono font-semibold tracking-wider`}>{vehicle.plate}</td>
+                                    <td className={tdClass}>{vehicle.model ?? 'Unknown Model'}</td>
+                                    <td className={`${tdClass} text-muted-foreground`}>{vehicle.garage ?? '—'}</td>
+                                    <td className={`${tdClass} text-right font-mono tabular-nums text-muted-foreground`}>
+                                        {vehicle.mileage === null ? '—' : `${numberFormatter.format(Math.round(vehicle.mileage))} mi`}
+                                    </td>
+                                    <td className={tdClass}>
+                                        {state ? <Pill tone={state.tone}>{state.label}</Pill> : vehicle.state !== null && <Pill>State {vehicle.state}</Pill>}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        );
     }
 
-    const { vehicles, inventory } = swr.data;
+    const { inventory } = swr.data;
+    if (!inventory.length) return <EmptyRow>No saved items.</EmptyRow>;
     return (
-        <div className="grid gap-3 sm:grid-cols-2">
-            <DetailSection title="Vehicles" count={vehicles.length}>
-                <ul className="space-y-0.5 text-xs">
-                    {vehicles.map((vehicle) => (
-                        <li key={vehicle.plate} className="flex items-baseline justify-between gap-2">
-                            <span className="truncate">
-                                <InlineCode className="tracking-widest">{vehicle.plate}</InlineCode>{' '}
-                                {vehicle.model ?? 'Unknown Model'}
-                            </span>
-                            <span className="shrink-0 text-muted-foreground">
-                                {[
-                                    vehicle.state !== null ? (vehicleStates[vehicle.state] ?? `State ${vehicle.state}`) : null,
-                                    vehicle.garage,
-                                ].filter(Boolean).join(' · ')}
-                            </span>
-                        </li>
-                    ))}
-                </ul>
-            </DetailSection>
-            <DetailSection title="Inventory" count={inventory.length}>
-                <ul className="space-y-0.5 text-xs">
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+                <thead><tr>
+                    <th className={`${thClass} w-16`}>Slot</th>
+                    <th className={thClass}>Item</th>
+                    <th className={thClass}>Name</th>
+                    <th className={`${thClass} text-right`}>Count</th>
+                </tr></thead>
+                <tbody>
                     {inventory.map((item, index) => (
-                        <li key={`${item.slot ?? 'x'}-${item.name}-${index}`} className="flex items-baseline justify-between gap-2">
-                            <span className="truncate">{item.label ?? item.name}</span>
-                            <span className="shrink-0 tabular-nums text-muted-foreground">
-                                ×{numberFormatter.format(item.count)}
-                            </span>
-                        </li>
+                        <tr key={`${item.slot ?? 'x'}-${item.name}-${index}`} className="hover:bg-muted/30">
+                            <td className={`${tdClass} font-mono tabular-nums text-muted-foreground`}>{item.slot ?? '—'}</td>
+                            <td className={`${tdClass} font-medium`}>{item.label ?? item.name}</td>
+                            <td className={`${tdClass} font-mono text-xs text-muted-foreground`}>{item.name}</td>
+                            <td className={`${tdClass} text-right font-mono tabular-nums`}>×{numberFormatter.format(item.count)}</td>
+                        </tr>
                     ))}
-                </ul>
-            </DetailSection>
+                </tbody>
+            </table>
         </div>
     );
 }
 
 function CharacterRecord({ character }: { character: PlayerCharacter }) {
-    const [view, setView] = useState<CharacterView>('detail');
+    const [view, setView] = useState<CharacterView>('vehicles');
     const [action, setAction] = useState<OpenCharacterAction | null>(null);
     const { can } = useEverfallPermissions();
     const { citizenId } = character;
     const canEditProgression = view === 'progression' && can('EditCharacterProgression');
 
     return (
-        <>
-            <CharacterViewTabs
-                view={view}
-                onViewChange={setView}
-                can={can}
-                actions={<CharacterActionsMenu character={character} can={can} onSelect={setAction} />}
-            />
-            {view === 'detail' ? (
-                <CharacterDetail citizenId={citizenId} />
-            ) : view === 'wallet' ? (
-                <CharacterWalletView citizenId={citizenId} />
-            ) : view === 'audit' ? (
-                <CharacterAuditView citizenId={citizenId} />
-            ) : (
-                <CharacterSectionView
-                    key={view}
-                    citizenId={citizenId}
-                    section={view}
-                    rowAction={canEditProgression ? (source, row) => {
-                        const adapterId = progressionSource(source.id);
-                        return adapterId && (
-                            <Button size="inline" variant="ghost-muted" onClick={() => setAction({ kind: 'editProgression', adapterId, row })}>
-                                Edit
-                            </Button>
-                        );
-                    } : undefined}
-                />
-            )}
-            <CharacterActionDialog character={character} open={action} onClose={() => setAction(null)} />
-        </>
-    );
-}
-
-function CharacterItem({ character }: { character: PlayerCharacter }) {
-    const [expanded, setExpanded] = useState(false);
-    const job = roleLine(character.jobLabel, character.jobGrade);
-    const hasGang = character.gangName && character.gangName !== 'none';
-    const gang = hasGang ? roleLine(character.gangLabel ?? character.gangName, character.gangGrade) : null;
-    const tsLastSeen = character.tsLastLoggedOut ?? character.tsLastUpdated;
-
-    return (
-        <div className={cn(
-            'px-2 py-1 border-l-4 rounded-r-sm bg-muted/30',
-            character.online ? 'border-success' : 'border-muted'
-        )}>
-            <div className="flex w-full items-baseline justify-between gap-2">
-                <button
-                    type="button"
-                    aria-expanded={expanded}
-                    onClick={() => setExpanded(!expanded)}
-                    className="flex min-w-0 items-center gap-1 text-left hover:underline focus-visible:underline outline-none"
-                >
-                    <ChevronRightIcon className={cn('size-3.5 shrink-0 transition-transform', expanded && 'rotate-90')} />
-                    <strong className="text-sm truncate">{character.fullName}</strong>
-                </button>
-                <small className="shrink-0 text-right text-2xs space-x-1">
-                    {character.slot !== null && <span className="opacity-75">Slot {character.slot}</span>}
-                    <InlineCode className="tracking-widest">{character.citizenId}</InlineCode>
-                </small>
-            </div>
-            {job && <span className="block text-sm">{job}</span>}
-            {gang && <span className="block text-sm text-muted-foreground">{gang}</span>}
-            <small className="block text-xs opacity-75 space-x-3">
-                <span>Cash {formatMoney(character.cash)}</span>
-                <span>Bank {formatMoney(character.bank)}</span>
-                {character.online ? (
-                    <span className="text-success-inline">Online Now</span>
-                ) : tsLastSeen !== null && (
-                    <span>Last Seen {dateTimeFormatter.format(tsLastSeen * 1000)}</span>
-                )}
-            </small>
-            {expanded && (
-                <div className="mt-2 mb-1 border-t border-border/60 pt-2">
-                    <CharacterRecord character={character} />
+        <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+                <Avatar name={character.fullName} className="size-11 text-sm" />
+                <div className="min-w-0 grow">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="truncate text-xl font-bold tracking-tight">{character.fullName}</h2>
+                        {character.online ? <Pill tone="success">Online</Pill> : <Pill>Offline</Pill>}
+                    </div>
+                    <div className="truncate font-mono text-xs text-muted-foreground">
+                        {[
+                            citizenId,
+                            character.slot !== null ? `Slot ${character.slot}` : null,
+                            character.dateOfBirth ? `Born ${character.dateOfBirth}` : null,
+                        ].filter(Boolean).join(' · ')}
+                    </div>
                 </div>
-            )}
+                <CharacterActionsMenu character={character} can={can} onSelect={setAction} />
+            </div>
+
+            <StatStrip stats={[
+                { label: 'Cash', value: formatMoney(character.cash), tone: 'success' },
+                { label: 'Bank', value: formatMoney(character.bank), tone: 'success' },
+                {
+                    label: 'Job',
+                    wrap: true,
+                    value: character.jobLabel ? (
+                        <span style={{ color: jobBadgeStyle(character.jobColor)?.color }}>
+                            {character.jobLabel}
+                            {character.jobGrade && <span className="block text-sm font-medium text-muted-foreground">{character.jobGrade}</span>}
+                        </span>
+                    ) : 'None',
+                    tone: character.jobLabel ? undefined : 'neutral',
+                },
+                { label: 'Gang', value: hasGang(character) ? <GangBadge character={character} /> : 'None', tone: hasGang(character) ? undefined : 'neutral' },
+                { label: 'Vehicles', value: character.vehicleCount ?? '—' },
+                { label: 'Last Seen', value: characterLastSeen(character), tone: character.online ? 'success' : undefined },
+            ]} />
+
+            <div className="rounded-lg border bg-card">
+                <CharacterViewTabs view={view} onViewChange={setView} can={can} />
+                {view === 'vehicles' || view === 'inventory' ? (
+                    <CharacterDetail citizenId={citizenId} part={view} />
+                ) : view === 'wallet' ? (
+                    <CharacterWalletView citizenId={citizenId} />
+                ) : view === 'audit' ? (
+                    <CharacterAuditView citizenId={citizenId} />
+                ) : (
+                    <CharacterSectionView
+                        key={view}
+                        citizenId={citizenId}
+                        section={view}
+                        rowAction={canEditProgression ? (source, row) => {
+                            const adapterId = progressionSource(source.id);
+                            return adapterId && (
+                                <Button size="inline" variant="ghost-muted" onClick={() => setAction({ kind: 'editProgression', adapterId, row })}>
+                                    Edit
+                                </Button>
+                            );
+                        } : undefined}
+                    />
+                )}
+            </div>
+            <CharacterActionDialog character={character} open={action} onClose={() => setAction(null)} />
         </div>
     );
 }
 
-
-type PlayerCharactersTabProps = {
-    playerRef: PlayerModalRefType;
-}
-
-export default function PlayerCharactersTab({ playerRef }: PlayerCharactersTabProps) {
-    const authedFetcher = useAuthedFetcher();
-    const query = new URLSearchParams(
-        'license' in playerRef
-            ? { license: playerRef.license }
-            : { mutex: playerRef.mutex, netid: String(playerRef.netid) }
-    ).toString();
-    const swr = useSWR(`/player/characters?${query}`, (url: string) => authedFetcher<PlayerCharactersResp>(url), {
-        revalidateOnFocus: false,
-    });
-
-    if (swr.error) {
-        return <ModalTabMessage>
-            <span className="text-destructive-inline">Error: {swr.error instanceof Error ? swr.error.message : String(swr.error)}</span>
-        </ModalTabMessage>;
-    }
-    if (!swr.data) {
-        return <ModalTabMessage>
-            <GenericSpinner msg="Loading Characters..." />
-        </ModalTabMessage>;
-    }
-    if ('error' in swr.data) {
-        return <ModalTabMessage>
-            <span className="text-destructive-inline">Error: {swr.data.error}</span>
-        </ModalTabMessage>;
-    }
-    if (swr.data.status === 'unavailable') {
-        return <ModalTabMessage className="flex-col gap-1 text-center">
-            <span>Characters Unavailable</span>
-            <small className="text-sm">{swr.data.reason}</small>
-        </ModalTabMessage>;
-    }
-    if (!swr.data.characters.length) {
-        return <ModalTabMessage>
-            No characters found.
-        </ModalTabMessage>;
-    }
-
-    return (
-        <ModalTabInner className="flex flex-col gap-1">
-            {swr.data.characters.map((character) => (
-                <CharacterItem key={character.citizenId} character={character} />
-            ))}
-        </ModalTabInner>
-    );
+/** One character of the player, picked from the rail or an overview card. */
+export default function PlayerCharacterPage({ playerRef, citizenId }: { playerRef: PlayerModalRefType; citizenId: string }) {
+    const swr = usePlayerCharacters(playerRef);
+    if (swr.error) return <EmptyRow>Error: {errorText(swr.error)}</EmptyRow>;
+    if (!swr.data) return <div className="py-10"><GenericSpinner msg="Loading Character..." /></div>;
+    if ('error' in swr.data) return <EmptyRow>Error: {swr.data.error}</EmptyRow>;
+    if (swr.data.status === 'unavailable') return <EmptyRow>{swr.data.reason}</EmptyRow>;
+    const character = swr.data.characters.find((entry) => entry.citizenId === citizenId);
+    if (!character) return <EmptyRow>This character no longer exists.</EmptyRow>;
+    return <CharacterRecord key={citizenId} character={character} />;
 }

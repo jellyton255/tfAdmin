@@ -1,65 +1,112 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { setPlayerModalUrlParam, usePlayerModalStateValue } from "@/hooks/playerModal";
-import { InfoIcon, ListIcon, HistoryIcon, GavelIcon, UsersIcon, LinkIcon } from "lucide-react";
-import PlayerInfoTab from "./PlayerInfoTab";
 import { useEffect, useState } from "react";
-import PlayerIdsTab from "./PlayerIdsTab";
-import PlayerHistoryTab from "./PlayerHistoryTab";
-import PlayerBanTab from "./PlayerBanTab";
-import PlayerCharactersTab from "./PlayerCharactersTab";
-import PlayerLinkedTab from "./PlayerLinkedTab";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { setPlayerModalUrlParam, usePlayerModalStateValue, type PlayerModalRefType } from "@/hooks/playerModal";
 import GenericSpinner from "@/components/GenericSpinner";
-import { cn } from "@/lib/utils";
 import { useBackendApi } from "@/hooks/fetch";
-import { PlayerModalResp, PlayerModalSuccess } from "@shared/playerApiTypes";
-import PlayerModalFooter from "./PlayerModalFooter";
-import { ModalContent, ModalTabMessage, ModalTabsList, ModalTabWrapper, type ModalTabInfo } from "@/components/modal-tabs";
+import type { PlayerModalResp, PlayerModalSuccess } from "@shared/playerApiTypes";
+import PlayerHeader from "./PlayerHeader";
+import PlayerRail, { type PlayerView } from "./PlayerRail";
+import PlayerOverview from "./PlayerOverview";
+import PlayerHistoryTab from "./PlayerHistoryTab";
+import PlayerNotesTab from "./PlayerNotesTab";
+import PlayerIdsTab from "./PlayerIdsTab";
+import PlayerLinkedTab from "./PlayerLinkedTab";
+import PlayerBanTab from "./PlayerBanTab";
+import PlayerCharacterPage from "./PlayerCharactersTab";
+import { Panel, PanelHeader } from "./parts";
 
 
-const modalTabs: ModalTabInfo[] = [
-    {
-        title: 'Info',
-        icon: <InfoIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-    },
-    {
-        title: 'History',
-        icon: <HistoryIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-    },
-    {
-        title: 'IDs',
-        icon: <ListIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-    },
-    {
-        title: 'Linked Accounts',
-        icon: <LinkIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-    },
-    {
-        title: 'Characters',
-        icon: <UsersIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-    },
-    {
-        title: 'Ban',
-        icon: <GavelIcon className="mr-2 h-5 w-5 hidden xs:block" />,
-        className: 'hover:bg-destructive hover:text-destructive-foreground',
+type PlayerWindowProps = {
+    playerRef: PlayerModalRefType;
+    data: PlayerModalSuccess;
+    view: PlayerView;
+    setView: (view: PlayerView) => void;
+    refreshModalData: () => void;
+};
+
+/**
+ * Everfall: the player window, laid out like ef_administration. A rail lists the player's sections
+ * and characters; the header holds the action keys so they never scroll away.
+ */
+function PlayerWindow({ playerRef, data, view, setView, refreshModalData }: PlayerWindowProps) {
+    const { player, serverTime } = data;
+
+    let body: JSX.Element;
+    if ('citizenId' in view) {
+        body = <PlayerCharacterPage playerRef={playerRef} citizenId={view.citizenId} />;
+    } else if (view.section === 'history') {
+        body = <PlayerHistoryTab actions={player.actionHistory} banTemplates={data.banTemplates} serverTime={serverTime} />;
+    } else if (view.section === 'notes') {
+        body = <PlayerNotesTab playerRef={playerRef} player={player} serverTime={serverTime} refreshModalData={refreshModalData} />;
+    } else if (view.section === 'linked') {
+        body = (
+            <Panel>
+                <PanelHeader title="Linked Accounts" />
+                <div className="p-3"><PlayerLinkedTab playerRef={playerRef} onOpenPlayer={() => setView({ section: 'overview' })} /></div>
+            </Panel>
+        );
+    } else if (view.section === 'ids') {
+        body = (
+            <Panel>
+                <PanelHeader title="Identifiers" />
+                <div className="p-3"><PlayerIdsTab playerRef={playerRef} player={player} refreshModalData={refreshModalData} /></div>
+            </Panel>
+        );
+    } else if (view.section === 'ban') {
+        body = (
+            <Panel>
+                <PanelHeader title="Ban or Warn" />
+                <div className="p-3">
+                    <PlayerBanTab
+                        banTemplates={data.banTemplates}
+                        playerRef={playerRef}
+                        history={player.actionHistory}
+                        serverTime={serverTime}
+                        windowDays={data.offenseWindowDays}
+                    />
+                </div>
+            </Panel>
+        );
+    } else {
+        body = <PlayerOverview playerRef={playerRef} data={data} onViewChange={setView} />;
     }
-];
 
+    return (<>
+        <DialogTitle className="sr-only">{player.displayName}</DialogTitle>
+        <PlayerHeader
+            playerRef={playerRef}
+            player={player}
+            serverTime={serverTime}
+            tagSuggestions={data.tagSuggestions}
+            onOpenSection={(section) => setView({ section })}
+            refreshModalData={refreshModalData}
+        />
+        <div className="flex min-h-0 grow flex-col md:flex-row">
+            <PlayerRail playerRef={playerRef} player={player} view={view} onViewChange={setView} />
+            <main className="min-h-0 min-w-0 grow overflow-y-auto p-3 md:p-4">
+                {body}
+            </main>
+        </div>
+    </>);
+}
+
+
+const overview: PlayerView = { section: 'overview' };
 
 export default function PlayerModal() {
     const { isModalOpen, closeModal, playerRef } = usePlayerModalStateValue();
-    const [selectedTab, setSelectedTab] = useState(modalTabs[0].title);
     const [currRefreshKey, setCurrRefreshKey] = useState(0);
     const [modalData, setModalData] = useState<PlayerModalSuccess | undefined>(undefined);
     const [modalError, setModalError] = useState('');
-    const [tsFetch, setTsFetch] = useState(0);
+    // The open section outlives a data refresh; it belongs to one player and resets on close
+    const [viewState, setViewState] = useState<{ key?: string; view: PlayerView }>({ view: overview });
     const playerQueryApi = useBackendApi<PlayerModalResp>({
         method: 'GET',
         path: `/player`,
         abortOnUnmount: true,
     });
 
-    //Helper for tabs to be able to refresh the modal data
+    //Helper for sections to be able to refresh the modal data
     const refreshModalData = () => {
         setCurrRefreshKey(currRefreshKey + 1);
     };
@@ -76,7 +123,6 @@ export default function PlayerModal() {
                     setModalError(resp.error);
                 } else {
                     setModalData(resp);
-                    setTsFetch(Math.round(Date.now() / 1000));
                     //Update the ref param to use a license, if possible
                     if (!('license' in playerRef) && resp.player.license) {
                         setPlayerModalUrlParam(resp.player.license)
@@ -89,140 +135,36 @@ export default function PlayerModal() {
         });
     }, [playerRef, currRefreshKey]);
 
-    //Resetting selected tab when modal is closed
-    useEffect(() => {
-        if (!isModalOpen) {
-            setTimeout(() => {
-                setSelectedTab(modalTabs[0].title);
-            }, 200);
-        }
-    }, [isModalOpen]);
-
     const handleOpenClose = (newOpenState: boolean) => {
         if (isModalOpen && !newOpenState) {
+            setViewState({ view: overview });
             closeModal();
         }
     };
 
-    //Move to tab up or down
-    const handleTabButtonKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-            e.preventDefault();
-            const currentIndex = modalTabs.findIndex((tab) => tab.title === selectedTab);
-            const nextIndex = e.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1;
-            const nextTab = modalTabs[nextIndex];
-            if (nextTab) {
-                setSelectedTab(nextTab.title);
-                const nextButton = document.getElementById(`player-modal-tab-${nextTab.title}`);
-                if (nextButton) {
-                    nextButton.focus();
-                }
-            }
-        }
-    }
-
-    let pageTitle: JSX.Element;
-    if (modalData) {
-        if (modalData.player.netid) {
-            pageTitle = <>
-                <span className="text-success-inline font-mono mr-2">[{modalData.player.netid}]</span>
-                {modalData.player.displayName}
-            </>;
-        } else {
-            pageTitle = <>
-                <span className="text-destructive-inline font-mono mr-2">[OFF]</span>
-                {modalData.player.displayName}
-            </>;
-        }
-    } else if (modalError) {
-        pageTitle = <span className="text-destructive-inline">Error!</span>;
-    } else {
-        pageTitle = <span className="text-muted-foreground italic">Loading...</span>;
-    }
+    // A new player opens on its overview
+    const windowKey = playerRef && ('license' in playerRef ? playerRef.license : `${playerRef.mutex}#${playerRef.netid}`);
+    const view = viewState.key === windowKey ? viewState.view : overview;
 
     return (
         <Dialog open={isModalOpen} onOpenChange={handleOpenClose}>
-            <DialogContent className="max-w-2xl h-full sm:h-auto max-h-full p-0 gap-1 sm:gap-4 flex flex-col">
-                <DialogHeader className="px-4 py-3 border-b">
-                    <DialogTitle className="tracking-wide line-clamp-1 leading-7 break-all mr-6">
-                        {pageTitle}
-                    </DialogTitle>
-                </DialogHeader>
-
-                <ModalContent>
-                    <ModalTabsList>
-                        {modalTabs.map((tab) => (
-                            <Button
-                                id={`player-modal-tab-${tab.title}`}
-                                key={tab.title}
-                                variant={selectedTab === tab.title ? "secondary" : "ghost"}
-                                className={cn(
-                                    'w-full tracking-wider justify-center md:justify-start',
-                                    'h-7 rounded-sm px-2 text-sm',
-                                    'md:h-10 md:text-base',
-                                    tab.className,
-                                )}
-                                onClick={() => setSelectedTab(tab.title)}
-                                onKeyDown={handleTabButtonKeyDown}
-                            >
-                                {tab.icon} {tab.title}
-                            </Button>
-                        ))}
-                    </ModalTabsList>
-                    
-                    <ModalTabWrapper className="max-h-[calc(100vh-3.125rem-4rem-5rem)]">
-                        {!modalData ? (
-                            <ModalTabMessage>
-                                {modalError ? (
-                                    <span className="text-destructive-inline">Error: {modalError}</span>
-                                ) : (
-                                    <GenericSpinner msg="Loading..." />
-                                )}
-                            </ModalTabMessage>
-                        ) : (
-                            <>
-                                {selectedTab === 'Info' && <PlayerInfoTab
-                                    player={modalData.player}
-                                    tagSuggestions={modalData.tagSuggestions}
-                                    playerRef={playerRef!}
-                                    serverTime={modalData.serverTime}
-                                    tsFetch={tsFetch}
-                                    setSelectedTab={setSelectedTab}
-                                    refreshModalData={refreshModalData}
-                                />}
-                                {selectedTab === 'History' && <PlayerHistoryTab
-                                    actionHistory={modalData.player.actionHistory}
-                                    banTemplates={modalData.banTemplates}
-                                    serverTime={modalData.serverTime}
-                                    refreshModalData={refreshModalData}
-                                />}
-                                {selectedTab === 'IDs' && <PlayerIdsTab
-                                    player={modalData.player}
-                                    playerRef={playerRef!}
-                                    refreshModalData={refreshModalData}
-                                />}
-                                {selectedTab === 'Linked Accounts' && <PlayerLinkedTab
-                                    playerRef={playerRef!}
-                                    onOpenPlayer={() => setSelectedTab(modalTabs[0].title)}
-                                />}
-                                {selectedTab === 'Characters' && <PlayerCharactersTab
-                                    playerRef={playerRef!}
-                                />}
-                                {selectedTab === 'Ban' && <PlayerBanTab
-                                    banTemplates={modalData.banTemplates}
-                                    playerRef={playerRef!}
-                                    history={modalData.player.actionHistory}
-                                    serverTime={modalData.serverTime}
-                                    windowDays={modalData.offenseWindowDays}
-                                />}
-                            </>
-                        )}
-                    </ModalTabWrapper>
-                </ModalContent>
-                <PlayerModalFooter
-                    playerRef={playerRef!}
-                    player={modalData?.player}
-                />
+            <DialogContent className="ef-type flex h-full max-h-full max-w-[min(1380px,100vw)] flex-col gap-0 overflow-hidden p-0 font-sans sm:h-[min(56rem,calc(100vh-2rem))] sm:max-w-[min(1380px,calc(100vw-2rem))]">
+                {modalData && playerRef ? (
+                    <PlayerWindow
+                        playerRef={playerRef}
+                        data={modalData}
+                        view={view}
+                        setView={(next) => setViewState({ key: windowKey, view: next })}
+                        refreshModalData={refreshModalData}
+                    />
+                ) : (
+                    <div className="flex grow items-center justify-center p-10 text-lg text-muted-foreground">
+                        <DialogTitle className="sr-only">Player</DialogTitle>
+                        {modalError
+                            ? <span className="text-destructive-inline">Error: {modalError}</span>
+                            : <GenericSpinner msg="Loading..." />}
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );

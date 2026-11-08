@@ -91,8 +91,8 @@ export function CharacterActionsMenu({ character, can, onSelect }: {
     return (
         <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-                <Button size="inline" variant="outline-muted" className="shrink-0 gap-1">
-                    Actions <ChevronDownIcon className="size-3" />
+                <Button size="sm" variant="outline-muted" className="shrink-0 gap-1.5">
+                    Actions <ChevronDownIcon className="size-4" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

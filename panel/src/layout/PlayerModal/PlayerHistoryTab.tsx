@@ -1,133 +1,114 @@
-import { cn } from "@/lib/utils";
-import { tsToLocaleDateTimeString } from "@/lib/dateTime";
-import { PlayerHistoryItem } from "@shared/playerApiTypes";
-import InlineCode from "@/components/InlineCode";
-import { useOpenActionModal } from "@/hooks/actionModal";
-import { ModalTabInner, ModalTabMessage } from "@/components/modal-tabs";
 import { StickyNoteIcon } from "lucide-react";
+import { tsToLocaleDateTimeString } from "@/lib/dateTime";
+import { useOpenActionModal } from "@/hooks/actionModal";
+import type { PlayerHistoryItem } from "@shared/playerApiTypes";
 import type { BanTemplatesDataType } from "@shared/otherTypes";
 import { presetLabel } from "@shared/offenseLadder";
+import { actionStatus, actionTypeTone, dateFormatter, EmptyRow, Panel, PanelHeader, Pill } from "./parts";
 
 
-type HistoryItemProps = {
-    action: PlayerHistoryItem,
-    serverTime: number,
-    preset?: BanTemplatesDataType,
-    modalOpener: (actionId: string) => void,
+function actionLabel(action: PlayerHistoryItem) {
+    // Game sanctions read like "Jail (30 months)"; the badge keeps the kind, the detail line the rest
+    if (action.type === 'sanction') return action.sanction?.split(' (')[0] ?? 'Sanction';
+    return action.type.charAt(0).toUpperCase() + action.type.slice(1);
 }
 
-function HistoryItem({ action, serverTime, preset, modalOpener }: HistoryItemProps) {
-    let footerNote, borderColorClass, actionMessage;
-    if (action.type === 'ban') {
-        borderColorClass = 'border-destructive';
-        actionMessage = `BANNED by ${action.author}`;
-    } else if (action.type === 'warn') {
-        borderColorClass = 'border-warning';
-        actionMessage = `WARNED by ${action.author}`;
-    } else if (action.type === 'kick') {
-        borderColorClass = 'border-muted-foreground/40';
-        actionMessage = `KICKED by ${action.author}`;
-    } else if (action.type === 'sanction') {
-        borderColorClass = 'border-muted-foreground/40';
-        actionMessage = `${action.sanction?.toUpperCase()} by ${action.author}`;
-    }
+/** The line under the reason: the action ID, then when it ends or stopped counting. */
+function actionDetail(action: PlayerHistoryItem, serverTime: number) {
+    const parts = [action.id];
+    if (action.type === 'sanction' && action.sanction?.includes(' (')) parts.push(action.sanction);
     if (action.historical) {
-        //Never enforced, so it carries no active-ban color
-        borderColorClass = 'border-muted-foreground/40';
         if (action.type === 'ban') {
-            footerNote = !action.historical.expirationKnown
-                ? 'Original expiration unknown.'
+            parts.push(!action.historical.expirationKnown
+                ? 'Original expiration unknown'
                 : typeof action.exp === 'number'
-                    ? `Original expiration ${tsToLocaleDateTimeString(action.exp, 'medium', 'short')}.`
-                    : 'Original ban was permanent.';
+                    ? `Originally ended ${tsToLocaleDateTimeString(action.exp, 'medium', 'short')}`
+                    : 'Originally permanent');
         }
     } else if (action.revokedBy) {
-        borderColorClass = '';
-        const revocationDate = tsToLocaleDateTimeString(action.revokedAt ?? 0, 'medium', 'short');
-        footerNote = `Revoked by ${action.revokedBy} on ${revocationDate}.`;
+        parts.push(`Revoked by ${action.revokedBy} ${tsToLocaleDateTimeString(action.revokedAt ?? 0, 'medium', 'short')}`);
     } else if (typeof action.exp === 'number') {
-        const expirationDate = tsToLocaleDateTimeString(action.exp, 'medium', 'short');
-        footerNote = (action.exp < serverTime) ? `Expired on ${expirationDate}.` : `Expires in ${expirationDate}.`;
+        parts.push(`${action.exp < serverTime ? 'Ended' : 'Ends'} ${tsToLocaleDateTimeString(action.exp, 'medium', 'short')}`);
+    } else if (action.type === 'ban') {
+        parts.push('Permanent');
     }
-    //Preset offenses count toward the ladder for a while, then stay here without counting
-    let offenseNote;
     if (action.offenseUntil && !action.revokedBy && !action.historical) {
-        offenseNote = action.offenseUntil > serverTime
-            ? `Counts as an offense until ${tsToLocaleDateTimeString(action.offenseUntil, 'medium', 'short')}.`
-            : 'No longer counts as an offense.';
+        parts.push(action.offenseUntil > serverTime
+            ? `Counts as an offense until ${tsToLocaleDateTimeString(action.offenseUntil, 'medium', 'short')}`
+            : 'No longer counts as an offense');
+    }
+    return parts.join(' · ');
+}
+
+type HistoryTableProps = {
+    actions: PlayerHistoryItem[];
+    banTemplates: BanTemplatesDataType[];
+    serverTime: number;
+};
+
+/** Sanctions newest first; a row opens the action window, where it can be revoked or noted. */
+export function HistoryTable({ actions, banTemplates, serverTime }: HistoryTableProps) {
+    const openActionModal = useOpenActionModal();
+    if (!actions.length) {
+        return <EmptyRow>No bans, warns, kicks or game sanctions.</EmptyRow>;
     }
 
     return (
-        <div
-            onClick={() => { modalOpener(action.id) }}
-            className={cn(
-                'pl-2 border-l-4 hover:bg-muted rounded-r-sm bg-muted/30 cursor-pointer',
-                borderColorClass
-            )}
-        >
-            <div className="flex w-full justify-between">
-                <strong className="text-sm text-muted-foreground">{actionMessage}</strong>
-                <small className="text-right text-2xs space-x-1">
-                    {action.noteCount ? (
-                        <span
-                            className="inline-flex items-center gap-0.5 text-muted-foreground"
-                            title={action.noteCount === 1 ? '1 staff note' : `${action.noteCount} staff notes`}
+        <ul>
+            {actions.map((action) => {
+                const preset = banTemplates.find((template) => template.id === action.presetId);
+                const status = actionStatus(action, serverTime);
+                const isInactive = !!action.revokedBy || !!action.historical;
+                return (
+                    <li key={action.id} className="border-t first:border-t-0">
+                        <button
+                            type="button"
+                            onClick={() => openActionModal(action.id)}
+                            className="grid w-full grid-cols-[5.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-2.5 text-left transition-colors hover:bg-muted/40 md:grid-cols-[5.5rem_minmax(0,1fr)_9rem_8rem_6.5rem]"
                         >
-                            <StickyNoteIcon className="size-3" />{action.noteCount}
-                        </span>
-                    ) : null}
-                    {action.historical && <span className="text-muted-foreground">Historical</span>}
-                    <InlineCode className="tracking-widest">{action.id}</InlineCode>
-                    <span
-                        className="opacity-75 cursor-help"
-                        title={tsToLocaleDateTimeString(action.ts, 'long', 'long')}
-                    >
-                        {tsToLocaleDateTimeString(action.ts, 'medium', 'short')}
-                    </span>
-                </small>
-            </div>
-            <span className="text-sm">
-                {preset && <strong className="pr-1">[{presetLabel(preset)}]</strong>}
-                {action.reason}
-            </span>
-            {(footerNote || offenseNote) && <small className="block text-xs opacity-75">{footerNote} {offenseNote}</small>}
-        </div>
+                            <span className={isInactive ? 'opacity-60' : undefined}>
+                                <Pill tone={actionTypeTone[action.type]} className="max-w-full truncate">{actionLabel(action)}</Pill>
+                            </span>
+                            <span className={isInactive ? 'min-w-0 opacity-60' : 'min-w-0'}>
+                                <span className="block truncate text-sm font-medium" title={action.reason}>
+                                    {preset && <span className="mr-1 text-muted-foreground">[{presetLabel(preset)}]</span>}
+                                    {action.reason || 'No reason given'}
+                                </span>
+                                <span className="block truncate font-mono text-xs text-muted-foreground">
+                                    {actionDetail(action, serverTime)}
+                                </span>
+                            </span>
+                            <span className="hidden truncate text-sm text-muted-foreground md:block">{action.author}</span>
+                            <span
+                                className="hidden text-sm tabular-nums text-muted-foreground md:block"
+                                title={tsToLocaleDateTimeString(action.ts, 'long', 'long')}
+                            >
+                                {dateFormatter.format(action.ts * 1000)}
+                            </span>
+                            <span className="flex items-center justify-end gap-1.5">
+                                {action.noteCount ? (
+                                    <span
+                                        className="inline-flex items-center gap-0.5 text-xs text-muted-foreground"
+                                        title={action.noteCount === 1 ? '1 staff note' : `${action.noteCount} staff notes`}
+                                    >
+                                        <StickyNoteIcon className="size-3" />{action.noteCount}
+                                    </span>
+                                ) : null}
+                                {status && <Pill tone={status.tone}>{status.label}</Pill>}
+                            </span>
+                        </button>
+                    </li>
+                );
+            })}
+        </ul>
     );
 }
 
-
-type PlayerHistoryTabProps = {
-    actionHistory: PlayerHistoryItem[],
-    banTemplates: BanTemplatesDataType[],
-    serverTime: number,
-    refreshModalData: () => void,
-}
-
-export default function PlayerHistoryTab({ actionHistory, banTemplates, serverTime, refreshModalData }: PlayerHistoryTabProps) {
-    const openActionModal = useOpenActionModal();
-
-    if (!actionHistory.length) {
-        return <ModalTabMessage>
-            No bans, warns, kicks or game sanctions found.
-        </ModalTabMessage>;
-    }
-
-    const doOpenActionModal = (actionId: string) => {
-        openActionModal(actionId);
-    }
-
-    const reversedActionHistory = [...actionHistory].reverse();
+export default function PlayerHistoryTab(props: HistoryTableProps) {
     return (
-        <ModalTabInner className="flex flex-col gap-1">
-            {reversedActionHistory.map((action) => (
-                <HistoryItem
-                    key={action.id}
-                    action={action}
-                    serverTime={serverTime}
-                    preset={banTemplates.find((template) => template.id === action.presetId)}
-                    modalOpener={doOpenActionModal}
-                />
-            ))}
-        </ModalTabInner>
+        <Panel>
+            <PanelHeader title="History" />
+            <HistoryTable {...props} actions={[...props.actions].reverse()} />
+        </Panel>
     );
 }
