@@ -2,6 +2,8 @@ const modulename = 'Everfall';
 import { z } from 'zod';
 import got from '@lib/got';
 import consoleFactory from '@lib/console';
+import { inferAdminLogCategory } from '@modules/Logger/handlers/adminLogSearch';
+import type { AdminLogCategory } from '@shared/adminLogApiTypes';
 const console = consoleFactory(modulename);
 
 // A screenshot alone can take 15 seconds in game before its upload finishes.
@@ -56,4 +58,21 @@ export async function runEverfallOperation(
         return { ok: false, error: `The game server refused the request: ${gameError.data.error}.` };
     }
     return { ok: false, error: 'The game server returned an invalid response.' };
+}
+
+
+//Account, admin, settings and API key lines stay in the Audit Log only
+const staffLogSkippedCategories = new Set<AdminLogCategory>(['login', 'admins', 'settings', 'api', 'system']);
+
+/**
+ * Copies an admin's admin log line into ef_administration's Staff Log, which keeps it or drops it
+ * by the admin's Everfall rank. Lines by system authors, scripts and admins without a linked Discord
+ * account are skipped, and so is everything while the game server is down.
+ */
+export function recordStaffLog(author: string, message: string) {
+    const discordId: unknown = txCore.adminStore.getAdminByName(author)?.providers?.discord?.id;
+    if (typeof discordId !== 'string') return;
+    const category = inferAdminLogCategory(author, message);
+    if (staffLogSkippedCategories.has(category)) return;
+    void runEverfallOperation({ discordId, name: author }, 'staffLog.record', { action: category, message });
 }

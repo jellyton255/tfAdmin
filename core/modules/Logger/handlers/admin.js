@@ -3,6 +3,7 @@ import { getBootDivider } from '../loggerUtils';
 import consoleFactory from '@lib/console';
 import { LoggerBase } from '../LoggerBase';
 import { chalkInversePad, getTimeHms } from '@lib/misc';
+import { recordStaffLog } from '@lib/everfall';
 const console = consoleFactory(modulename);
 
 
@@ -64,5 +65,6 @@ export default class AdminLogger extends LoggerBase {
             console.log(prefix, saveMsg);
         }
         this.writeSystem(author, saveMsg);
+        recordStaffLog(author, saveMsg); //everfall: Staff Log
     }
 };

@@ -23,6 +23,11 @@ export default async function EverfallRequest(ctx: AuthedCtx) {
         return sendTypedResp({ error: 'Invalid Request' });
     }
 
+    //Staff Log rows come from the admin log only (core/lib/everfall.ts recordStaffLog)
+    if (body.data.operation === 'staffLog.record') {
+        return sendTypedResp({ ok: false, error: 'This action cannot be requested from the panel.' });
+    }
+
     const admin = txCore.adminStore.getAdminByName(ctx.admin.name);
     const discordId: unknown = admin && admin.providers?.discord?.id;
     if (typeof discordId !== 'string') {
