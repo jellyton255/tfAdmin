@@ -45,6 +45,10 @@ export function useEverfallPermissions() {
     return {
         ...query,
         can: (permission: string) => permissions.includes(permission),
+        /** Why a gated page is empty: the game's error when the rank could not be read, else the missing permission. */
+        lacks: (label: string) => query.error
+            ? (query.error instanceof Error ? query.error.message : String(query.error))
+            : `Your staff rank does not include ${label}.`,
     };
 }
 

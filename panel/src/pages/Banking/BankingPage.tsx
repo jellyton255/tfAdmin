@@ -561,7 +561,7 @@ function TransactionsTab() {
 
 
 export default function BankingPage() {
-    const { can, isLoading } = useEverfallPermissions();
+    const { can, isLoading, lacks } = useEverfallPermissions();
     const [tab, setTab] = useState('accounts');
 
     return (
@@ -572,7 +572,7 @@ export default function BankingPage() {
                     <AllowlistSection
                         title="Banking"
                         isLoading={isLoading}
-                        emptyMessage="Your staff rank does not include View Banking."
+                        emptyMessage={lacks('View Banking')}
                     />
                 </div>
             ) : (

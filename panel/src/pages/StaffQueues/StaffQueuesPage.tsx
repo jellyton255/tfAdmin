@@ -242,7 +242,7 @@ function PaperRequestsQueue() {
 
 
 export default function StaffQueuesPage() {
-    const { can, isLoading } = useEverfallPermissions();
+    const { can, isLoading, lacks } = useEverfallPermissions();
     return (
         <div className="flex flex-col w-full gap-4 pb-4 [&>header]:mb-0">
             <PageHeader title="Staff Queues" icon={<InboxIcon />} />
@@ -251,7 +251,7 @@ export default function StaffQueuesPage() {
                     <AllowlistSection
                         title="Paper Requests"
                         isLoading={isLoading}
-                        emptyMessage="Your staff rank does not include Review Papers."
+                        emptyMessage={lacks('Review Papers')}
                     />
                 ) : (
                     <PaperRequestsQueue />

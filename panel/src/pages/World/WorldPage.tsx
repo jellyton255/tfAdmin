@@ -64,7 +64,7 @@ function TimeRow({ state, onSet }: { state: WorldState; onSet: (hour: number, mi
 }
 
 function AtmosphereSection() {
-    const { can, isLoading: isLoadingPerms } = useEverfallPermissions();
+    const { can, isLoading: isLoadingPerms, lacks } = useEverfallPermissions();
     const canWeather = can('Weather');
     const query = useEverfallQuery<WorldState>(canWeather ? 'world.state' : null);
     const everfallAction = useEverfallAction();
@@ -80,7 +80,7 @@ function AtmosphereSection() {
             title="Weather and Time"
             error={query.error}
             isLoading={isLoadingPerms || (canWeather && !state)}
-            emptyMessage={canWeather ? null : 'Your staff rank does not include Weather.'}
+            emptyMessage={canWeather ? null : lacks('Weather')}
         >
             {state && (<>
                 <WorldRow label="Weather">
@@ -123,7 +123,7 @@ function AtmosphereSection() {
 }
 
 function PlayersSection() {
-    const { can, isLoading } = useEverfallPermissions();
+    const { can, isLoading, lacks } = useEverfallPermissions();
     const openConfirmDialog = useOpenConfirmDialog();
     const everfallAction = useEverfallAction();
 
@@ -143,7 +143,7 @@ function PlayersSection() {
         <AllowlistSection
             title="Players"
             isLoading={isLoading}
-            emptyMessage={can('PlayerState') ? null : 'Your staff rank does not include Player State.'}
+            emptyMessage={can('PlayerState') ? null : lacks('Player State')}
         >
             <WorldRow label="Heal All">
                 <Button size="sm" variant="outline" onClick={handleHealAll}>Heal All</Button>
