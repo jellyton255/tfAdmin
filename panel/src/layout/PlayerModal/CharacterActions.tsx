@@ -32,7 +32,7 @@ type MenuKind =
     | 'setMoney' | 'setGroupGrade' | 'updateGroup' | 'editIdentity'
     | 'giveItem' | 'removeItem'
     | 'giveVehicle' | 'editVehicle' | 'transferVehicle' | 'bulkVehicles'
-    | 'editState' | 'revive' | 'clothingMenu'
+    | 'editState' | 'revive' | 'clothingMenu' | 'characterMenu'
     | 'editMetadata' | 'repairSlot' | 'deleteCharacter';
 
 /** An open action dialog. Progression edits open from a row of the Progression section. */
@@ -69,6 +69,7 @@ const menuGroups: MenuEntry[][] = [
         { kind: 'editState', label: 'Edit Condition', permission: 'EditCharacterState' },
         { kind: 'revive', label: 'Revive', permission: 'EditCharacterState', when: (character) => character.online },
         { kind: 'clothingMenu', label: 'Give Clothing Menu', permission: 'EditCharacterState', when: (character) => character.online },
+        { kind: 'characterMenu', label: 'Give Character Menu', permission: 'EditCharacterState', when: (character) => character.online },
     ],
     [
         { kind: 'editMetadata', label: 'Edit Raw Metadata', permission: 'EditCharacterRawMetadata' },
@@ -751,9 +752,15 @@ function EditStateForm({ action }: FormProps) {
     );
 }
 
-function PlayerActionForm({ action, kind }: FormProps & { kind: 'revive' | 'clothingMenu' }) {
+const playerActionTitles = {
+    revive: 'Revive',
+    clothingMenu: 'Give Clothing Menu',
+    characterMenu: 'Give Character Menu',
+};
+
+function PlayerActionForm({ action, kind }: FormProps & { kind: keyof typeof playerActionTitles }) {
     const { values, set } = useFormValues({ reason: '' });
-    const title = kind === 'revive' ? 'Revive' : 'Give Clothing Menu';
+    const title = playerActionTitles[kind];
     return (
         <ActionForm
             title={title}
@@ -1032,6 +1039,7 @@ function ActionBody({ character, open, onClose }: { character: PlayerCharacter; 
         case 'editState': return <EditStateForm {...props} />;
         case 'revive': return <PlayerActionForm {...props} kind="revive" />;
         case 'clothingMenu': return <PlayerActionForm {...props} kind="clothingMenu" />;
+        case 'characterMenu': return <PlayerActionForm {...props} kind="characterMenu" />;
         case 'editMetadata': return <EditMetadataForm {...props} />;
         case 'repairSlot': return <RepairSlotForm {...props} />;
         case 'deleteCharacter': return <DeleteCharacterForm {...props} />;
