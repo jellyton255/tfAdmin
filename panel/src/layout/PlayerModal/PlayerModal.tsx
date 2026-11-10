@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { setPlayerModalUrlParam, usePlayerModalStateValue, type PlayerModalRefType } from "@/hooks/playerModal";
 import GenericSpinner from "@/components/GenericSpinner";
 import { useBackendApi } from "@/hooks/fetch";
+import { useAddRecentLookup } from "@/hooks/recentLookups";
 import type { PlayerModalResp, PlayerModalSuccess } from "@shared/playerApiTypes";
 import PlayerHeader from "./PlayerHeader";
 import PlayerRail, { type PlayerView } from "./PlayerRail";
@@ -100,6 +101,7 @@ export default function PlayerModal() {
     const [modalError, setModalError] = useState('');
     // The open section outlives a data refresh; it belongs to one player and resets on close
     const [viewState, setViewState] = useState<{ key?: string; view: PlayerView }>({ view: overview });
+    const addRecent = useAddRecentLookup();
     const playerQueryApi = useBackendApi<PlayerModalResp>({
         method: 'GET',
         path: `/player`,
@@ -123,6 +125,9 @@ export default function PlayerModal() {
                     setModalError(resp.error);
                 } else {
                     setModalData(resp);
+                    if (resp.player.license) {
+                        addRecent({ kind: 'player', license: resp.player.license, name: resp.player.displayName, ts: Date.now() });
+                    }
                     //Update the ref param to use a license, if possible
                     if (!('license' in playerRef) && resp.player.license) {
                         setPlayerModalUrlParam(resp.player.license)
