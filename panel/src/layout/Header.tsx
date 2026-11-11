@@ -4,7 +4,8 @@ import {
     DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { KeyRoundIcon, LogOutIcon, Menu, Monitor, MoonIcon, PersonStanding, RotateCwIcon, SearchIcon, SunIcon } from "lucide-react";
+import { KeyRoundIcon, LogOutIcon, Menu, Monitor, MoonIcon, PersonStanding, RotateCwIcon, SunIcon } from "lucide-react";
+import { PiMagnifyingGlass } from "react-icons/pi";
 import DesktopNavbar from "./DesktopNavbar";
 import Avatar from "@/components/Avatar";
 import { useAuth } from "@/hooks/auth";
@@ -47,21 +48,35 @@ const navButtonClasses = `h-11 w-11 sm:h-10 sm:min-w-max sm:px-2 lg:px-3
     ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
 `;
 
-const quickSearchShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K';
+const isApple = /Mac|iPhone|iPad/.test(navigator.platform);
+const quickSearchKeys = isApple ? ['⌘', 'K'] : ['Ctrl', 'K'];
 
+/** Opens the Ctrl+K search window; drawn as a recessed search field so it reads as one. */
 function ButtonQuickSearch({ className }: NavButtonProps) {
     const setQuickSearchOpen = useSetAtom(quickSearchOpenAtom);
     return (
         <button
-            className={cn(navButtonClasses, 'sm:w-44 sm:justify-start lg:px-2.5', className)}
-            title={`Search (${quickSearchShortcut})`}
+            className={cn(
+                'flex h-11 w-11 items-center justify-center gap-2.5 rounded-lg border text-sm text-muted-foreground transition-colors',
+                // the desktop nav fills the header between lg and 2xl, so the field folds to its icon there
+                'sm:h-10 sm:w-48 sm:justify-start sm:pl-3 sm:pr-2 lg:w-10 lg:justify-center lg:px-0 2xl:w-52 2xl:justify-start 2xl:pl-3 2xl:pr-2 3xl:w-96',
+                'bg-background shadow-[inset_0_1px_2px_rgb(0_0_0/0.45)] hover:border-foreground/25 hover:text-foreground',
+                'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                className,
+            )}
+            title={`Search (${quickSearchKeys.join(' ')})`}
             onClick={() => setQuickSearchOpen(true)}
         >
-            <SearchIcon className="h-6 w-6 sm:h-4 sm:w-4 shrink-0" />
-            <span className="hidden sm:inline">Search</span>
-            <kbd className="hidden sm:inline ml-auto rounded border bg-background/60 px-1.5 py-0.5 font-mono text-xs tracking-wide">
-                {quickSearchShortcut}
-            </kbd>
+            <PiMagnifyingGlass className="h-6 w-6 shrink-0 sm:h-4 sm:w-4" />
+            <span className="hidden truncate sm:inline lg:hidden 2xl:inline 3xl:hidden">Search</span>
+            <span className="hidden truncate 3xl:inline">Search players, actions and pages</span>
+            <span className="ml-auto hidden shrink-0 gap-1 sm:flex lg:hidden 2xl:flex">
+                {quickSearchKeys.map((key) => (
+                    <kbd key={key} className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-b-2 bg-muted px-1 font-sans text-[0.6875rem] font-semibold text-muted-foreground">
+                        {key}
+                    </kbd>
+                ))}
+            </span>
         </button>
     );
 }
