@@ -4,7 +4,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { useDebounceValue } from "usehooks-ts";
 import { navigate as setLocation } from "wouter/use-browser-location";
 import {
-    PiArrowElbowDownLeft, PiArrowsDownUp, PiBank, PiCertificate, PiFileText, PiGavel, PiMagnifyingGlass,
+    PiArrowElbowDownLeft, PiArrowsDownUp, PiBank, PiCar, PiCertificate, PiFileText, PiGavel, PiMagnifyingGlass,
     PiPrinter, PiSpinnerGap, PiUser,
 } from "react-icons/pi";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -111,7 +111,8 @@ function useAttentionItems(open: (path: string, title: string) => void): ResultI
 
 
 /**
- * Ctrl+K: search players (name, identifier, citizen ID), actions by ID and pages. With nothing typed
+ * Ctrl+K: search players (name, identifier, citizen ID, character name), vehicles (plate, VIN, model,
+ * nickname), actions by ID and pages. With nothing typed
  * it shows recent lookups, queues waiting on staff and who is online. The highlighted player shows
  * on the right with quick actions.
  */
@@ -233,7 +234,23 @@ function QuickSearchBody({ close }: { close: () => void }) {
                 onSelect: () => openAction(action.id, label),
             };
         });
-        items = [...actionItems, ...playerItems, ...pageItems];
+        const vehicleItems: ResultItem[] = (data?.vehicles ?? []).map((vehicle) => {
+            const owner = vehicle.owner;
+            const detail = [vehicle.model, owner ? owner.characterName ?? owner.displayName : 'No Owner'].filter(Boolean).join(' · ');
+            return {
+                key: `vehicle:${vehicle.plate}`,
+                group: 'Vehicles',
+                icon: <PiCar />,
+                label: vehicle.plate,
+                detail,
+                aside: vehicle.detail && <span className="max-w-[12rem] truncate font-mono text-xs text-muted-foreground">{vehicle.detail}</span>,
+                preview: owner
+                    ? { kind: 'player', license: owner.license }
+                    : { kind: 'other', icon: <PiCar />, title: vehicle.plate, detail },
+                onSelect: () => owner && openPlayer(owner.license, owner.displayName),
+            };
+        });
+        items = [...actionItems, ...playerItems, ...vehicleItems, ...pageItems];
     }
     const selectedIndex = Math.min(activeIndex, Math.max(items.length - 1, 0));
     const selected = items[selectedIndex];
@@ -268,7 +285,7 @@ function QuickSearchBody({ close }: { close: () => void }) {
             <input
                 autoFocus
                 className="h-full w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
-                placeholder="Player Name, Identifier, Citizen ID, Action ID or Page"
+                placeholder="Player, Identifier, Citizen ID, Plate, VIN, Action ID or Page"
                 maxLength={128}
                 value={query}
                 onChange={(e) => {

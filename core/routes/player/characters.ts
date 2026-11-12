@@ -13,6 +13,18 @@ const LICENSE_REGEX = /^license2?:[0-9a-f]+$/i;
 
 const nullableString = z.string().nullable().default(null);
 const nullableNumber = z.number().nullable().default(null);
+//only a search returns vehicles
+const vehicleSchema = z.object({
+    plate: z.string(),
+    fakePlate: nullableString,
+    vin: nullableString,
+    model: nullableString,
+    nickname: nullableString,
+    citizenId: nullableString,
+    ownerName: nullableString,
+    license: nullableString,
+    license2: nullableString,
+});
 const charactersRespSchema = z.object({
     characters: z.array(z.object({
         citizenId: z.string(),
@@ -38,6 +50,7 @@ const charactersRespSchema = z.object({
         license: nullableString,
         license2: nullableString,
     })),
+    vehicles: z.array(vehicleSchema).default([]),
 });
 const errorRespSchema = z.object({ error: z.string() });
 
@@ -46,9 +59,11 @@ export type GameCharacter = PlayerCharacter & {
     license: string | null;
     license2: string | null;
 };
+export type GameVehicle = z.infer<typeof vehicleSchema>;
 type CharactersLookupResult = {
     status: 'ok';
     characters: GameCharacter[];
+    vehicles: GameVehicle[];
 } | {
     status: 'unavailable';
     reason: string;
@@ -57,7 +72,8 @@ type CharactersLookupResult = {
 
 /**
  * Asks the monitor resource (resource/sv_characters.lua) for the QBox characters of these licenses,
- * with these citizen IDs, or whose citizen ID or name contains a search text. The lookup runs in FXServer through oxmysql, so tfAdmin needs no
+ * with these citizen IDs, or whose citizen ID or name contains a search text. A search also
+ * returns the vehicles whose plate, VIN, model or nickname contains the text. The lookup runs in FXServer through oxmysql, so tfAdmin needs no
  * database credentials.
  */
 export async function lookupCharacters(filter: { licenses: string[] } | { citizenIds: string[] } | { search: string }): Promise<CharactersLookupResult> {
@@ -86,7 +102,7 @@ export async function lookupCharacters(filter: { licenses: string[] } | { citize
 
     const parsed = charactersRespSchema.safeParse(resp);
     if (parsed.success) {
-        return { status: 'ok', characters: parsed.data.characters };
+        return { status: 'ok', ...parsed.data };
     }
 
     //older resources refused anything without licenses, or anything but citizen IDs

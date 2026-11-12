@@ -5,7 +5,7 @@ import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
 import { lookupCharacters } from '@routes/player/characters';
 import type { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import type { DatabasePlayerType } from '@modules/Database/databaseTypes';
-import type { QuickSearchPlayer, QuickSearchResp } from '@shared/quickSearchApiTypes';
+import type { QuickSearchPlayer, QuickSearchResp, QuickSearchVehicle } from '@shared/quickSearchApiTypes';
 
 const RESULT_LIMIT = 8;
 //shorter identifier fragments match too many players to be useful
@@ -50,7 +50,7 @@ function matchIdFragments(players: DatabasePlayerType[], q: string) {
 
 /**
  * Panel quick search (Ctrl+K): finds players by name, identifier, citizen ID or character name,
- * and actions by id. Identifiers and citizen IDs match on any part, names match fuzzily.
+ * vehicles by plate, VIN, model or nickname, and actions by id. Identifiers and citizen IDs match on any part, names match fuzzily.
  */
 export default async function QuickSearch(ctx: AuthedCtx) {
     const sendTypedResp = (data: QuickSearchResp) => ctx.send(data);
@@ -82,8 +82,10 @@ export default async function QuickSearch(ctx: AuthedCtx) {
     }
     const idFragments = matchIdFragments(allPlayers, q);
 
-    //Citizen IDs and character names, from the game database
+    //Citizen IDs, character names and vehicles, from the game database
+    const findPlayer = (licenses: (string | null)[]) => allPlayers.find((p) => licenses.some((id) => id && p.ids.includes(id)));
     const characters: Match[] = [];
+    const vehicles: QuickSearchVehicle[] = [];
     let citizenIdNotice: string | null = null;
     if (characterSearchRegex.test(q)) {
         const result = await lookupCharacters({ search: q });
@@ -92,9 +94,23 @@ export default async function QuickSearch(ctx: AuthedCtx) {
             if (/\d/.test(q) && !/\s/.test(q)) citizenIdNotice = result.reason;
         } else {
             for (const character of result.characters) {
-                const licenses = [character.license, character.license2].filter((id): id is string => !!id);
-                const player = allPlayers.find((p) => licenses.some((id) => p.ids.includes(id)));
+                const player = findPlayer([character.license, character.license2]);
                 if (player) characters.push([player, `Citizen ID ${character.citizenId} (${character.fullName})`]);
+            }
+            const lowerQ = q.toLowerCase();
+            for (const vehicle of result.vehicles.slice(0, RESULT_LIMIT)) {
+                const player = findPlayer([vehicle.license, vehicle.license2]);
+                let detail = vehicle.vin && `VIN ${vehicle.vin}`;
+                if (vehicle.fakePlate?.toLowerCase().includes(lowerQ)) detail = `Fake Plate ${vehicle.fakePlate}`;
+                else if (vehicle.nickname?.toLowerCase().includes(lowerQ)) detail = vehicle.nickname;
+                vehicles.push({
+                    plate: vehicle.plate,
+                    model: vehicle.model,
+                    detail,
+                    owner: player
+                        ? { license: player.license, displayName: player.displayName, characterName: vehicle.ownerName }
+                        : null,
+                });
             }
         }
     }
@@ -123,6 +139,7 @@ export default async function QuickSearch(ctx: AuthedCtx) {
 
     return sendTypedResp({
         players: [...players.values()],
+        vehicles,
         actions,
         citizenIdNotice,
     });

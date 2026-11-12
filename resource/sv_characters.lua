@@ -4,6 +4,7 @@ if not TX_SERVER_MODE then return end
 -- =============================================
 -- Everfall: QBox character lookup for the player modal and quick search.
 -- Core POSTs { txAdminToken } plus licenses, citizenIds or search to /monitor/characters;
+-- a search also returns the vehicles whose plate, VIN, model or nickname contains it;
 -- sv_main.lua routes it here.
 -- Read-only: one SELECT through oxmysql, so it also works for offline players.
 -- =============================================
@@ -47,6 +48,25 @@ local CHARACTERS_QUERY = [[
     ORDER BY %sp.last_updated DESC
     LIMIT ]] .. ROW_LIMIT
 
+-- Vehicles for quick search, with the owning character's licenses so core can find the player
+local VEHICLES_SEARCH_QUERY = [[
+    SELECT
+        v.plate AS plate,
+        v.fakeplate AS fakePlate,
+        v.vin AS vin,
+        v.vehicle AS model,
+        v.nickname AS nickname,
+        v.citizenid AS citizenId,
+        ]] .. FULL_NAME_SQL .. [[ AS ownerName,
+        u.license AS license,
+        u.license2 AS license2
+    FROM player_vehicles v
+    LEFT JOIN players p ON p.citizenid = v.citizenid AND p.deleted IS NULL
+    LEFT JOIN users u ON u.userId = p.userId
+    WHERE v.plate LIKE ? OR v.fakeplate LIKE ? OR v.vin LIKE ? OR v.vehicle LIKE ? OR v.nickname LIKE ?
+    ORDER BY v.plate LIKE ? DESC, v.plate
+    LIMIT ]] .. ROW_LIMIT
+
 -- ef_scoreboard's JobConfig colors, the same ones ef_administration shows: a Mantine color
 -- name such as 'teal.7' or a hex code. Read once; the config file is a plain returned table.
 local jobColors
@@ -79,7 +99,8 @@ local function readKeys(list, pattern)
     return list
 end
 
--- Returns the WHERE clause, the ORDER BY prefix and their parameters, or nil for an invalid request
+-- Returns the WHERE clause, the ORDER BY prefix, their parameters and the search text when it is
+-- a search, or nil for an invalid request
 local function readFilter(body)
     local data = json.decode(body)
     if type(data) ~= 'table' or data.txAdminToken ~= TX_LUACOMTOKEN then return nil end
@@ -89,7 +110,7 @@ local function readFilter(body)
         -- citizen IDs are upper case; a citizen ID that starts with the text ranks first
         local upper = search:upper()
         local where = ('(p.citizenid LIKE ? OR %s LIKE ?)'):format(FULL_NAME_SQL)
-        return where, 'p.citizenid LIKE ? DESC, ', { '%' .. upper .. '%', '%' .. search .. '%', upper .. '%' }
+        return where, 'p.citizenid LIKE ? DESC, ', { '%' .. upper .. '%', '%' .. search .. '%', upper .. '%' }, search
     end
 
     local citizenIds = data.citizenIds and readKeys(data.citizenIds, CITIZEN_ID_PATTERN)
@@ -109,7 +130,19 @@ local function readFilter(body)
     return ('(u.license IN (%s) OR u.license2 IN (%s))'):format(marks, marks), '', params
 end
 
-local function queryCharacters(res, where, order, params)
+local function searchVehicles(res, search, characters)
+    local contains = '%' .. search .. '%'
+    local params = { contains, contains, contains, contains, contains, search .. '%' }
+    exports.oxmysql:query(VEHICLES_SEARCH_QUERY, params, function(rows, err)
+        if err then
+            txPrint('^1Vehicle search failed: ' .. tostring(err))
+            return sendJson(res, 500, { error = 'vehicle query failed' })
+        end
+        sendJson(res, 200, { characters = characters, vehicles = rows })
+    end, GetCurrentResourceName(), true)
+end
+
+local function queryCharacters(res, where, order, params, search)
     if GetResourceState('oxmysql') ~= 'started' then
         return sendJson(res, 503, { error = 'oxmysql is not started' })
     end
@@ -126,6 +159,7 @@ local function queryCharacters(res, where, order, params)
                 and exports.qbx_core:GetPlayerByCitizenId(row.citizenId) ~= nil
         end
 
+        if search then return searchVehicles(res, search, rows) end
         sendJson(res, 200, { characters = rows })
     end, GetCurrentResourceName(), true)
 end
@@ -140,12 +174,12 @@ function TxHandleCharactersHttp(req, res)
             return sendJson(res, 400, { error = 'invalid request' })
         end
 
-        local where, order, params = readFilter(body)
+        local where, order, params, search = readFilter(body)
         if not where then
             return sendJson(res, 401, { error = 'invalid request' })
         end
 
-        queryCharacters(res, where, order, params)
+        queryCharacters(res, where, order, params, search)
     end)
 end
 
