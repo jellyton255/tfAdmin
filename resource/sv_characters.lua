@@ -3,7 +3,7 @@ if not TX_SERVER_MODE then return end
 
 -- =============================================
 -- Everfall: QBox character lookup for the player modal and quick search.
--- Core POSTs { txAdminToken, licenses } or { txAdminToken, citizenIds } to /monitor/characters;
+-- Core POSTs { txAdminToken } plus licenses, citizenIds or search to /monitor/characters;
 -- sv_main.lua routes it here.
 -- Read-only: one SELECT through oxmysql, so it also works for offline players.
 -- =============================================
@@ -12,12 +12,17 @@ local MAX_BODY_LENGTH = 4096
 local MAX_KEYS = 16
 local LICENSE_PATTERN = '^license2?:%x+$'
 local CITIZEN_ID_PATTERN = '^%w+$'
+-- quick search text: a citizen ID or character name fragment, never a LIKE wildcard
+local SEARCH_PATTERN = "^%w[%w '%-]+$"
+local MAX_SEARCH_LENGTH = 64
+local ROW_LIMIT = 50
+local FULL_NAME_SQL = "COALESCE(NULLIF(p.fullName, ''), TRIM(CONCAT_WS(' ', p.firstName, p.lastName)))"
 
 local CHARACTERS_QUERY = [[
     SELECT
         p.citizenid AS citizenId,
         p.cid AS slot,
-        COALESCE(NULLIF(p.fullName, ''), TRIM(CONCAT_WS(' ', p.firstName, p.lastName))) AS fullName,
+        ]] .. FULL_NAME_SQL .. [[ AS fullName,
         p.firstName AS firstName,
         p.lastName AS lastName,
         DATE_FORMAT(p.dateOfBirth, '%%Y-%%m-%%d') AS dateOfBirth,
@@ -39,8 +44,8 @@ local CHARACTERS_QUERY = [[
     JOIN users u ON u.userId = p.userId
     WHERE %s
         AND p.deleted IS NULL
-    ORDER BY p.last_updated DESC
-]]
+    ORDER BY %sp.last_updated DESC
+    LIMIT ]] .. ROW_LIMIT
 
 -- ef_scoreboard's JobConfig colors, the same ones ef_administration shows: a Mantine color
 -- name such as 'teal.7' or a hex code. Read once; the config file is a plain returned table.
@@ -74,15 +79,23 @@ local function readKeys(list, pattern)
     return list
 end
 
--- Returns the WHERE clause and its parameters, or nil for an invalid request
+-- Returns the WHERE clause, the ORDER BY prefix and their parameters, or nil for an invalid request
 local function readFilter(body)
     local data = json.decode(body)
     if type(data) ~= 'table' or data.txAdminToken ~= TX_LUACOMTOKEN then return nil end
 
+    local search = data.search
+    if type(search) == 'string' and #search <= MAX_SEARCH_LENGTH and search:match(SEARCH_PATTERN) then
+        -- citizen IDs are upper case; a citizen ID that starts with the text ranks first
+        local upper = search:upper()
+        local where = ('(p.citizenid LIKE ? OR %s LIKE ?)'):format(FULL_NAME_SQL)
+        return where, 'p.citizenid LIKE ? DESC, ', { '%' .. upper .. '%', '%' .. search .. '%', upper .. '%' }
+    end
+
     local citizenIds = data.citizenIds and readKeys(data.citizenIds, CITIZEN_ID_PATTERN)
     if citizenIds then
         local marks = ('?,'):rep(#citizenIds):sub(1, -2)
-        return ('p.citizenid IN (%s)'):format(marks), citizenIds
+        return ('p.citizenid IN (%s)'):format(marks), '', citizenIds
     end
 
     local licenses = readKeys(data.licenses, LICENSE_PATTERN)
@@ -93,15 +106,15 @@ local function readFilter(body)
         params[index] = license
         params[#licenses + index] = license
     end
-    return ('(u.license IN (%s) OR u.license2 IN (%s))'):format(marks, marks), params
+    return ('(u.license IN (%s) OR u.license2 IN (%s))'):format(marks, marks), '', params
 end
 
-local function queryCharacters(res, where, params)
+local function queryCharacters(res, where, order, params)
     if GetResourceState('oxmysql') ~= 'started' then
         return sendJson(res, 503, { error = 'oxmysql is not started' })
     end
 
-    exports.oxmysql:query(CHARACTERS_QUERY:format(where), params, function(rows, err)
+    exports.oxmysql:query(CHARACTERS_QUERY:format(where, order), params, function(rows, err)
         if err then
             txPrint('^1Character lookup failed: ' .. tostring(err))
             return sendJson(res, 500, { error = 'character query failed' })
@@ -127,12 +140,12 @@ function TxHandleCharactersHttp(req, res)
             return sendJson(res, 400, { error = 'invalid request' })
         end
 
-        local where, params = readFilter(body)
+        local where, order, params = readFilter(body)
         if not where then
             return sendJson(res, 401, { error = 'invalid request' })
         end
 
-        queryCharacters(res, where, params)
+        queryCharacters(res, where, order, params)
     end)
 end
 

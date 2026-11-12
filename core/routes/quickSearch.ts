@@ -8,15 +8,49 @@ import type { DatabasePlayerType } from '@modules/Database/databaseTypes';
 import type { QuickSearchPlayer, QuickSearchResp } from '@shared/quickSearchApiTypes';
 
 const RESULT_LIMIT = 8;
+//shorter identifier fragments match too many players to be useful
+const MIN_ID_FRAGMENT = 3;
 const querySchema = z.object({ q: z.string().trim().min(1).max(128) });
 //the first 4 characters of an action id or more, such as B1AB or B1AB-2C
 const actionIdRegex = /^[BWKS][1-9A-HJ-NP-Z]{3}(-[1-9A-HJ-NP-Z]{0,4})?$/;
-//QBox citizen IDs are short and alphanumeric, with letters and digits
-const citizenIdRegex = /^(?=.*\d)(?=.*[a-z])[a-z\d]{6,12}$/i;
+//what sv_characters.lua accepts for a citizen ID or character name search
+const characterSearchRegex = /^[a-z\d][a-z\d '-]{1,63}$/i;
+
+type Match = [DatabasePlayerType, string | null];
+
+/**
+ * Identifiers that start with or contain the query. Without a type prefix ("discord:")
+ * the query is matched against the value after the colon.
+ */
+function matchIdFragments(players: DatabasePlayerType[], q: string) {
+    const prefix: Match[] = [];
+    const contains: Match[] = [];
+    const lowerQ = q.toLowerCase();
+    const hasType = lowerQ.includes(':');
+    const fragmentLength = hasType ? lowerQ.length - lowerQ.indexOf(':') - 1 : lowerQ.length;
+    if (fragmentLength < MIN_ID_FRAGMENT || /\s/.test(lowerQ)) return { prefix, contains };
+
+    for (const p of players) {
+        let containsId: string | undefined;
+        for (const id of p.ids) {
+            const target = hasType ? id : id.slice(id.indexOf(':') + 1);
+            const index = target.indexOf(lowerQ);
+            if (index === 0) {
+                prefix.push([p, id]);
+                containsId = undefined;
+                break;
+            }
+            if (index > 0) containsId ??= id;
+        }
+        if (containsId) contains.push([p, containsId]);
+    }
+    return { prefix, contains };
+}
 
 
 /**
- * Panel quick search (Ctrl+K): finds players by name, identifier or citizen ID, and actions by id.
+ * Panel quick search (Ctrl+K): finds players by name, identifier, citizen ID or character name,
+ * and actions by id. Identifiers and citizen IDs match on any part, names match fuzzily.
  */
 export default async function QuickSearch(ctx: AuthedCtx) {
     const sendTypedResp = (data: QuickSearchResp) => ctx.send(data);
@@ -37,41 +71,47 @@ export default async function QuickSearch(ctx: AuthedCtx) {
             .map((a) => ({ id: a.id, type: a.type, playerName: a.playerName, reason: a.reason }))
         : [];
 
-    //Exact matches (identifiers, citizen IDs) come before name matches
-    const exact: [DatabasePlayerType, string][] = [];
+    //Whole identifiers
+    const exact: Match[] = [];
     const { validIds, validHwids, invalids } = parseLaxIdsArrayInput(q);
-    const isIdSearch = !invalids.length && (validIds.length > 0 || validHwids.length > 0);
-    if (isIdSearch) {
+    if (!invalids.length && (validIds.length > 0 || validHwids.length > 0)) {
         for (const p of allPlayers) {
             const matched = validIds.find((id) => p.ids.includes(id)) ?? validHwids.find((hwid) => p.hwids.includes(hwid));
             if (matched) exact.push([p, matched]);
         }
     }
+    const idFragments = matchIdFragments(allPlayers, q);
 
+    //Citizen IDs and character names, from the game database
+    const characters: Match[] = [];
     let citizenIdNotice: string | null = null;
-    if (citizenIdRegex.test(q)) {
-        const result = await lookupCharacters({ citizenIds: [upperQ] });
+    if (characterSearchRegex.test(q)) {
+        const result = await lookupCharacters({ search: q });
         if (result.status === 'unavailable') {
-            citizenIdNotice = result.reason;
+            //a failed lookup only matters when the query could be a citizen ID
+            if (/\d/.test(q) && !/\s/.test(q)) citizenIdNotice = result.reason;
         } else {
             for (const character of result.characters) {
                 const licenses = [character.license, character.license2].filter((id): id is string => !!id);
                 const player = allPlayers.find((p) => licenses.some((id) => p.ids.includes(id)));
-                if (player) exact.push([player, `Citizen ID ${character.citizenId} (${character.fullName})`]);
+                if (player) characters.push([player, `Citizen ID ${character.citizenId} (${character.fullName})`]);
             }
         }
     }
 
+    //Player names, fuzzy and anywhere in the name
     const { pureName } = cleanPlayerName(q);
-    const byName = pureName === 'emptyname' || isIdSearch
+    const byName: Match[] = pureName === 'emptyname' || !/[a-z]/i.test(q)
         ? []
-        : new Fuse(allPlayers, { keys: ['pureName'], threshold: 0.3 })
+        : new Fuse(allPlayers, { keys: ['pureName'], threshold: 0.35, ignoreLocation: true })
             .search(pureName, { limit: RESULT_LIMIT })
-            .map(({ item }): [DatabasePlayerType, null] => [item, null]);
+            .map(({ item }) => [item, null]);
 
     const onlineLicenses = txCore.fxPlayerlist.getOnlinePlayersLicenses();
     const players = new Map<string, QuickSearchPlayer>();
-    for (const [p, matched] of [...exact, ...byName]) {
+    const ranked = [...exact, ...idFragments.prefix, ...characters, ...byName, ...idFragments.contains];
+    for (const [p, matched] of ranked) {
+        if (players.size >= RESULT_LIMIT) break;
         if (players.has(p.license)) continue;
         players.set(p.license, {
             license: p.license,
@@ -82,7 +122,7 @@ export default async function QuickSearch(ctx: AuthedCtx) {
     }
 
     return sendTypedResp({
-        players: [...players.values()].slice(0, RESULT_LIMIT),
+        players: [...players.values()],
         actions,
         citizenIdNotice,
     });

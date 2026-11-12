@@ -57,10 +57,10 @@ type CharactersLookupResult = {
 
 /**
  * Asks the monitor resource (resource/sv_characters.lua) for the QBox characters of these licenses,
- * or with these citizen IDs. The lookup runs in FXServer through oxmysql, so tfAdmin needs no
+ * with these citizen IDs, or whose citizen ID or name contains a search text. The lookup runs in FXServer through oxmysql, so tfAdmin needs no
  * database credentials.
  */
-export async function lookupCharacters(filter: { licenses: string[] } | { citizenIds: string[] }): Promise<CharactersLookupResult> {
+export async function lookupCharacters(filter: { licenses: string[] } | { citizenIds: string[] } | { search: string }): Promise<CharactersLookupResult> {
     const child = txCore.fxRunner.child;
     if (!child?.isAlive || !child.netEndpoint) {
         return { status: 'unavailable', reason: 'The game server is not running.' };
@@ -89,11 +89,11 @@ export async function lookupCharacters(filter: { licenses: string[] } | { citize
         return { status: 'ok', characters: parsed.data.characters };
     }
 
-    //before the citizen ID lookup, the resource refused anything without licenses
+    //older resources refused anything without licenses, or anything but citizen IDs
     const gameError = errorRespSchema.safeParse(resp);
     const isOutdated = gameError.success && (
         gameError.data.error === 'route not found'
-        || ('citizenIds' in filter && gameError.data.error === 'invalid request')
+        || (!('licenses' in filter) && gameError.data.error === 'invalid request')
     );
     if (isOutdated) {
         return { status: 'unavailable', reason: 'The game server needs a restart to load the character lookup.' };
