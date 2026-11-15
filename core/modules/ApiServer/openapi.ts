@@ -521,7 +521,7 @@ const paths: Record<string, Schema> = {
             tag: 'Actions', summary: 'Search bans, warns and kicks',
             params: [
                 paramQ('q', str({ maxLength: 256 })),
-                paramQ('type', enumOf(['id', 'reason', 'name', 'ids']), 'What `q` matches (default ids); `reason` also searches staff notes; `name` is a fuzzy player name search'),
+                paramQ('type', enumOf(['id', 'reason', 'name', 'character', 'ids']), 'What `q` matches (default ids); `reason` also searches staff notes; `name` is a fuzzy player name search; `character` matches the owners of a QBox character by name or citizen ID'),
                 paramQ('kind', enumOf(['ban', 'warn', 'kick', 'sanction'])),
                 paramQ('author', str()),
                 paramQ('status', enumOf(['active', 'revoked']), '`active` = not revoked; kicks and game sanctions are never active'),

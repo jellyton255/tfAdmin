@@ -11,11 +11,12 @@ import type { ApiActionRecord } from '@shared/apiV1Types';
 import { notesNewestFirst, visibleNotes } from '@lib/notes';
 import { toApiActionNote } from '@modules/ApiServer/services/actionNotes';
 import { presetRuleUrl } from '@lib/presetRule';
+import { characterSearchRegex, findCharacterOwnerIds } from '@routes/player/characters';
 
 export const idParamSchema = z.object({ id: z.string().trim().min(1).max(32) });
 export const searchQuerySchema = z.object({
     q: z.string().trim().min(1).max(256).optional(),
-    type: z.enum(['id', 'reason', 'name', 'ids']).default('ids'),
+    type: z.enum(['id', 'reason', 'name', 'character', 'ids']).default('ids'),
     kind: z.enum(['ban', 'warn', 'kick', 'sanction']).optional(),
     author: z.string().trim().min(1).max(128).optional(),
     status: z.enum(['active', 'revoked']).optional(),
@@ -78,10 +79,11 @@ export const toApiAction = (a: DatabaseActionType, currTs = now()): ApiActionRec
 
 
 /**
- * GET /api/v1/actions?q=&type=ids|id|reason|name&kind=ban|warn|kick|sanction&author=&status=active|revoked
+ * GET /api/v1/actions?q=&type=ids|id|reason|name|character&kind=ban|warn|kick|sanction&author=&status=active|revoked
  *     &hasNotes=true|false&order=desc|asc&limit=50&cursor=
  * Mirrors the panel's History table search, with cursor pagination.
- * `type=reason` searches the reason and the staff notes. Kicks are never active.
+ * `type=reason` searches the reason and the staff notes. `type=character` matches players who own a
+ * QBox character with that name or citizen ID. Kicks are never active.
  */
 export async function search(ctx: ApiKeyCtx) {
     const query = searchQuerySchema.parse(ctx.query);
@@ -122,6 +124,13 @@ export async function search(ctx: ApiKeyCtx) {
         } else if (query.type === 'name') {
             const fuse = new Fuse(actions, { keys: ['playerName'], threshold: 0.3 });
             actions = fuse.search(query.q).map((x) => x.item);
+        } else if (query.type === 'character') {
+            if (!characterSearchRegex.test(query.q)) {
+                throw new ApiError(400, 'VALIDATION_ERROR', 'Enter at least 2 letters or numbers of a character name or citizen ID.');
+            }
+            const found = await findCharacterOwnerIds(query.q);
+            if ('error' in found) throw new ApiError(503, 'SERVER_OFFLINE', found.error);
+            actions = actions.filter((a) => a.ids.some((id) => found.ids.has(id)));
         } else {
             const { validIds, validHwids, invalids } = parseLaxIdsArrayInput(query.q);
             if (invalids.length) {

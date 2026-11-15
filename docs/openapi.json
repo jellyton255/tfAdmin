@@ -1952,10 +1952,11 @@
                 "id",
                 "reason",
                 "name",
+                "character",
                 "ids"
               ]
             },
-            "description": "What `q` matches (default ids); `reason` also searches staff notes; `name` is a fuzzy player name search"
+            "description": "What `q` matches (default ids); `reason` also searches staff notes; `name` is a fuzzy player name search; `character` matches the owners of a QBox character by name or citizen ID"
           },
           {
             "name": "kind",
