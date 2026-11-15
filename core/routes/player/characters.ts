@@ -70,6 +70,10 @@ type CharactersLookupResult = {
 };
 
 
+//what sv_characters.lua accepts for a citizen ID or character name search
+export const characterSearchRegex = /^[a-z\d][a-z\d '-]{1,63}$/i;
+
+
 /**
  * Asks the monitor resource (resource/sv_characters.lua) for the QBox characters of these licenses,
  * with these citizen IDs, or whose citizen ID or name contains a search text. A search also
@@ -148,3 +152,24 @@ export default async function PlayerCharacters(ctx: AuthedCtx) {
 
     return sendTypedResp(await lookupCharacters({ licenses: licenses.slice(0, 16) }));
 };
+
+
+/**
+ * Identifiers (license: and license2:) of the players who own a character whose name or citizen ID
+ * contains the text, for the Players and History searches.
+ */
+export async function findCharacterOwnerIds(search: string): Promise<{ ids: Set<string> } | { error: string }> {
+    const text = search.trim();
+    if (!characterSearchRegex.test(text)) {
+        return { error: 'Enter at least 2 letters or numbers of a character name or citizen ID.' };
+    }
+    const result = await lookupCharacters({ search: text });
+    if (result.status === 'unavailable') return { error: result.reason };
+
+    const ids = new Set<string>();
+    for (const character of result.characters) {
+        if (character.license) ids.add(character.license);
+        if (character.license2) ids.add(character.license2);
+    }
+    return { ids };
+}

@@ -30,6 +30,12 @@ export const availableSearchTypes = [
         description: 'Search players by their last display name.'
     },
     {
+        value: 'characterName',
+        label: 'Character Name',
+        placeholder: 'Enter a character name or citizen ID',
+        description: 'Search players by the name or citizen ID of one of their characters.'
+    },
+    {
         value: 'playerNotes',
         label: 'Notes',
         placeholder: 'Enter part of the note to search for',

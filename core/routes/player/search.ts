@@ -10,6 +10,7 @@ import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
 import { newestNote } from '@lib/notes';
 import { hasTag } from '@lib/player/playerTags';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
+import { findCharacterOwnerIds } from '@routes/player/characters';
 const console = consoleFactory(modulename);
 
 //Helpers
@@ -124,6 +125,11 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
             });
             const filtered = fuse.search(pureName).map(x => x.item);
             chain = createChain(filtered);
+        } else if (searchType === 'characterName') {
+            //Searching by QBox character name or citizen ID, through the game database
+            const found = await findCharacterOwnerIds(searchValue);
+            if ('error' in found) return sendTypedResp({ error: found.error });
+            chain = chain.filter((p) => p.ids.some((id) => found.ids.has(id)));
         } else if (searchType === 'playerNotes') {
             //Searching by player notes
             const players = chain.value();

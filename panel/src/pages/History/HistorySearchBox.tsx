@@ -44,6 +44,12 @@ export const availableSearchTypes = [
         description: 'Search actions by their reason or staff notes.'
     },
     {
+        value: 'characterName',
+        label: 'Character Name',
+        placeholder: 'Enter a character name or citizen ID',
+        description: 'Search actions against players who own a character with that name or citizen ID.'
+    },
+    {
         value: 'identifiers',
         label: 'Player IDs',
         placeholder: 'License, Discord, Steam, etc.',

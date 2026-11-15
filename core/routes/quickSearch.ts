@@ -2,7 +2,7 @@ import { z } from 'zod';
 import Fuse from 'fuse.js';
 import cleanPlayerName from '@shared/cleanPlayerName';
 import { parseLaxIdsArrayInput } from '@lib/player/idUtils';
-import { lookupCharacters } from '@routes/player/characters';
+import { characterSearchRegex, lookupCharacters } from '@routes/player/characters';
 import type { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import type { DatabasePlayerType } from '@modules/Database/databaseTypes';
 import type { QuickSearchPlayer, QuickSearchResp, QuickSearchVehicle } from '@shared/quickSearchApiTypes';
@@ -13,8 +13,6 @@ const MIN_ID_FRAGMENT = 3;
 const querySchema = z.object({ q: z.string().trim().min(1).max(128) });
 //the first 4 characters of an action id or more, such as B1AB or B1AB-2C
 const actionIdRegex = /^[BWKS][1-9A-HJ-NP-Z]{3}(-[1-9A-HJ-NP-Z]{0,4})?$/;
-//what sv_characters.lua accepts for a citizen ID or character name search
-const characterSearchRegex = /^[a-z\d][a-z\d '-]{1,63}$/i;
 
 type Match = [DatabasePlayerType, string | null];
 

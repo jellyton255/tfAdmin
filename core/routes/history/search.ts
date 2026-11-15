@@ -14,6 +14,7 @@ import {
 } from '@shared/historyApiTypes';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
 import { visibleNotes } from '@lib/notes';
+import { findCharacterOwnerIds } from '@routes/player/characters';
 const console = consoleFactory(modulename);
 
 //Helpers
@@ -123,6 +124,11 @@ export default async function HistorySearch(ctx: AuthedCtx) {
             });
             const filtered = fuse.search(searchValue).map(x => x.item.action);
             chain = createChain(filtered);
+        } else if (searchType === 'characterName') {
+            //Searching by QBox character name or citizen ID, through the game database
+            const found = await findCharacterOwnerIds(searchValue);
+            if ('error' in found) return sendTypedResp({ error: found.error });
+            chain = chain.filter((a) => a.ids.some((id) => found.ids.has(id)));
         } else if (searchType === 'identifiers') {
             //Searching by target identifiers
             const { validIds, validHwids, invalids } = parseLaxIdsArrayInput(searchValue);
