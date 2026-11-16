@@ -145,6 +145,7 @@ export default function ConfigCardBans({ cardCtx, pageCtx }: SettingsCardProps) 
                     autoComplete="off"
                     minHeight={60}
                     maxHeight={180}
+                    softMaxLength={512}
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>

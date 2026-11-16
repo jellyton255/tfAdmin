@@ -129,11 +129,11 @@ export default function BanTemplatesInputDialog({
                             <DialogTitle>{reasonData ? 'Edit' : 'Add'} Preset</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-6 items-center gap-4">
-                            <Label htmlFor="presetName" className="col-span-6 sm:col-auto">
+                            <Label htmlFor="banTemplateName" className="col-span-6 sm:col-auto">
                                 Name
                             </Label>
                             <Input
-                                id="presetName"
+                                id="banTemplateName"
                                 ref={nameRef}
                                 placeholder="RDM"
                                 className="col-span-full sm:col-span-5"
@@ -142,36 +142,34 @@ export default function BanTemplatesInputDialog({
                             />
                         </div>
                         <div className="grid grid-cols-6 items-center gap-4">
-                            <Label htmlFor="reason" className="col-span-6 sm:col-auto">
+                            <Label htmlFor="banTemplateReason" className="col-span-6 sm:col-auto">
                                 Reason
                             </Label>
-                            {/* the textarea renders inside its own wrapper, so the wrapper takes the grid span */}
-                            <div className="col-span-full sm:col-span-5">
-                                <AutosizeTextarea
-                                    id="reason"
-                                    placeholder="The reason for the ban, rule violated, etc."
-                                    defaultValue={reasonData?.reason ?? ''}
-                                    ref={reasonRef}
-                                    maxHeight={160}
-                                    minLength={3}
-                                    autoFocus
-                                    required
-                                    onChangeCapture={(e) => {
-                                        //prevent breaking line
-                                        const target = e.target as HTMLInputElement;
-                                        if (target.value.includes('\n')) {
-                                            target.value = target.value.replace(/\s*\r*\n+\s*/g, ' ');
-                                        }
-                                    }}
-                                />
-                            </div>
+                            <AutosizeTextarea
+                                id="banTemplateReason"
+                                placeholder="The reason for the ban, rule violated, etc."
+                                className="col-span-full sm:col-span-5"
+                                defaultValue={reasonData?.reason ?? ''}
+                                ref={reasonRef}
+                                maxHeight={160}
+                                minLength={3}
+                                autoFocus
+                                required
+                                onChangeCapture={(e) => {
+                                    //prevent breaking line
+                                    const target = e.target as HTMLInputElement;
+                                    if (target.value.includes('\n')) {
+                                        target.value = target.value.replace(/\s*\r*\n+\s*/g, ' ');
+                                    }
+                                }}
+                            />
                         </div>
                         <div className="grid grid-cols-6 items-center gap-4">
-                            <Label htmlFor="ruleUrl" className="col-span-6 sm:col-auto">
+                            <Label htmlFor="banTemplateRuleUrl" className="col-span-6 sm:col-auto">
                                 Rule Link
                             </Label>
                             <Input
-                                id="ruleUrl"
+                                id="banTemplateRuleUrl"
                                 ref={ruleUrlRef}
                                 type="url"
                                 placeholder="https://everfallcommunity.com/rules/general#roleplay-regulations-rule-1"
