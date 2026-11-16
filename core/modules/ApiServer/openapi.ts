@@ -12,6 +12,7 @@ type Schema = Record<string, any>;
 const ref = (name: string): Schema => ({ $ref: `#/components/schemas/${name}` });
 const str = (extra: Schema = {}): Schema => ({ type: 'string', ...extra });
 const int = (extra: Schema = {}): Schema => ({ type: 'integer', ...extra });
+const num = (extra: Schema = {}): Schema => ({ type: 'number', ...extra });
 const bool = (): Schema => ({ type: 'boolean' });
 const nullable = (schema: Schema): Schema => ({ oneOf: [schema, { type: 'null' }] });
 const arr = (items: Schema): Schema => ({ type: 'array', items });
@@ -148,6 +149,11 @@ const schemas: Record<string, Schema> = {
         }),
         scheduler: obj({ nextRestartAt: nullable(epochMs()), nextSkip: bool(), nextIsTemp: bool() }),
         discord: obj({ status: enumOf(['disabled', 'starting', 'ready', 'error']) }),
+        host: obj({
+            cpuCount: int(), cpuUsage: num({ description: 'percent of all cores' }),
+            memoryUsedGb: num(), memoryTotalGb: num(),
+            fxServerMemoryMb: nullable(num({ description: 'null until the server reports it' })),
+        }),
     }),
     OnlinePlayer: obj({ netid: int(), displayName: str(), pureName: str(), license: nullable(str()), connectedAt: epochMs(), ids: arr(str()) }),
     PlayerSummary: obj({

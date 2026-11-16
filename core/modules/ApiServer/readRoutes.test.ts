@@ -160,6 +160,7 @@ beforeAll(async () => {
             ],
         },
         cacheStore: { get: () => undefined },
+        metrics: { svRuntime: { getFxsMemory: () => 812.5 } },
         logger: { admin: { write: () => { }, basePath: tmpDir } },
         fxRunner,
         fxResources: { resourceReport },
@@ -232,6 +233,9 @@ describe('GET /api/v1/status', () => {
         expect(r.json.data.scheduler.nextRestartAt).toBeGreaterThan(Date.now());
         expect(r.json.data.discord.status).toBe('ready');
         expect(r.json.data.txAdmin.version).toBeTypeOf('string');
+        expect(r.json.data.host.cpuCount).toBeGreaterThan(0);
+        expect(r.json.data.host.memoryTotalGb).toBeGreaterThan(0);
+        expect(r.json.data.host.fxServerMemoryMb).toBe(812.5);
     });
 });
 

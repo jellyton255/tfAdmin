@@ -140,6 +140,13 @@ export type ApiStatusResp = ApiResp<{
     discord: {
         status: 'disabled' | 'starting' | 'ready' | 'error';
     };
+    host: {
+        cpuCount: number;
+        cpuUsage: number; //percent of all cores
+        memoryUsedGb: number;
+        memoryTotalGb: number;
+        fxServerMemoryMb: number | null; //null until the server reports it
+    };
 }>;
 
 

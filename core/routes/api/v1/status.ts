@@ -1,4 +1,5 @@
 import { txEnv } from '@core/globalData';
+import getHostUsage from '@lib/host/getHostUsage';
 import { DiscordBotStatus } from '@shared/enums';
 import { sendData } from '@modules/ApiServer/envelope';
 import type { ApiKeyCtx } from '@modules/ApiServer/apiKeyAuthMw';
@@ -19,6 +20,7 @@ export default async function ApiStatus(ctx: ApiKeyCtx) {
     const global = txManager.globalStatus;
     const host = txManager.hostStatus;
     const now = Date.now();
+    const hostUsage = await getHostUsage();
     const data: Extract<ApiStatusResp, { data: any }>['data'] = {
         txAdmin: {
             version: txEnv.txaVersion,
@@ -48,6 +50,13 @@ export default async function ApiStatus(ctx: ApiKeyCtx) {
         },
         discord: {
             status: DISCORD_STATUS_NAMES[global.discord] ?? 'error',
+        },
+        host: {
+            cpuCount: hostUsage.cpu.count,
+            cpuUsage: hostUsage.cpu.usage,
+            memoryUsedGb: hostUsage.memory.used,
+            memoryTotalGb: hostUsage.memory.total,
+            fxServerMemoryMb: txCore.metrics.svRuntime.getFxsMemory() ?? null,
         },
     };
     return sendData(ctx, data);

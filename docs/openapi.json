@@ -5244,13 +5244,51 @@
               "status"
             ],
             "additionalProperties": false
+          },
+          "host": {
+            "type": "object",
+            "properties": {
+              "cpuCount": {
+                "type": "integer"
+              },
+              "cpuUsage": {
+                "type": "number",
+                "description": "percent of all cores"
+              },
+              "memoryUsedGb": {
+                "type": "number"
+              },
+              "memoryTotalGb": {
+                "type": "number"
+              },
+              "fxServerMemoryMb": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "description": "null until the server reports it"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "cpuCount",
+              "cpuUsage",
+              "memoryUsedGb",
+              "memoryTotalGb",
+              "fxServerMemoryMb"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
           "txAdmin",
           "server",
           "scheduler",
-          "discord"
+          "discord",
+          "host"
         ],
         "additionalProperties": false
       },
