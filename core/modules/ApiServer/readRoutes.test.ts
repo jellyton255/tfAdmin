@@ -118,6 +118,7 @@ beforeAll(async () => {
                     resourceReport.ts = new Date();
                     resourceReport.resources = [
                         { name: 'ef-core', status: 'started', path: '/srv/data/resources/[ef]/ef-core', version: ' 1.2.0 ', author: 'Everfall' },
+                        { name: 'ef-loaded', status: 'loaded', path: '/srv/data/resources/[ef]/ef-loaded' },
                         { name: 'broken', status: 'stopped', path: '' },
                         { name: 'monitor', status: 'started', path: '/opt/fx/citizen/system_resources/monitor' },
                     ];
@@ -428,6 +429,7 @@ describe('admins and resources', () => {
         expect(r.status).toBe(200);
         expect(r.json.data.resources).toEqual([
             { name: 'ef-core', status: 'started', path: 'resources/[ef]/ef-core', version: '1.2.0', author: 'Everfall', description: null },
+            { name: 'ef-loaded', status: 'stopped', path: 'resources/[ef]/ef-loaded', version: null, author: null, description: null },
             { name: 'monitor', status: 'started', path: '/opt/fx/citizen/system_resources/monitor', version: null, author: null, description: null },
         ]);
     });

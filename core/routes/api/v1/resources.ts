@@ -32,7 +32,7 @@ export default async function ApiResources(ctx: ApiKeyCtx) {
         .filter((r) => typeof r?.name === 'string' && typeof r?.status === 'string' && typeof r?.path === 'string' && r.path.length)
         .map((r): ApiResourceRecord => ({
             name: r.name,
-            status: r.status,
+            status: r.status === 'loaded' ? 'stopped' : r.status,
             path: toRelativePath(r.path),
             version: typeof r.version === 'string' && r.version.trim() ? r.version.trim() : null,
             author: typeof r.author === 'string' && r.author.trim() ? r.author.trim() : null,

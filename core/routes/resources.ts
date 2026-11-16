@@ -70,7 +70,7 @@ export default async function Resources(ctx: AuthedCtx) {
         }
         group.resources.push({
             name: resource.name,
-            status: resource.status,
+            status: resource.status === 'loaded' ? 'stopped' : resource.status,
             version: trimOrNull(resource.version),
             author: trimOrNull(resource.author),
             description: trimOrNull(resource.description),
