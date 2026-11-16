@@ -5,6 +5,7 @@ import consoleFactory from '@lib/console';
 import { SvRtFileSchema, isSvRtLogDataType, isValidPerfThreadName, SvRtNodeMemorySchema } from './perfSchemas';
 import type { SvRtFileType, SvRtLogDataType, SvRtLogType, SvRtNodeMemoryType, SvRtPerfBoundariesType, SvRtPerfCountsType } from './perfSchemas';
 import { didPerfReset, diffPerfs, fetchFxsMemory, fetchRawPerfData } from './perfUtils';
+import { parseRawPerf } from './perfParser';
 import { optimizeSvRuntimeLog } from './logOptimizer';
 import { txDevEnv, txEnv } from '@core/globalData';
 import { ZodError } from 'zod';
@@ -20,6 +21,7 @@ const console = consoleFactory(modulename);
 //Consts
 const LOG_DATA_FILE_VERSION = 1;
 const LOG_DATA_FILE_NAME = 'stats_svRuntime.json';
+const RAW_PERF_FILE_NAME = 'perf.txt';
 
 
 /**
@@ -28,6 +30,7 @@ const LOG_DATA_FILE_NAME = 'stats_svRuntime.json';
  */
 export default class SvRuntimeMetrics {
     private readonly logFilePath = `${txEnv.profilePath}/data/${LOG_DATA_FILE_NAME}`;
+    private readonly rawPerfFilePath = `${txEnv.profilePath}/data/${RAW_PERF_FILE_NAME}`;
     private statsLog: SvRtLogType = [];
     private lastFxsMemory: number | undefined;
     private lastNodeMemory: SvRtNodeMemoryType | undefined;
@@ -190,7 +193,13 @@ export default class SvRuntimeMetrics {
         }
         if (fetchRawPerfDataRes.status === 'rejected') throw fetchRawPerfDataRes.reason;
 
-        const { perfBoundaries, perfMetrics } = fetchRawPerfDataRes.value;
+        // Save before parsing so an unrecognized response remains available for diagnosis.
+        const rawPerf = fetchRawPerfDataRes.value;
+        fsp.writeFile(this.rawPerfFilePath, rawPerf).catch((error) => {
+            console.verbose.warn(`[raw_perf_snapshot_write_failed] Failed to save ${RAW_PERF_FILE_NAME} with message: ${error.message}`);
+        });
+
+        const { perfBoundaries, perfMetrics } = parseRawPerf(rawPerf);
         txCore.metrics.txRuntime.perfCollectionTime.count(collectionTime.milliseconds);
 
         //Check for min tick count

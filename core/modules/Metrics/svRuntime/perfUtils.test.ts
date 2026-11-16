@@ -1,5 +1,14 @@
-import { expect, it, suite } from 'vitest';
-import { diffPerfs, didPerfReset } from './perfUtils';
+import { expect, it, suite, vi } from 'vitest';
+import { diffPerfs, didPerfReset, fetchRawPerfData } from './perfUtils';
+
+const { requestText } = vi.hoisted(() => ({ requestText: vi.fn<() => Promise<string>>() }));
+vi.mock('@lib/got', () => ({ default: () => ({ text: requestText }) }));
+
+it('returns the raw performance response even when its format is unrecognized', async () => {
+    const raw = '# Unrecognized performance format\nnew_metric 1\n';
+    requestText.mockResolvedValueOnce(raw);
+    expect(await fetchRawPerfData('127.0.0.1:30122')).toBe(raw);
+});
 
 
 suite('diffPerfs', () => {
